@@ -14,20 +14,21 @@
    ```
    `-oA` produit `<SRC_IP>.xml/.gnmap/.nmap`. Priorite de parsing : xml > gnmap > nmap.
 
-3. **(Optionnel) Alias multi-interfaces** `alias.csv` — pour exclure les autres pattes
-   d'un meme hote qui se verrait lui-meme dans son scan :
+   Machines multi-interfaces (admin, service, iLO, supervision...) : une ligne par
+   interface, meme `nom`. Sans nom, la machine = l'IP. Une IP en double est une erreur.
    ```
-   ip_principale;ip_secondaire
-   10.0.2.1;192.168.50.1
+   10.0.2.1;T1-service;vm;app-01
+   10.9.0.1;T0-admin;vm;app-01
+   10.8.0.1;ilo;ilo;app-01
    ```
 
-4. **Generation** :
+3. **Generation** :
    ```bash
-   python3 seg_matrix.py -i inventaire.csv -s ./scans/ -o ./report/ --aliases alias.csv --host-graph
+   python3 seg_matrix.py -i inventaire.csv -s ./scans/ -o ./report/ --host-graph
    ```
 
 ## Exclusion du self
-L'IP source (et ses alias eventuels) est systematiquement retiree des resultats :
+Toutes les interfaces de la machine source sont systematiquement retirees des resultats :
 un scan qui se voit lui-meme en local affiche typiquement de nombreux ports "open"
 qui fausseraient la matrice.
 
@@ -51,9 +52,15 @@ en `filtered` (-> bloque) au lieu d'etre absentes.
 
 ## Verdicts
 - `OPEN`  : >=1 port open -> service joignable
-- `o`     : ports closed / host up -> flux admis jusqu'a l'hote (cloisonnement permeable, sans service)
+- `o`     : ports closed (RST) -> flux L4 admis jusqu'a l'hote (cloisonnement permeable, sans service)
+- `~`     : vivant (ping/ARP), aucun port qui passe -> hors `-Pn` uniquement
 - `x`     : filtered / down -> bloque
 - `.`     : cible absente de la sortie du scan (non vu)
+
+## Graphes
+La zone colore le fond de son cadre. Chaque machine multi-interfaces a sa propre
+couleur de noeud, et ses interfaces sont reliees par un pointille gris ; les machines
+a une seule interface restent en blanc borde de la couleur de zone.
 
 ## Rapport HTML
 `report.html` charge mermaid.js depuis un CDN (jsdelivr) : prevoir une connexion au

@@ -18,30 +18,31 @@ Le script recoupe chaque scan avec l'inventaire CSV (ip;zone;type;nom) et produi
   - findings.md               : expositions inter-zones + anomalies
   - report.html               : rendu standalone a onglets (Global / Par source / Anomalies)
 
-EXCLUSION DU SELF
------------------
-L'IP source apparait dans son propre scan (souvent avec de nombreux ports "open"
-en scan local). Elle est systematiquement exclue des resultats. Pour les hotes
-multi-interfaces, un fichier d'alias optionnel (`--aliases ip;ip_secondaire`)
-permet d'exclure aussi les autres pattes du meme hote.
+MACHINES MULTI-INTERFACES & EXCLUSION DU SELF
+---------------------------------------------
+Chaque ligne d'inventaire est une interface (une IP dans une zone). Les lignes de
+meme `nom` forment une machine (sans nom : machine = IP). Toutes les interfaces de
+la machine source sont exclues de son scan (elle se voit elle-meme en local).
+Une IP en double dans l'inventaire est une erreur.
 
 SEMANTIQUE DE CLOISONNEMENT
 ---------------------------
   OPEN       : >=1 port "open"        -> service joignable (acces effectif)
-  REACHABLE  : 0 open mais des closed -> trafic admis jusqu'a l'hote (RST recu / host up)
-               / host up                 = la segmentation laisse passer le flux L3/L4
+  REACHABLE  : 0 open mais des closed -> RST recu, le flux L4 traverse la segmentation
+  ALIVE      : aucun port, host up    -> repond en L3/L2 (ping/ARP) ; jamais en -Pn
   BLOCKED    : uniquement "filtered"  -> flux bloque (isolation OK) / host down
   NON-VU     : cible absente de la sortie du scan
 
 USAGE
 -----
   python3 seg_matrix.py -i inventaire.csv -s ./scans/ -o ./report/
-  python3 seg_matrix.py -i inventaire.csv -s ./scans/ --aliases alias.csv --host-graph
+  python3 seg_matrix.py -i inventaire.csv -s ./scans/ --host-graph
 """
 
 from __future__ import annotations
 
 import argparse
+import colorsys
 import csv
 import html
 import os
@@ -53,10 +54,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
-OPEN, REACH, BLOCK, NODATA = 2, 1, 0, -1
-VERDICT_NAME = {OPEN: "OPEN", REACH: "REACHABLE", BLOCK: "BLOCKED", NODATA: "NON-VU"}
-SYM = {OPEN: "OPEN", REACH: "o", BLOCK: "x", NODATA: "."}
-VCLASS = {OPEN: "v-open", REACH: "v-reach", BLOCK: "v-block", NODATA: "v-none"}
+OPEN, REACH, ALIVE, BLOCK, NODATA = 3, 2, 1, 0, -1
+VERDICT_NAME = {OPEN: "OPEN", REACH: "REACHABLE", ALIVE: "ALIVE", BLOCK: "BLOCKED", NODATA: "NON-VU"}
+SYM = {OPEN: "OPEN", REACH: "o", ALIVE: "~", BLOCK: "x", NODATA: "."}
+VCLASS = {OPEN: "v-open", REACH: "v-reach", ALIVE: "v-alive", BLOCK: "v-block", NODATA: "v-none"}
 SCAN_EXT_PRIORITY = (".xml", ".gnmap", ".nmap")
 
 # Palette de zones (fill, stroke, texte) — moderne, cyclique
@@ -91,6 +92,25 @@ def zone_palette(inv) -> Dict[str, Tuple[str, str, str]]:
     return {z: ZONE_COLORS[i % len(ZONE_COLORS)] for i, z in enumerate(zones)}
 
 
+def machine_palette(inv) -> Dict[str, Tuple[str, str, str]]:
+    """Couleur propre (fill, stroke, texte) par machine multi-interfaces ; teintes a angle d'or."""
+    count = defaultdict(int)
+    for h in inv.values():
+        count[h.machine] += 1
+    multi = sorted(m for m, n in count.items() if n > 1)
+
+    def hexc(h, l, s):
+        return "#" + "".join(f"{round(c * 255):02x}" for c in colorsys.hls_to_rgb(h, l, s))
+    return {m: (hexc(i * 0.618 % 1, .85, .75), hexc(i * 0.618 % 1, .40, .70), hexc(i * 0.618 % 1, .20, .60))
+            for i, m in enumerate(multi)}
+
+
+def ordered_ips(inv) -> List[str]:
+    """IPs de l'inventaire, interfaces d'une meme machine cote a cote (ordre de 1re apparition)."""
+    rank = {m: i for i, m in enumerate(dict.fromkeys(h.machine for h in inv.values()))}
+    return sorted(inv, key=lambda ip: rank[inv[ip].machine])
+
+
 def detect_pn(path: str) -> bool:
     """Detecte l'option -Pn dans l'entete du fichier nmap (args xml / commentaire gnmap)."""
     try:
@@ -101,7 +121,7 @@ def detect_pn(path: str) -> bool:
 
 
 # =============================================================================
-# Inventaire & alias
+# Inventaire
 # =============================================================================
 @dataclass
 class Host:
@@ -111,8 +131,12 @@ class Host:
     nom: str
 
     @property
-    def short(self) -> str:
+    def machine(self) -> str:
         return self.nom or self.ip
+
+    @property
+    def short(self) -> str:
+        return f"{self.nom} · {self.ip}" if self.nom else self.ip
 
 
 def load_inventory(path: str) -> Dict[str, Host]:
@@ -125,6 +149,9 @@ def load_inventory(path: str) -> Dict[str, Host]:
             if row[0].lower() in ("ip", "adresse", "address"):
                 continue
             ip = row[0]
+            if ip in hosts:
+                sys.exit(f"[!] IP en double dans {path} : {ip} ({hosts[ip].zone}/{hosts[ip].nom} "
+                         f"et {';'.join(row[1:])}) — une interface n'appartient qu'a une zone")
             hosts[ip] = Host(
                 ip=ip,
                 zone=row[1] if len(row) > 1 else "?",
@@ -134,19 +161,6 @@ def load_inventory(path: str) -> Dict[str, Host]:
     if not hosts:
         sys.exit(f"[!] Aucun hote charge depuis {path} (attendu : ip;zone;type;nom)")
     return hosts
-
-
-def load_aliases(path: Optional[str]) -> Dict[str, Set[str]]:
-    """Fichier optionnel : ip_principale;ip_interface_secondaire (1 par ligne)."""
-    al: Dict[str, Set[str]] = defaultdict(set)
-    if not path:
-        return al
-    with open(path, newline="", encoding="utf-8-sig", errors="replace") as fh:
-        for row in csv.reader(fh, delimiter=";"):
-            row = [c.strip() for c in row if c and c.strip()]
-            if len(row) >= 2 and row[0].lower() not in ("ip", "adresse"):
-                al[row[0]].add(row[1])
-    return al
 
 
 # =============================================================================
@@ -293,7 +307,7 @@ def classify(rec: Optional[dict], pn: bool) -> Cell:
     elif filtered > 0:
         v = BLOCK
     elif not pn:
-        v = REACH if up else BLOCK   # vrai retour L3 (ICMP/RST) -> hote joignable
+        v = ALIVE if up else BLOCK   # repond en L3/L2 (ping/ARP) sans port qui passe
     else:
         v = NODATA         # -Pn : 'host up' non informatif, aucune donnee de port exploitable
     return Cell(v, open_ports)
@@ -318,7 +332,7 @@ def _zone_cell(a) -> Tuple[str, str]:
 # =============================================================================
 # Matrice
 # =============================================================================
-def build_matrix(inv, scans, aliases, force_pn=False) -> Tuple[Dict[str, Dict[str, Cell]], List[str], List[str], int]:
+def build_matrix(inv, scans, force_pn=False) -> Tuple[Dict[str, Dict[str, Cell]], List[str], List[str], int]:
     parsed = {ip: parse_scan(path) for ip, path in scans.items()}
     pn_of = {ip: (True if force_pn else detect_pn(path)) for ip, path in scans.items()}
     matrix: Dict[str, Dict[str, Cell]] = {}
@@ -327,12 +341,12 @@ def build_matrix(inv, scans, aliases, force_pn=False) -> Tuple[Dict[str, Dict[st
         if src not in parsed:
             continue
         pn = pn_of[src]
-        self_ips = {src} | aliases.get(src, set())
+        self_ips = {ip for ip, h in inv.items() if h.machine == inv[src].machine}
         seen = parsed[src]
         for dip, rec in seen.items():
             if dip in self_ips or dip in inv:
                 continue
-            if classify(rec, pn).verdict >= REACH:
+            if classify(rec, pn).verdict >= ALIVE:
                 unknown.add(dip)
         row = {dst: classify(seen.get(dst), pn) for dst in inv if dst not in self_ips}
         matrix[src] = row
@@ -388,19 +402,38 @@ def _edge(a, b, verdict, cross, label, idx, w_open="2.5px", w_reach="2px"):
             f"  linkStyle {idx} stroke:{col},stroke-width:{w_reach},stroke-dasharray:5 4,stroke-linecap:round;")
 
 
-def _zone_subgraphs(zones, pal, node_label) -> List[str]:
-    """classDef + subgraph par zone ; zones = {zone: [ip]}, node_label(ip) -> texte du noeud."""
+def _zone_subgraphs(zones, inv, node_label) -> List[str]:
+    """classDef + subgraph par zone ; zones = {zone: [ip]}, node_label(ip) -> texte du noeud.
+    La zone colore le fond du sous-graphe ; le noeud prend la couleur de sa machine si elle est
+    multi-interfaces, sinon un fond blanc borde de la couleur de zone."""
+    pal, mpal = zone_palette(inv), machine_palette(inv)
     L = []
     for z in sorted(zones):
         f, s, t = pal[z]
-        L.append(f'  classDef z_{_zid(z)} fill:{f},stroke:{s},stroke-width:1.5px,color:{t};')
+        L.append(f'  classDef z_{_zid(z)} fill:#ffffff,stroke:{s},stroke-width:1.5px,color:{t};')
+    for m, (f, s, t) in sorted(mpal.items()):
+        L.append(f'  classDef m_{_zid(m)} fill:{f},stroke:{s},stroke-width:2px,color:{t};')
     for z, ips in sorted(zones.items()):
         f, s, t = pal[z]
         L.append(f'  subgraph {_zid(z)}["{_safe(z)}"]')
-        L += [f'    {_hid(ip)}("{node_label(ip)}"):::z_{_zid(z)}' for ip in ips]
+        L += [f'    {_hid(ip)}("{node_label(ip)}"):::'
+              + (f"m_{_zid(inv[ip].machine)}" if inv[ip].machine in mpal else f"z_{_zid(z)}") for ip in ips]
         L.append("  end")
-        L.append(f'  style {_zid(z)} fill:{f}55,stroke:{s},stroke-width:1px,color:{t}')
+        L.append(f'  style {_zid(z)} fill:{f}aa,stroke:{s},stroke-width:1px,color:{t}')
     return L
+
+
+def _machine_links(ips, inv, idx):
+    """Pointille gris sans fleche entre interfaces d'une meme machine presentes dans le graphe."""
+    by_m = defaultdict(list)
+    for ip in ips:
+        by_m[inv[ip].machine].append(ip)
+    lines, styles = [], []
+    for group in by_m.values():
+        for a, b in zip(group, group[1:]):
+            lines.append(f"  {_hid(a)} -.- {_hid(b)}")
+            styles.append(f"  linkStyle {idx + len(styles)} stroke:#94a3b8,stroke-width:1px,stroke-dasharray:2 3;")
+    return lines, styles
 
 
 def mermaid_zone(agg, inv) -> str:
@@ -422,7 +455,6 @@ def mermaid_zone(agg, inv) -> str:
 
 def mermaid_source(src, row, inv) -> str:
     """Vue radiale moderne : source (hexagone) + cibles joignables, groupees/teintees par zone."""
-    pal = zone_palette(inv)
     reach = {d: c for d, c in row.items() if c.verdict >= REACH}
     if not reach:
         return (MERMAID_INIT + "\nflowchart LR\n"
@@ -434,7 +466,7 @@ def mermaid_source(src, row, inv) -> str:
     L = [MERMAID_INIT, "flowchart LR",
          f'  S{{{{"{_safe(inv[src].short)}<br/><small>{_safe(inv[src].zone)} · source</small>"}}}}',
          "  style S fill:#1f2937,stroke:#0f172a,stroke-width:2px,color:#ffffff"]
-    L += _zone_subgraphs(zones, pal,
+    L += _zone_subgraphs(zones, inv,
                          lambda ip: f"{_safe(inv[ip].short)}<br/><small>{_safe(inv[ip].htype)}</small>")
     styles = []
     for d, c in reach.items():
@@ -442,15 +474,16 @@ def mermaid_source(src, row, inv) -> str:
         line, style = _edge("S", _hid(d), c.verdict, inv[src].zone != inv[d].zone, label, len(styles))
         L.append(line)
         styles.append(style)
-    return "\n".join(L + styles)
+    ml, ms = _machine_links(list(reach), inv, len(styles))
+    return "\n".join(L + ml + styles + ms)
 
 
 def mermaid_hosts(matrix, inv) -> str:
     zones = defaultdict(list)
-    for ip, h in inv.items():
-        zones[h.zone].append(ip)
+    for ip in ordered_ips(inv):
+        zones[inv[ip].zone].append(ip)
     L = [MERMAID_INIT, "flowchart LR"]
-    L += _zone_subgraphs(zones, zone_palette(inv), lambda ip: _safe(inv[ip].short))
+    L += _zone_subgraphs(zones, inv, lambda ip: _safe(inv[ip].short))
     styles = []
     for s, row in matrix.items():
         for d, c in row.items():
@@ -460,34 +493,35 @@ def mermaid_hosts(matrix, inv) -> str:
                                 _ports_label([p for p, _ in c.open_ports]), len(styles), w_open="2px")
             L.append(line)
             styles.append(style)
-    return "\n".join(L + styles)
+    ml, ms = _machine_links(ordered_ips(inv), inv, len(styles))
+    return "\n".join(L + ml + styles + ms)
 
 
 # =============================================================================
 # Sorties markdown / csv
 # =============================================================================
 def write_host_matrix_md(matrix, inv, out_dir):
-    srcs = [ip for ip in inv if ip in matrix]
-    dsts = list(inv.keys())
+    dsts = ordered_ips(inv)
+    srcs = [ip for ip in dsts if ip in matrix]
     with open(os.path.join(out_dir, "matrix_hosts.csv"), "w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh, delimiter=";")
         w.writerow(["source", "destination", "src_zone", "dst_zone", "verdict", "open_ports"])
         for s in srcs:
             for d in dsts:
-                if d == s:
+                if inv[d].machine == inv[s].machine:
                     continue
                 c = matrix[s].get(d, Cell())
                 w.writerow([s, d, inv[s].zone, inv[d].zone, VERDICT_NAME[c.verdict],
                             ",".join(str(p) for p, _ in c.open_ports)])
     lines = ["# Matrice consolidee hote -> hote", "",
-             "Legende : `OPEN`=service joignable | `o`=joignable (closed/host up) | "
-             "`x`=bloque | `.`=non vu | `-`=soi-meme", "",
+             "Legende : `OPEN`=service joignable | `o`=joignable (closed) | `~`=vivant (ping/ARP) | "
+             "`x`=bloque | `.`=non vu | `-`=meme machine", "",
              "| source \\ cible | " + " | ".join(inv[d].short for d in dsts) + " |",
              "|" + "---|" * (len(dsts) + 1)]
     for s in srcs:
         cells = []
         for d in dsts:
-            if d == s:
+            if inv[d].machine == inv[s].machine:
                 cells.append("-")
                 continue
             cells.append(_cell_txt(matrix[s].get(d, Cell())))
@@ -590,6 +624,7 @@ thead th{position:sticky;top:0;background:#eef1f6;z-index:2;}
 tbody th{position:sticky;left:0;background:#f3f5f9;text-align:left;z-index:1;}
 .v-open{background:#d7f5dd;color:#04611f;font-weight:600;}
 .v-reach{background:#fdebcf;color:#8a5200;}
+.v-alive{background:#e4ecf7;color:#3b5578;}
 .v-block{background:#f6dada;color:#8a1a1a;}
 .v-none{background:#f1f1f3;color:#9aa3b2;}
 .v-self{background:#e9eef6;color:#5a6b86;}
@@ -635,18 +670,24 @@ def _cell_html(c: Cell) -> str:
 
 
 def _host_matrix_html(matrix, inv) -> str:
-    srcs = [ip for ip in inv if ip in matrix]
-    dsts = list(inv.keys())
-    head = "".join(f"<th>{html.escape(inv[d].short)}</th>" for d in dsts)
+    dsts = ordered_ips(inv)
+    srcs = [ip for ip in dsts if ip in matrix]
+    mpal = machine_palette(inv)
+
+    def th(ip):
+        m = mpal.get(inv[ip].machine)
+        style = f' style="background:{m[0]};color:{m[2]}"' if m else ""
+        return f"<th{style}>{html.escape(inv[ip].short)}</th>"
+    head = "".join(th(d) for d in dsts)
     rows = []
     for s in srcs:
         cells = []
         for d in dsts:
-            if d == s:
+            if inv[d].machine == inv[s].machine:
                 cells.append('<td class="v-self">-</td>')
             else:
                 cells.append(_cell_html(matrix[s].get(d, Cell())))
-        rows.append(f'<tr><th>{html.escape(inv[s].short)}</th>{"".join(cells)}</tr>')
+        rows.append(f'<tr>{th(s)}{"".join(cells)}</tr>')
     return (f'<div class="tablewrap"><table><thead><tr><th>source \\ cible</th>{head}</tr></thead>'
             f'<tbody>{"".join(rows)}</tbody></table></div>')
 
@@ -669,8 +710,8 @@ def _zone_matrix_html(agg, inv) -> str:
 
 def _source_table_html(src, row, inv) -> str:
     rows = []
-    for d in inv:
-        if d == src:
+    for d in ordered_ips(inv):
+        if inv[d].machine == inv[src].machine:
             continue
         c = row.get(d, Cell())
         ports = ",".join(str(p) for p, _ in c.open_ports)
@@ -714,10 +755,11 @@ def _zone_legend_html(inv) -> str:
 
 
 def write_html(matrix, inv, agg, exp, missing, unknown, out_dir):
-    srcs = [ip for ip in inv if ip in matrix]
+    srcs = [ip for ip in ordered_ips(inv) if ip in matrix]
     legend = ('<div class="legend">'
               '<span class="v-open">OPEN service</span>'
               '<span class="v-reach">joignable (closed)</span>'
+              '<span class="v-alive">vivant (ping/ARP)</span>'
               '<span class="v-block">bloque</span>'
               '<span class="v-none">non vu</span>'
               '<span style="color:#e11d48">— rouge = inter-zone OPEN</span></div>')
@@ -730,8 +772,15 @@ def write_html(matrix, inv, agg, exp, missing, unknown, out_dir):
             "<h2>Exposition par cible</h2>", _exposure_html(exp, inv)]
 
     # Onglet par source
-    options = "".join(f'<option value="src_{_hid(s)}">{html.escape(inv[s].short)} ({inv[s].zone})</option>'
-                      for s in srcs)
+    by_m = defaultdict(list)
+    for s in srcs:
+        by_m[inv[s].machine].append(s)
+    options = "".join(
+        f'<optgroup label="{html.escape(m)}">'
+        + "".join(f'<option value="src_{_hid(s)}">{html.escape(inv[s].short)} ({html.escape(inv[s].zone)})</option>'
+                  for s in ips)
+        + "</optgroup>"
+        for m, ips in by_m.items())
     src_panes = []
     for i, s in enumerate(srcs):
         disp = "block" if i == 0 else "none"
@@ -779,19 +828,17 @@ def main():
     ap.add_argument("-i", "--inventory", required=True, help="CSV inventaire (ip;zone;type;nom)")
     ap.add_argument("-s", "--scans", required=True, help="Repertoire des sorties nmap (<ip>.xml/.gnmap/.nmap)")
     ap.add_argument("-o", "--out", default="./seg_report", help="Repertoire de sortie")
-    ap.add_argument("--aliases", help="CSV optionnel ip;ip_secondaire (hotes multi-interfaces)")
     ap.add_argument("--pn", action="store_true", help="Force le mode -Pn (host-up ignore, verdict sur ports seuls)")
     ap.add_argument("--host-graph", action="store_true", help="Genere aussi le Mermaid global au niveau hote")
     args = ap.parse_args()
 
     os.makedirs(os.path.join(args.out, "mermaid"), exist_ok=True)
     inv = load_inventory(args.inventory)
-    aliases = load_aliases(args.aliases)
     scans = discover_scans(args.scans)
     if not scans:
         sys.exit(f"[!] Aucun scan trouve dans {args.scans} ({', '.join(SCAN_EXT_PRIORITY)})")
 
-    matrix, missing, unknown, pn_count = build_matrix(inv, scans, aliases, force_pn=args.pn)
+    matrix, missing, unknown, pn_count = build_matrix(inv, scans, force_pn=args.pn)
     agg = aggregate_zones(matrix, inv)
     exp = target_exposure(matrix, inv)
 
