@@ -385,6 +385,34 @@ def _anomalies_tab(a: Analysis) -> str:
         "<h2>Ignored scans</h2><p>Source folder or file name is not an inventory IP "
         "(expected: <code>scans/&lt;source_ip&gt;/*.xml</code> "
         f"or <code>scans/&lt;source_ip&gt;.xml</code>).</p><ul>{orphan or '<li>None</li>'}</ul>"
+        "<h2>Asymmetric flows</h2>"
+        '<p class="legend">A reaches B (OPEN or closed ports) while B &rarr; A is blocked: typically a '
+        "one-way firewall rule. Only pairs where both are Sources and both directions tested common "
+        "ports.</p>" + _asymmetry_html(a)
+    )
+
+
+def _asymmetry_html(a: Analysis) -> str:
+    inv = a.inv
+    if not a.asymmetries:
+        return "<p>None among the pairs scanned in both directions.</p>"
+    by_zone: Counter[tuple[str, str]] = Counter((inv[x].zone, inv[y].zone) for x, y in a.asymmetries)
+    summary = "".join(
+        f"<tr><th>{html.escape(zx)}</th><th>{html.escape(zy)}</th><td>{n}</td></tr>"
+        for (zx, zy), n in sorted(by_zone.items())
+    )
+    detail = "".join(
+        f"<tr><th>{html.escape(inv[x].short)}</th><td>{html.escape(inv[x].zone)}</td>"
+        f"<th>{html.escape(inv[y].short)}</th><td>{html.escape(inv[y].zone)}</td>"
+        f"{_cell_html(a.matrix[x][y], a.highlight)}{_cell_html(a.matrix[y][x])}</tr>"
+        for x, y in sorted(a.asymmetries, key=lambda p: (inv[p[0]].zone, inv[p[1]].zone, p))
+    )
+    return (
+        '<div class="tablewrap"><table><thead><tr><th>passes from zone</th><th>to zone</th>'
+        f"<th>interface pairs</th></tr></thead><tbody>{summary}</tbody></table></div>"
+        f"<h3>Detail</h3>{_filter_box()}"
+        '<div class="tablewrap"><table><thead><tr><th>A</th><th>zone</th><th>B</th><th>zone</th>'
+        f"<th>A &rarr; B</th><th>B &rarr; A</th></tr></thead><tbody>{detail}</tbody></table></div>"
     )
 
 

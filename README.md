@@ -58,6 +58,14 @@ The **Port group** selector in the report header restricts every view (matrices,
 exposure) to the OPEN flows on that group's ports. Open `admin` ports are always highlighted:
 red bar on cells, red labels on diagram edges.
 
+## Pivot Machines and asymmetric flows
+- **Pivot Machines** (Global view): machines whose interfaces span several zones and that a
+  Source reaches OPEN. From the Source's zone they are a one-hop path to the machine's other
+  zones (e.g. a user workstation reaching the service interface of a server also in T0).
+- **Asymmetric flows** (Anomalies tab): A reaches B (OPEN or closed ports) while B -> A is
+  blocked, typically a one-way firewall rule. Reported only when both are Sources and both
+  directions tested common ports.
+
 ## Self exclusion
 All interfaces of the source machine are always removed from the results: a scan that
 sees itself locally typically shows many "open" ports that would skew the matrix.

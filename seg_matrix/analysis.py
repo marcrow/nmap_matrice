@@ -10,7 +10,7 @@ from functools import cached_property
 from seg_matrix.inventory import Inventory, ordered_ips
 from seg_matrix.nmap import HostRecord, Scan
 from seg_matrix.port_groups import HIGHLIGHT, PortGroups
-from seg_matrix.ports import Port, in_port_set, merge_ranges
+from seg_matrix.ports import Port, in_port_set, merge_ranges, overlaps
 from seg_matrix.verdict import ALIVE, BLOCK, OPEN, REACH, Cell, classify
 
 Row = dict[str, Cell]  # target ip -> verdict cell
@@ -160,6 +160,24 @@ def pivot_machines(matrix: Matrix, inv: Inventory) -> Pivots:
     return dict(out)
 
 
+def _comparable(a: Cell, b: Cell) -> bool:
+    """Both directions tested some common ports (or a non-XML Scan leaves it unknown)."""
+    if not (a.coverage_known and b.coverage_known):
+        return True
+    return any(overlaps(r, b.tested.get(proto, [])) for proto, r in a.tested.items())
+
+
+def asymmetries(matrix: Matrix) -> list[tuple[str, str]]:
+    """(a, b) where a -> b passes (OPEN/REACHABLE) but b -> a is BLOCKED, both being Sources."""
+    out = []
+    for a, row in matrix.items():
+        for b, ab in row.items():
+            ba = matrix.get(b, {}).get(a)
+            if ba and ab.verdict >= REACH and ba.verdict == BLOCK and _comparable(ab, ba):
+                out.append((a, b))
+    return out
+
+
 @dataclass
 class Analysis:
     """Everything the renderers need, computed once from the inventory and the Scans."""
@@ -191,6 +209,10 @@ class Analysis:
     @cached_property
     def pivots(self) -> Pivots:
         return pivot_machines(self.matrix, self.inv)
+
+    @cached_property
+    def asymmetries(self) -> list[tuple[str, str]]:
+        return asymmetries(self.matrix)
 
     @property
     def highlight(self) -> Callable[[Port], bool]:

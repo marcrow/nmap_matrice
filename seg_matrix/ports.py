@@ -32,6 +32,10 @@ def in_ranges(port: int, ranges: Ranges) -> bool:
     return any(lo <= port <= hi for lo, hi in ranges)
 
 
+def overlaps(a: Ranges, b: Ranges) -> bool:
+    return any(lo1 <= hi2 and lo2 <= hi1 for lo1, hi1 in a for lo2, hi2 in b)
+
+
 def count_ports(ranges: Ranges) -> int:
     return sum(hi - lo + 1 for lo, hi in ranges)
 

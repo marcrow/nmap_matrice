@@ -131,3 +131,25 @@ def test_pivot_machine(tmp_path):
     )
     a = analyze(inv, {"10.1.0.9": [parse_scan(str(scan), "10.1.0.9")]}, [])
     assert a.pivots == {"bastion": [("10.1.0.9", "10.0.1.5", [(22, "tcp")])]}  # web spans one zone only
+
+
+def test_asymmetry_needs_both_directions_tested(tmp_path):
+    inv_path = tmp_path / "inv.csv"
+    inv_path.write_text("10.0.0.1;user;ws;pc\n10.0.0.2;srv;vm;srv\n10.0.0.3;srv;vm;other\n")
+    inv = load_inventory(str(inv_path))
+    xml = (
+        '<nmaprun args="nmap -Pn -p 22"><scaninfo type="syn" protocol="tcp" services="{ports}"/>'
+        '<host><status state="up"/><address addr="{dst}" addrtype="ipv4"/><ports>'
+        '<port protocol="tcp" portid="22"><state state="{state}"/></port></ports></host></nmaprun>'
+    )
+    scans = {}
+    for src, dst, state, ports in [
+        ("10.0.0.1", "10.0.0.2", "open", "22"),
+        ("10.0.0.2", "10.0.0.1", "filtered", "22"),  # reverse blocked, same port tested: asymmetric
+        ("10.0.0.3", "10.0.0.1", "filtered", "22"),
+    ]:
+        path = tmp_path / f"{src}-{dst}.xml"
+        path.write_text(xml.format(dst=dst, state=state, ports=ports))
+        scans.setdefault(src, []).append(parse_scan(str(path), src))
+    a = analyze(inv, scans, [])
+    assert a.asymmetries == [("10.0.0.1", "10.0.0.2")]  # 10.0.0.1 never scanned 10.0.0.3: not reported
