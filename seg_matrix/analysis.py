@@ -192,6 +192,7 @@ class Analysis:
     agg: ZoneMatrix
     exp: Exposure
     port_groups: PortGroups = field(default_factory=dict)
+    force_pn: bool = False
 
     @property
     def sources(self) -> list[str]:
@@ -205,6 +206,13 @@ class Analysis:
     def group_matrices(self) -> dict[str, Matrix]:
         """One restricted matrix per Port Group, for the report's group filter."""
         return {g: restrict(self.matrix, self.in_group(g)) for g in self.port_groups}
+
+    def scan_row(self, scan: Scan) -> Row:
+        """What one Scan alone saw of the inventory (Self excluded): the unit of a Scan Diff."""
+        targets = self.matrix[scan.source]
+        return {
+            d: source_view_cell([(scan, rec)], self.force_pn) for d, rec in scan.hosts.items() if d in targets
+        }
 
     @cached_property
     def pivots(self) -> Pivots:
@@ -230,4 +238,6 @@ def analyze(
     scans = {src: sorted(v, key=lambda sc: (sc.start_ts, sc.name)) for src, v in scans.items()}
     matrix, missing, unknown, pn_count = build_matrix(inv, scans, force_pn)
     agg, exp = aggregate_zones(matrix, inv), target_exposure(matrix, inv)
-    return Analysis(inv, scans, orphan, matrix, missing, unknown, pn_count, agg, exp, port_groups or {})
+    return Analysis(
+        inv, scans, orphan, matrix, missing, unknown, pn_count, agg, exp, port_groups or {}, force_pn
+    )

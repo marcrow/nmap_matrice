@@ -416,6 +416,48 @@ def _asymmetry_html(a: Analysis) -> str:
     )
 
 
+def _diff_cells(row: Row) -> dict:
+    return {
+        d: {
+            "v": VERDICT_NAME[c.verdict],
+            "open": [port_label(p) for p in c.open_ports],
+            "tested": c.tested if c.coverage_known else None,
+        }
+        for d, c in row.items()
+        if c.scans
+    }
+
+
+def _diff_tab(a: Analysis) -> str:
+    """Scan Diff, computed in the browser from the embedded observations of every Scan and Source View."""
+    sets, options = [], []
+    for src in a.sources:
+        h, group = a.inv[src], []
+        for label, row in [(f"Source View ({len(a.scans[src])} scans)", a.matrix[src])] + [
+            (f"{sc.name.split('/', 1)[1]} · {sc.started}", a.scan_row(sc)) for sc in a.scans[src]
+        ]:
+            group.append(f'<option value="{len(sets)}">{html.escape(label)}</option>')
+            sets.append({"label": f"{h.short} — {label}", "cells": _diff_cells(row)})
+        options.append(
+            f'<optgroup label="{html.escape(h.short)} ({html.escape(h.zone)})">{"".join(group)}</optgroup>'
+        )
+    if len(sets) < 2:
+        return "<h2>Scan Diff</h2><p>Needs at least two Scans.</p>"
+    targets = {ip: {"name": h.short, "zone": h.zone} for ip, h in a.inv.items()}
+    data = json.dumps({"sets": sets, "targets": targets}).replace("</", "<\\/")
+    select = "".join(options)
+    return (
+        "<h2>Scan Diff</h2>"
+        '<p class="legend">Compares the open ports seen by two Scans or Source Views: over time '
+        "(same Source, before / after a fix) or across Sources (what one sees that the other does not). "
+        "<b>added</b> = open in B, tested and not open in A; <b>removed</b> = the reverse; "
+        "<b>not comparable</b> = the other side did not test the port (or its Coverage is unknown).</p>"
+        f'<div class="srcbar"><label>A <select id="diff-a" onchange="runDiff()">{select}</select></label>'
+        f'<label>B <select id="diff-b" onchange="runDiff()">{select}</select></label></div>'
+        f'<div id="diff-out"></div><script type="application/json" id="diff-data">{data}</script>'
+    )
+
+
 def _mermaid_script() -> str:
     if MERMAID_JS.is_file():
         return (
@@ -434,6 +476,7 @@ TABS = (
     ("global", "Global view", _global_tab),
     ("persource", "Per source", _persource_tab),
     ("scans", "Scans", _scans_tab),
+    ("diff", "Diff", _diff_tab),
     ("anomalies", "Anomalies", _anomalies_tab),
 )
 

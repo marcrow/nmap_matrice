@@ -126,3 +126,49 @@ function filterRows(inp){
   const q=inp.value.toLowerCase(), rows=inp.nextElementSibling.querySelectorAll('tbody tr');
   rows.forEach(r=>{r.style.display=r.textContent.toLowerCase().includes(q)?'':'none';});
 }
+// Scan Diff: compares the open ports of two observation sets (a Scan or a Source View) per target.
+function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
+function testedOn(cell, label){
+  if(!cell) return false;            // target absent from that side's output
+  if(cell.tested===null) return null; // non-XML Scan: unknown
+  const [proto, port]=label.includes(':')?label.split(':'):['tcp', label];
+  return (cell.tested[proto]||[]).some(([lo,hi])=>+port>=lo && +port<=hi);
+}
+function sideState(cell, label){
+  if(cell && cell.open.includes(label)) return 'open';
+  const t=testedOn(cell, label);
+  return t===true?'not open':t===null?'unknown':'not tested';
+}
+const DIFF_ORDER=['added','removed','not comparable','unchanged'];
+function runDiff(){
+  const D=JSON.parse(document.getElementById('diff-data').textContent);
+  const A=D.sets[+document.getElementById('diff-a').value], B=D.sets[+document.getElementById('diff-b').value];
+  const name=ip=>D.targets[ip]?D.targets[ip].name:ip, zone=ip=>D.targets[ip]?D.targets[ip].zone:'';
+  const rows=[], verdicts=[];
+  for(const t of new Set([...Object.keys(A.cells), ...Object.keys(B.cells)])){
+    const a=A.cells[t], b=B.cells[t], va=a?a.v:'UNSEEN', vb=b?b.v:'UNSEEN';
+    if(a && b && va!==vb) verdicts.push([t, va, vb]);  // a target only one side scanned is not a change
+    for(const p of new Set([...(a?a.open:[]), ...(b?b.open:[])])){
+      const inA=a&&a.open.includes(p), inB=b&&b.open.includes(p);
+      const kind=inA&&inB?'unchanged':inB?(testedOn(a,p)===true?'added':'not comparable')
+                                          :(testedOn(b,p)===true?'removed':'not comparable');
+      rows.push([kind, t, p, sideState(a,p), sideState(b,p)]);
+    }
+  }
+  rows.sort((x,y)=>DIFF_ORDER.indexOf(x[0])-DIFF_ORDER.indexOf(y[0]) || name(x[1]).localeCompare(name(y[1])) || x[2].localeCompare(y[2], undefined, {numeric:true}));
+  const count=k=>rows.filter(r=>r[0]===k).length;
+  const summary=DIFF_ORDER.map(k=>`<span class="d-${k.replace(' ','-')}">${count(k)} ${k}</span>`).join('');
+  const vt=verdicts.map(([t,va,vb])=>`<tr><th>${esc(name(t))}</th><td>${esc(zone(t))}</td><td>${va}</td><td>${vb}</td></tr>`).join('');
+  const pt=rows.map(([k,t,p,sa,sb])=>`<tr><td class="d-${k.replace(' ','-')}">${k}</td><th>${esc(name(t))}</th><td>${esc(zone(t))}</td><td>${esc(p)}</td><td>${sa}</td><td>${sb}</td></tr>`).join('');
+  document.getElementById('diff-out').innerHTML=
+    `<p><b>A</b> ${esc(A.label)}<br><b>B</b> ${esc(B.label)}</p><div class="legend">${summary}</div>`+
+    `<h3>Open ports</h3><input class="filter" placeholder="Filter rows..." oninput="filterRows(this)">`+
+    `<div class="tablewrap"><table><thead><tr><th>change</th><th>target</th><th>zone</th><th>port</th><th>A</th><th>B</th></tr></thead><tbody>${pt||'<tr><td colspan="6">No open port on either side.</td></tr>'}</tbody></table></div>`+
+    `<h3>Verdict changes</h3><p class="legend">Targets present in both outputs only.</p><div class="tablewrap"><table><thead><tr><th>target</th><th>zone</th><th>A</th><th>B</th></tr></thead><tbody>${vt||'<tr><td colspan="4">None.</td></tr>'}</tbody></table></div>`;
+}
+window.addEventListener('DOMContentLoaded',()=>{
+  const a=document.getElementById('diff-a'), b=document.getElementById('diff-b');
+  if(!a) return;
+  b.selectedIndex=Math.min(1, b.options.length-1);
+  runDiff();
+});

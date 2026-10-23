@@ -58,6 +58,12 @@ The **Port group** selector in the report header restricts every view (matrices,
 exposure) to the OPEN flows on that group's ports. Open `admin` ports are always highlighted:
 red bar on cells, red labels on diagram edges.
 
+## Scan Diff
+The **Diff** tab compares the open ports seen by any two Scans or Source Views: over time
+(same Source, before / after a fix) or across Sources (what one sees that the other does not).
+A port is *added* / *removed* only if the other side tested it; otherwise it is *not comparable*
+(XML Coverage required).
+
 ## Pivot Machines and asymmetric flows
 - **Pivot Machines** (Global view): machines whose interfaces span several zones and that a
   Source reaches OPEN. From the Source's zone they are a one-hop path to the machine's other

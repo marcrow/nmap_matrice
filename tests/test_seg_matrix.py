@@ -52,7 +52,7 @@ def test_self_is_excluded_and_report_renders(tmp_path, inventory_file):
     report = write_html(a, str(tmp_path))
     doc = open(report, encoding="utf-8").read()
     # mermaid bundle inlined without breaking the <script> tag, ignored scan listed
-    assert doc.count("</script>") == 2 and '<li class="warn">bogus_scan</li>' in doc
+    assert doc.count("<script") == doc.count("</script>") and '<li class="warn">bogus_scan</li>' in doc
     assert 'value="Z_prod" onchange="refilter(this)"' in doc  # zone filter, per-source tab
 
 
@@ -153,3 +153,13 @@ def test_asymmetry_needs_both_directions_tested(tmp_path):
         scans.setdefault(src, []).append(parse_scan(str(path), src))
     a = analyze(inv, scans, [])
     assert a.asymmetries == [("10.0.0.1", "10.0.0.2")]  # 10.0.0.1 never scanned 10.0.0.3: not reported
+
+
+def test_scan_row_is_one_scan_alone():
+    inv = load_inventory(str(MISSION / "inventory.csv"))
+    scans = {SRC: [parse_scan(p, SRC) for p in discover_scans(str(MISSION / "scans"))[SRC]]}
+    a = analyze(inv, scans, [])
+    after_fix = next(sc for sc in a.scans[SRC] if sc.name.endswith("after_fix.xml"))
+    row = a.scan_row(after_fix)
+    assert set(row) == {"172.31.250.10"}  # the only target of that Scan
+    assert row["172.31.250.10"].open_ports == [] and row["172.31.250.10"].is_tested(22)
