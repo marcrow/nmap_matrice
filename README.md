@@ -26,8 +26,10 @@
 
 3. **Generation**:
    ```bash
-   python3 seg_matrix.py -i inventory.csv -s ./scans/ -o ./report/ --host-graph
+   python3 -m seg_matrix -i inventory.csv -s ./scans/ -o ./report/ --host-graph
    ```
+   Run from the repository root: no installation and no dependency needed (Python >= 3.10).
+   `pip install .` also provides a `seg_matrix` command.
 
 ## Self exclusion
 All interfaces of the source machine are always removed from the results: a scan that
@@ -63,7 +65,16 @@ node colour, and its interfaces are linked by a grey dotted line; single-interfa
 machines stay white, bordered with the zone colour.
 
 ## HTML report (offline)
-If `mermaid.min.js` sits next to `seg_matrix.py` (shipped in the repo, v10.9.8), it is
+`seg_matrix/assets/mermaid.min.js` (shipped in the repo, v10.9.8) is
 inlined into `report.html`: the report is self-contained and renders without network.
-Otherwise the report loads mermaid from the jsdelivr CDN (network required) and, on
+If it is missing, the report loads mermaid from the jsdelivr CDN (network required) and, on
 failure, shows the diagram source instead of a `mermaid is not defined` error.
+
+## Development
+```bash
+uv run --no-project --with pytest python -m pytest   # tests
+uvx ruff check . && uvx ruff format --check .        # lint + format
+```
+Layout: `seg_matrix/` — `inventory.py` (CSV), `nmap.py` (discovery + parsers), `verdict.py`,
+`analysis.py` (matrices), `render/` (Markdown/CSV, Mermaid, HTML + `assets/`), `cli.py`.
+Domain vocabulary: `GLOSSARY.md`; decisions: `docs/adr/`.

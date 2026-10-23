@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "seg-matrix"
+version = "0.2.0"
+description = "Network segmentation testing: nmap scans -> segmentation matrices, Mermaid graphs, offline HTML report"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.5"]
+
+[project.scripts]
+seg_matrix = "seg_matrix.cli:main"
+
+[tool.setuptools]
+packages = ["seg_matrix", "seg_matrix.render"]
+
+[tool.setuptools.package-data]
+seg_matrix = ["assets/*"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

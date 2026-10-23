@@ -42,7 +42,7 @@ at the scans root still accepted.
 - `open|filtered` is never OPEN; it counts as filtered (UDP no-reply, -sF/-sN/-sX).
 
 ### Stage 1: data model
-- Split into a small package (parsers / model / render / cli), `pyproject.toml`, type hints, ruff, pytest.
+- Split into a small package (parsers / model / render / cli), `pyproject.toml`, type hints, ruff, pytest. Flat layout (`seg_matrix/` at the root, not `src/`) so `python3 -m seg_matrix` runs offline without installation.
 - Real nmap fixtures generated against throwaway Docker containers (UDP needs `sudo`, run by the user).
 - Several Scans per Source combined into a Source View: most permissive state wins (ADR-0001), disagreements surfaced.
 - Coverage from the XML (`scaninfo`, args, start time): distinguishes "tested, not seen" from "never tested". Other formats: Coverage marked unknown, untested ports never asserted.

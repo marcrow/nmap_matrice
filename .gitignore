@@ -15,4 +15,4 @@ scans/
 *.nmap
 # Only synthetic test data and shipped defaults are tracked.
 !tests/fixtures/**
-!src/seg_matrix/defaults/**
+!seg_matrix/defaults/**

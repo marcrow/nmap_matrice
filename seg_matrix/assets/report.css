@@ -1,0 +1,36 @@
+:root{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
+body{margin:0;background:#f7f8fa;color:#1c2430;}
+header{background:#13223a;color:#fff;padding:14px 22px;}
+header h1{margin:0;font-size:18px;}
+header .meta{font-size:12px;opacity:.8;margin-top:3px;}
+.tabs{display:flex;gap:4px;background:#26344e;padding:0 12px;}
+.tab{background:none;border:none;color:#cbd5e6;padding:11px 16px;cursor:pointer;font-size:14px;border-bottom:3px solid transparent;}
+.tab:hover{color:#fff;}
+.tab.active{color:#fff;border-bottom-color:#ffb547;font-weight:600;}
+.pane{display:none;padding:20px 22px;max-width:100%;}
+.pane.active{display:block;}
+h2{font-size:16px;margin:22px 0 8px;}
+h3{font-size:14px;margin:16px 0 6px;color:#33415c;}
+.legend{font-size:12px;color:#5a6678;margin:6px 0 14px;}
+.legend span{display:inline-block;padding:2px 7px;border-radius:4px;margin-right:6px;}
+.tablewrap{overflow:auto;border:1px solid #e1e5ec;border-radius:8px;max-height:70vh;background:#fff;}
+table{border-collapse:collapse;font-size:12px;width:max-content;}
+th,td{border:1px solid #e7eaf0;padding:5px 8px;text-align:center;white-space:nowrap;}
+thead th{position:sticky;top:0;background:#eef1f6;z-index:2;}
+tbody th{position:sticky;left:0;background:#f3f5f9;text-align:left;z-index:1;}
+.v-open{background:#d7f5dd;color:#04611f;font-weight:600;}
+.v-reach{background:#fdebcf;color:#8a5200;}
+.v-alive{background:#e4ecf7;color:#3b5578;}
+.v-block{background:#f6dada;color:#8a1a1a;}
+.v-none{background:#f1f1f3;color:#9aa3b2;}
+.v-self{background:#e9eef6;color:#5a6b86;}
+.mermaid{background:#fff;border:1px solid #e1e5ec;border-radius:8px;padding:10px;margin:8px 0;overflow:auto;font-family:inherit;}  /* pre is monospace otherwise: labels measured in sans-serif then truncated */
+.err{color:#c0392b;font-size:12px;white-space:pre-wrap;}
+select{padding:6px 10px;font-size:14px;border-radius:6px;border:1px solid #c3cad6;margin:6px 0 12px;}
+.card{background:#fff;border:1px solid #e1e5ec;border-radius:8px;padding:12px 14px;margin:8px 0;font-size:13px;}
+.tag{display:inline-block;background:#eef1f6;border-radius:4px;padding:1px 6px;font-size:11px;margin-left:6px;color:#5a6678;}
+ul{margin:4px 0 4px 18px;padding:0;font-size:13px;}
+.warn{color:#b5651d;font-weight:600;}
+.srcbar{font-size:13px;margin:4px 0;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;}
+.srcbar label{cursor:pointer;}
+.srcbar button{padding:4px 10px;border-radius:6px;border:1px solid #c3cad6;background:#fff;cursor:pointer;}
