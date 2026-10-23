@@ -1,11 +1,12 @@
 import csv
+import shutil
 from pathlib import Path
 
 import pytest
 
 from seg_matrix.analysis import analyze, build_matrix, restrict
 from seg_matrix.inventory import load_inventory
-from seg_matrix.nmap import HostRecord, discover_scans, parse_scan
+from seg_matrix.nmap import HostRecord, discover_excluded, discover_scans, parse_scan
 from seg_matrix.policy import load_policy
 from seg_matrix.port_groups import load_port_groups
 from seg_matrix.ports import in_port_set
@@ -218,3 +219,17 @@ def test_zone_flow_export_bootstraps_a_policy(tmp_path):
         csv.writer(fh, delimiter=";").writerows(rows)
     a = analyze(inv, scans, [], policy=load_policy(str(policy_path), inv, load_port_groups()))
     assert len(a.findings) == 2  # 22 to web and to dc-01
+
+
+def test_excluding_a_scan_removes_its_conflict(tmp_path):
+    scans_dir = tmp_path / "scans"
+    shutil.copytree(MISSION / "scans", scans_dir)
+    (scans_dir / SRC / "excluded").mkdir()
+    shutil.move(scans_dir / SRC / "after_fix.xml", scans_dir / SRC / "excluded" / "after_fix.xml")
+
+    files = discover_scans(str(scans_dir))
+    assert "after_fix.xml" not in [Path(p).name for p in files[SRC]]
+    assert [Path(p).name for p in discover_excluded(str(scans_dir))[SRC]] == ["after_fix.xml"]
+    inv = load_inventory(str(MISSION / "inventory.csv"))
+    a = analyze(inv, {SRC: [parse_scan(p, SRC) for p in files[SRC]]}, [])
+    assert a.matrix[SRC]["172.31.250.10"].conflicts == {}

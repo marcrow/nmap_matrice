@@ -195,6 +195,7 @@ class Analysis:
     port_groups: PortGroups = field(default_factory=dict)
     force_pn: bool = False
     policy: list[Rule] | None = None  # None = no Flow Policy: no Findings, no policy colouring
+    excluded: dict[str, list[str]] = field(default_factory=dict)  # source ip -> parked scan files, not read
 
     @property
     def sources(self) -> list[str]:
@@ -279,10 +280,22 @@ def analyze(
     force_pn: bool = False,
     port_groups: PortGroups | None = None,
     policy: list[Rule] | None = None,
+    excluded: dict[str, list[str]] | None = None,
 ) -> Analysis:
     scans = {src: sorted(v, key=lambda sc: (sc.start_ts, sc.name)) for src, v in scans.items()}
     matrix, missing, unknown, pn_count = build_matrix(inv, scans, force_pn)
-    agg, exp = aggregate_zones(matrix, inv), target_exposure(matrix, inv)
     return Analysis(
-        inv, scans, orphan, matrix, missing, unknown, pn_count, agg, exp, port_groups or {}, force_pn, policy
+        inv=inv,
+        scans=scans,
+        orphan=orphan,
+        matrix=matrix,
+        missing=missing,
+        unknown=unknown,
+        pn_count=pn_count,
+        agg=aggregate_zones(matrix, inv),
+        exp=target_exposure(matrix, inv),
+        port_groups=port_groups or {},
+        force_pn=force_pn,
+        policy=policy,
+        excluded=excluded or {},
     )

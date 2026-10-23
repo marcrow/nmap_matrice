@@ -8,7 +8,7 @@ import sys
 
 from seg_matrix.analysis import analyze
 from seg_matrix.inventory import load_inventory
-from seg_matrix.nmap import SCAN_EXT_PRIORITY, discover_scans, parse_scan
+from seg_matrix.nmap import SCAN_EXT_PRIORITY, discover_excluded, discover_scans, parse_scan
 from seg_matrix.policy import load_policy
 from seg_matrix.port_groups import load_port_groups
 from seg_matrix.render.common import write_output
@@ -77,7 +77,8 @@ def main() -> None:
         sys.exit(f"[!] Flow Policy file not found: {args.policy}")
     groups = load_port_groups(args.port_groups)
     policy = load_policy(args.policy, inv, groups) if args.policy else None
-    a = analyze(inv, scans, orphan, force_pn=args.pn, port_groups=groups, policy=policy)
+    excluded = discover_excluded(args.scans)
+    a = analyze(inv, scans, orphan, force_pn=args.pn, port_groups=groups, policy=policy, excluded=excluded)
     matrix, missing, unknown, agg, exp = a.matrix, a.missing, a.unknown, a.agg, a.exp
 
     write_host_matrix_md(matrix, inv, args.out)
@@ -103,6 +104,8 @@ def main() -> None:
     )
     if orphan:
         print(f"[!] {len(orphan)} ignored scan(s), not an inventory source IP: {', '.join(orphan)}")
+    if excluded:
+        print(f"[+] {sum(map(len, excluded.values()))} excluded scan(s) in sub-folders, not read")
     if missing:
         print(f"[!] {len(missing)} source(s) without scan: {', '.join(missing)}")
     if unknown:

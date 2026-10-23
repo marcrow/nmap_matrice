@@ -40,6 +40,10 @@ mission/
    Keep the **XML** output: it is the reference format, the only one telling which ports
    were tested (Coverage). For one scan written in several formats (`-oA`), xml > gnmap > nmap.
    Avoid `--open`: closed ports are what reveals a REACHABLE flow.
+   `--top-ports N` works too: nmap writes the expanded port list in the XML.
+   To **take a Scan out** (e.g. one that conflicts with the others, see the Conflicts table of the
+   Scans tab), move its file into a sub-folder of its source folder, e.g.
+   `scans/<source_ip>/excluded/`: it is no longer read, only listed as excluded.
    A source folder that is not an inventory IP is **ignored** and listed in the terminal and
    the Anomalies tab. The legacy layout `scans/<source_ip>.xml` is still accepted.
 

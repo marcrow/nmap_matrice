@@ -10,6 +10,15 @@ from seg_matrix.ports import Port, Ranges, in_ranges, ports_text
 OPEN, REACH, ALIVE, BLOCK, NODATA = 3, 2, 1, 0, -1
 VERDICT_NAME = {OPEN: "OPEN", REACH: "REACHABLE", ALIVE: "ALIVE", BLOCK: "BLOCKED", NODATA: "UNSEEN"}
 SYM = {OPEN: "OPEN", REACH: "o", ALIVE: "~", BLOCK: "x", NODATA: "."}
+# Port states from most to least permissive: the Source View keeps the highest (ADR-0001)
+STATE_RANK = {
+    "open": 3,
+    "closed": 2,
+    "unfiltered": 2,
+    "filtered": 1,
+    "open|filtered": 1,
+    "closed|filtered": 1,
+}
 VCLASS = {OPEN: "v-open", REACH: "v-reach", ALIVE: "v-alive", BLOCK: "v-block", NODATA: "v-none"}
 
 

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import html
 import json
+import os
+import re
 import sys
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable
@@ -14,7 +16,7 @@ from seg_matrix.inventory import Host, Inventory, extra_columns, ordered_ips
 from seg_matrix.ports import Port, count_ports, format_ranges, port_label, ports_text
 from seg_matrix.render.common import machine_palette, write_output, zone_cell, zone_palette
 from seg_matrix.render.mermaid import EdgeStatus, hid, mermaid_source, mermaid_zone, zid
-from seg_matrix.verdict import REACH, VCLASS, VERDICT_NAME, Cell, cell_text
+from seg_matrix.verdict import REACH, STATE_RANK, VCLASS, VERDICT_NAME, Cell, cell_text
 
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
 HTML_CSS = (ASSETS / "report.css").read_text(encoding="utf-8")
@@ -113,11 +115,20 @@ def _zone_matrix_html(
     )
 
 
+def _ranges_html(ranges: list[tuple[int, int]], cap: int = 60) -> str:
+    """Port ranges, shortened when long (e.g. --top-ports 1000); the full list is in the tooltip."""
+    full = format_ranges(ranges)
+    if len(full) <= cap:
+        return html.escape(full)
+    short = html.escape(full[:cap].rsplit(",", 1)[0])
+    return f'<span title="{html.escape(full, quote=True)}">{short},&hellip;</span>'
+
+
 def _tested_html(c: Cell) -> str:
     """Coverage of a cell: ports tested per protocol, '?' when a non-XML Scan cannot tell."""
     if not c.scans:
         return ""
-    parts = [f"{proto} {html.escape(format_ranges(r))}" for proto, r in sorted(c.tested.items())]
+    parts = [f"{proto} {_ranges_html(r)}" for proto, r in sorted(c.tested.items())]
     if not c.coverage_known:
         parts.append('<span class="warn" title="a Scan behind this cell is not XML">?</span>')
     return "<br>".join(parts)
@@ -330,8 +341,15 @@ def _scans_tab(a: Analysis) -> str:
             if sc.coverage is None:
                 cov = '<span class="warn">unknown (not XML)</span>'
             else:
+                top = re.search(r"--top-ports[ =](\d+)", sc.command)
                 cov = "<br>".join(
-                    f"{proto} {html.escape(format_ranges(r))} <small>({count_ports(r)} ports)</small>"
+                    (
+                        f'{proto} <span title="{html.escape(format_ranges(r), quote=True)}">'
+                        f"top-ports {top.group(1)}</span>"
+                        if top
+                        else f"{proto} {_ranges_html(r)}"
+                    )
+                    + f" <small>({count_ports(r)} ports)</small>"
                     for proto, r in sorted(sc.coverage.items())
                 )
             rows.append(
@@ -346,6 +364,36 @@ def _scans_tab(a: Analysis) -> str:
         "<th>source</th><th>zone</th><th>file</th><th>started</th><th>tested ports</th>"
         "<th>hosts in output</th><th>conflicts</th><th>command</th></tr>"
         f"</thead><tbody>{''.join(rows)}</tbody></table></div>"
+    )
+
+    # Conflicts: ports on which the Scans of a Source disagree, and the state the Source View keeps
+    conf_rows = []
+    for src in a.sources:
+        for d, c in a.matrix[src].items():
+            for port, states in c.conflicts.items():
+                kept = max(states.values(), key=lambda st: STATE_RANK.get(st, 0))
+                seen = "<br>".join(
+                    f"{html.escape(st)} <small>{html.escape(sc.split('/', 1)[1])}</small>"
+                    for sc, st in states.items()
+                )
+                from_ = ", ".join(sc.split("/", 1)[1] for sc, st in states.items() if st == kept)
+                conf_rows.append(
+                    f"<tr><th>{html.escape(a.inv[src].short)}</th><th>{html.escape(a.inv[d].short)}</th>"
+                    f"<td>{html.escape(a.inv[d].zone)}</td><td>{port_label(port)}</td><td>{seen}</td>"
+                    f"<td><b>{html.escape(kept)}</b> <small>from {html.escape(from_)}</small></td></tr>"
+                )
+    conflicts_table = (
+        f'{_filter_box()}<div class="tablewrap"><table><thead><tr><th>source</th><th>target</th>'
+        "<th>zone</th><th>port</th><th>state per Scan</th><th>kept (most permissive)</th></tr></thead>"
+        f"<tbody>{''.join(conf_rows)}</tbody></table></div>"
+        if conf_rows
+        else "<p>None: the Scans of each Source agree on every port listed.</p>"
+    )
+    excluded = "".join(
+        f"<li>{html.escape(a.inv[src].short if src in a.inv else src)}: "
+        f"<code>{html.escape(os.path.relpath(p, os.path.dirname(os.path.dirname(paths[0]))))}</code></li>"
+        for src, paths in a.excluded.items()
+        for p in paths
     )
 
     # Coverage per target Interface: which Source tested it, how many ports, through which Scans
@@ -381,6 +429,13 @@ def _scans_tab(a: Analysis) -> str:
         "permissive state wins (an open port seen once proves the flow passed); the conflicts column "
         "counts the disagreements a Scan takes part in, detailed in the matrix cell tooltips.</p>"
         f"{scans_table}"
+        "<h2>Conflicts</h2>"
+        '<p class="legend">Ports on which the Scans of a Source disagree. To take a Scan out of the '
+        "analysis, move its file into a sub-folder of its source folder (e.g. "
+        "<code>scans/&lt;source_ip&gt;/excluded/</code>) and regenerate the report: it is then listed "
+        "below as excluded, not read.</p>"
+        f"{conflicts_table}"
+        f"<h3>Excluded scans</h3><ul>{excluded or '<li>None</li>'}</ul>"
         "<h2>Coverage per target</h2>"
         '<p class="legend">Number of ports tested per protocol from each Source (number of Scans); '
         "<code>.</code> = in no Scan output, <code>?</code> = a non-XML Scan does not tell which ports it "

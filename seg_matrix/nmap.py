@@ -79,6 +79,29 @@ def discover_scans(scan_dir: str) -> dict[str, list[str]]:
     return {src: picked for src, paths in found.items() if (picked := _best_formats(paths))}
 
 
+def discover_excluded(scan_dir: str) -> dict[str, list[str]]:
+    """Scan files parked in a sub-folder of a source folder (e.g. `scans/<source_ip>/excluded/`).
+
+    They are not read, only listed in the report, so a Scan can be taken out of the analysis
+    without deleting it.
+    """
+    out: dict[str, list[str]] = {}
+    for src in sorted(os.listdir(scan_dir)):
+        src_dir = os.path.join(scan_dir, src)
+        if not os.path.isdir(src_dir):
+            continue
+        files = [
+            os.path.join(root, f)
+            for root, _, names in os.walk(src_dir)
+            if root != src_dir
+            for f in names
+            if os.path.splitext(f)[1].lower() in SCAN_EXT_PRIORITY
+        ]
+        if files:
+            out[src] = sorted(files)
+    return out
+
+
 def parse_xml(path: str, source: str) -> Scan:
     scan = Scan(path, source)
     try:
