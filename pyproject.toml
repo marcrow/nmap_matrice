@@ -20,7 +20,7 @@ seg_matrix = "seg_matrix.cli:main"
 packages = ["seg_matrix", "seg_matrix.render"]
 
 [tool.setuptools.package-data]
-seg_matrix = ["assets/*"]
+seg_matrix = ["assets/*", "defaults/*"]
 
 [tool.ruff]
 line-length = 110

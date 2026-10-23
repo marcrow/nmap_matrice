@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import html
+import json
 import sys
 from collections import Counter, defaultdict
+from collections.abc import Callable, Iterable
 from pathlib import Path
 
-from seg_matrix.analysis import Analysis, Exposure, Matrix, Row, ZoneMatrix
+from seg_matrix.analysis import Analysis, Exposure, Matrix, Row, ZoneMatrix, aggregate_zones
 from seg_matrix.inventory import Host, Inventory, extra_columns, ordered_ips
-from seg_matrix.ports import count_ports, format_ranges, port_label, ports_text
+from seg_matrix.ports import Port, count_ports, format_ranges, port_label, ports_text
 from seg_matrix.render.common import machine_palette, write_output, zone_cell, zone_palette
 from seg_matrix.render.mermaid import hid, mermaid_source, mermaid_zone, zid
 from seg_matrix.verdict import REACH, VCLASS, VERDICT_NAME, Cell, cell_text
@@ -31,9 +33,23 @@ def _provenance(c: Cell) -> str:
     return html.escape("\n".join(lines), quote=True)
 
 
-def _cell_html(c: Cell) -> str:
-    cls = VCLASS[c.verdict] + (" conflict" if c.conflicts else "")
-    return f'<td class="{cls}" title="{_provenance(c)}">{html.escape(cell_text(c))}</td>'
+Highlight = Callable[[Port], bool]
+
+
+def _no_highlight(port: Port) -> bool:
+    return False
+
+
+def _ports_attr(ports: Iterable[Port], highlight: Highlight) -> tuple[str, str]:
+    """(data-p attribute read by the Port Group filter, highlight class) of an element showing open ports."""
+    ports = list(ports)
+    return f' data-p="{ports_text(ports)}"', " admin" if any(highlight(p) for p in ports) else ""
+
+
+def _cell_html(c: Cell, highlight: Highlight = _no_highlight) -> str:
+    attr, hl = _ports_attr(c.open_ports, highlight)
+    cls = VCLASS[c.verdict] + (" conflict" if c.conflicts else "") + hl
+    return f'<td class="{cls}"{attr} title="{_provenance(c)}">{html.escape(cell_text(c))}</td>'
 
 
 def _host_title(h: Host) -> str:
@@ -43,7 +59,7 @@ def _host_title(h: Host) -> str:
     )
 
 
-def _host_matrix_html(matrix: Matrix, inv: Inventory) -> str:
+def _host_matrix_html(matrix: Matrix, inv: Inventory, highlight: Highlight = _no_highlight) -> str:
     dsts = ordered_ips(inv)
     srcs = [ip for ip in dsts if ip in matrix]
     mpal = machine_palette(inv)
@@ -61,7 +77,7 @@ def _host_matrix_html(matrix: Matrix, inv: Inventory) -> str:
             if inv[d].machine == inv[s].machine:
                 cells.append('<td class="v-self">-</td>')
             else:
-                cells.append(_cell_html(matrix[s].get(d, Cell())))
+                cells.append(_cell_html(matrix[s].get(d, Cell()), highlight))
         rows.append(f"<tr>{th(s)}{''.join(cells)}</tr>")
     return (
         f'<div class="tablewrap"><table><thead><tr><th>source \\ target</th>{head}</tr></thead>'
@@ -69,7 +85,7 @@ def _host_matrix_html(matrix: Matrix, inv: Inventory) -> str:
     )
 
 
-def _zone_matrix_html(agg: ZoneMatrix, inv: Inventory) -> str:
+def _zone_matrix_html(agg: ZoneMatrix, inv: Inventory, highlight: Highlight = _no_highlight) -> str:
     zones = sorted(zone_palette(inv))
     head = "".join(f"<th>{html.escape(z)}</th>" for z in zones)
     rows = []
@@ -79,7 +95,8 @@ def _zone_matrix_html(agg: ZoneMatrix, inv: Inventory) -> str:
             a = agg.get((zs, zd))
             cls, txt = zone_cell(a)
             pairs = f"<br><small>{a.reach_pairs}/{a.total_pairs}</small>" if a and a.reach_pairs else ""
-            cells.append(f'<td class="{cls}">{html.escape(txt)}{pairs}</td>')
+            attr, hl = _ports_attr(a.open_ports if a else [], highlight)
+            cells.append(f'<td class="{cls}{hl}"{attr}>{html.escape(txt)}{pairs}</td>')
         rows.append(f"<tr><th>{html.escape(zs)}</th>{''.join(cells)}</tr>")
     return (
         f'<div class="tablewrap"><table><thead><tr><th>src \\ dst</th>{head}</tr></thead>'
@@ -97,19 +114,20 @@ def _tested_html(c: Cell) -> str:
     return "<br>".join(parts)
 
 
-def _source_table_html(src: str, row: Row, inv: Inventory) -> str:
+def _source_table_html(src: str, row: Row, inv: Inventory, highlight: Highlight = _no_highlight) -> str:
     extras = extra_columns(inv)
     rows = []
     for d in ordered_ips(inv):
         if inv[d].machine == inv[src].machine:
             continue
         c = row.get(d, Cell())
-        ports = ports_text(c.open_ports)
+        attr, hl = _ports_attr(c.open_ports, highlight)
         rows.append(
             f"<tr><th>{html.escape(inv[d].short)}</th>"
             f"<td>{html.escape(inv[d].zone)}</td><td>{html.escape(inv[d].htype)}</td>"
             f'<td class="{VCLASS[c.verdict]}">{VERDICT_NAME[c.verdict]}</td>'
-            f"<td>{html.escape(ports)}</td><td>{_tested_html(c)}</td>"
+            f'<td class="{hl.strip()}"{attr}>{html.escape(ports_text(c.open_ports))}</td>'
+            f"<td>{_tested_html(c)}</td>"
             f"<td>{html.escape(', '.join(sc.split('/', 1)[1] for sc in c.scans))}</td>"
             + "".join(f"<td>{html.escape(inv[d].extra.get(k, ''))}</td>" for k in extras)
             + "</tr>"
@@ -122,18 +140,21 @@ def _source_table_html(src: str, row: Row, inv: Inventory) -> str:
     )
 
 
-def _exposure_html(exp: Exposure, inv: Inventory) -> str:
+def _exposure_html(exp: Exposure, inv: Inventory, highlight: Highlight = _no_highlight) -> str:
     blocks = []
     for d in inv:
         opens, reach = exp[d]
         if not opens and not reach:
             continue
         items = "".join(
-            f'<li><span class="warn">OPEN</span> from <b>{html.escape(inv[s].short)}</b> '
-            f'<span class="tag">{html.escape(inv[s].zone)}</span>: {ports_text(ports)}</li>'
+            '<li class="{1}"{0}>'.format(*_ports_attr(ports, highlight))
+            + '<span class="warn">OPEN</span> from '
+            f"<b>{html.escape(inv[s].short)}</b> "
+            f'<span class="tag">{html.escape(inv[s].zone)}</span>: '
+            f'<span class="pl">{ports_text(ports)}</span></li>'
             for s, ports in opens
         ) + "".join(
-            f"<li>reachable (closed) from {html.escape(inv[s].short)} "
+            f'<li data-p="">reachable (closed) from {html.escape(inv[s].short)} '
             f'<span class="tag">{html.escape(inv[s].zone)}</span></li>'
             for s in reach
         )
@@ -169,21 +190,33 @@ def _legend() -> str:
     )
 
 
+def _diagram(base: str, variants: list[str]) -> str:
+    """Mermaid block; data-g<i> holds the diagram restricted to the i-th Port Group (filter in the header)."""
+    attrs = "".join(f' data-g{i}="{html.escape(v, quote=True)}"' for i, v in enumerate(variants))
+    return f'<pre class="mermaid"{attrs}>{html.escape(base)}</pre>'
+
+
 def _global_tab(a: Analysis) -> str:
     return "".join(
         [
             "<h2>Global diagram (zone &rarr; zone)</h2>",
             _zone_legend_html(a.inv),
             _legend(),
-            f'<pre class="mermaid">{html.escape(mermaid_zone(a.agg, a.inv))}</pre>',
+            _diagram(
+                mermaid_zone(a.agg, a.inv, a.highlight),
+                [
+                    mermaid_zone(aggregate_zones(m, a.inv), a.inv, a.highlight)
+                    for m in a.group_matrices.values()
+                ],
+            ),
             "<h2>Consolidated zone &rarr; zone matrix</h2>",
-            _zone_matrix_html(a.agg, a.inv),
+            _zone_matrix_html(a.agg, a.inv, a.highlight),
             "<h2>Consolidated host &rarr; host matrix</h2>",
             '<p class="legend">Hover a cell for the Scans behind its verdict.</p>',
             _legend(),
-            _host_matrix_html(a.matrix, a.inv),
+            _host_matrix_html(a.matrix, a.inv, a.highlight),
             "<h2>Exposure per target</h2>",
-            _exposure_html(a.exp, a.inv),
+            _exposure_html(a.exp, a.inv, a.highlight),
         ]
     )
 
@@ -221,8 +254,12 @@ def _persource_tab(a: Analysis) -> str:
             f"<h2>{html.escape(inv[s].short)} "
             f'<span class="tag">{html.escape(inv[s].zone)} · {html.escape(inv[s].htype)} · {s}</span>'
             f'<span class="tag">{len(a.scans[s])} scan(s)</span></h2>'
-            f'{bar}<pre class="mermaid">{html.escape(mermaid_source(s, matrix[s], inv))}</pre>'
-            f"<h3>Target details</h3>{_source_table_html(s, matrix[s], inv)}</div>"
+            + bar
+            + _diagram(
+                mermaid_source(s, matrix[s], inv, a.highlight),
+                [mermaid_source(s, m[s], inv, a.highlight) for m in a.group_matrices.values()],
+            )
+            + f"<h3>Target details</h3>{_source_table_html(s, matrix[s], inv, a.highlight)}</div>"
         )
     return f'<select id="srcsel" onchange="showSource(this.value)">{options}</select>' + "".join(panes)
 
@@ -341,6 +378,19 @@ TABS = (
 )
 
 
+def _group_filter(a: Analysis) -> str:
+    """Port Group selector (filters every view to the OPEN flows of the group) and the groups as JSON."""
+    if not a.port_groups:
+        return ""
+    options = "".join(f'<option value="{i}">{html.escape(g)}</option>' for i, g in enumerate(a.port_groups))
+    data = json.dumps(list(a.port_groups.values())).replace("</", "<\\/")
+    return (
+        '<label class="groupsel">Port group: <select onchange="setGroup(this.value)">'
+        f'<option value="">all ports</option>{options}</select></label>'
+        f'<script type="application/json" id="port-groups">{data}</script>'
+    )
+
+
 def write_html(a: Analysis, out_dir: str) -> str:
     n_scans = sum(len(v) for v in a.scans.values())
     meta = (
@@ -363,7 +413,7 @@ def write_html(a: Analysis, out_dir: str) -> str:
 {_mermaid_script()}
 <style>{HTML_CSS}</style></head><body>
 <header><h1>Network segmentation report</h1>
-<div class="meta">{meta}</div></header>
+<div class="meta">{meta}</div>{_group_filter(a)}</header>
 <div class="tabs">{buttons}</div>
 {panes}
 <script>{HTML_JS}</script></body></html>"""

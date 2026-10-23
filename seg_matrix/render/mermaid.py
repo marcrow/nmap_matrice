@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 
 from seg_matrix.analysis import Matrix, Row, ZoneMatrix
 from seg_matrix.inventory import Inventory, ordered_ips
-from seg_matrix.ports import ports_text
+from seg_matrix.ports import Port, port_label
 from seg_matrix.render.common import machine_palette, zone_palette
 from seg_matrix.verdict import OPEN, REACH
 
@@ -21,6 +21,19 @@ MERMAID_INIT = (
     "'flowchart':{'curve':'linear','htmlLabels':true,"
     "'nodeSpacing':40,'rankSpacing':60,'padding':8}}}%%"
 )
+
+
+def _no_highlight(port: Port) -> bool:
+    return False
+
+
+def _label(ports: Iterable[Port], highlight: Callable[[Port], bool], cap: int = 6) -> str:
+    """Edge label; highlighted (admin) ports in red."""
+    labels = [
+        f"<b style='color:#b91c1c'>{port_label(p)}</b>" if highlight(p) else port_label(p)
+        for p in sorted(ports)
+    ]
+    return ",".join(labels[:cap]) + (",..." if len(labels) > cap else "")
 
 
 def zid(z: str) -> str:
@@ -100,7 +113,7 @@ def _machine_links(ips: list[str], inv: Inventory, idx: int) -> tuple[list[str],
     return lines, styles
 
 
-def mermaid_zone(agg: ZoneMatrix, inv: Inventory) -> str:
+def mermaid_zone(agg: ZoneMatrix, inv: Inventory, highlight: Callable[[Port], bool] = _no_highlight) -> str:
     pal = zone_palette(inv)
     L = [MERMAID_INIT, "flowchart LR"]
     for z, (f, s, t) in sorted(pal.items()):
@@ -110,14 +123,16 @@ def mermaid_zone(agg: ZoneMatrix, inv: Inventory) -> str:
     for (zs, zd), a in sorted(agg.items()):
         if a.reach_pairs == 0:
             continue
-        label = ports_text(a.open_ports, cap=6) if a.open_ports else f"{a.reach_pairs} host(s)"
+        label = _label(a.open_ports, highlight) if a.open_ports else f"{a.reach_pairs} host(s)"
         line, style = _edge(zid(zs), zid(zd), a.verdict, zs != zd, label, len(styles))
         L.append(line)
         styles.append(style)
     return "\n".join(L + styles)
 
 
-def mermaid_source(src: str, row: Row, inv: Inventory) -> str:
+def mermaid_source(
+    src: str, row: Row, inv: Inventory, highlight: Callable[[Port], bool] = _no_highlight
+) -> str:
     """Modern radial view: source (hexagon) + reachable targets, grouped/tinted by zone."""
     reach = {d: c for d, c in row.items() if c.verdict >= REACH}
     if not reach:
@@ -140,7 +155,7 @@ def mermaid_source(src: str, row: Row, inv: Inventory) -> str:
     )
     styles = []
     for d, c in reach.items():
-        label = ports_text(c.open_ports, cap=6) if c.verdict == OPEN else "reachable"
+        label = _label(c.open_ports, highlight) if c.verdict == OPEN else "reachable"
         line, style = _edge("S", hid(d), c.verdict, inv[src].zone != inv[d].zone, label, len(styles))
         L.append(line)
         styles.append(style)
@@ -148,7 +163,7 @@ def mermaid_source(src: str, row: Row, inv: Inventory) -> str:
     return "\n".join(L + ml + styles + ms)
 
 
-def mermaid_hosts(matrix: Matrix, inv: Inventory) -> str:
+def mermaid_hosts(matrix: Matrix, inv: Inventory, highlight: Callable[[Port], bool] = _no_highlight) -> str:
     zones = defaultdict(list)
     for ip in ordered_ips(inv):
         zones[inv[ip].zone].append(ip)
@@ -164,7 +179,7 @@ def mermaid_hosts(matrix: Matrix, inv: Inventory) -> str:
                 hid(d),
                 OPEN,
                 inv[s].zone != inv[d].zone,
-                ports_text(c.open_ports, cap=6),
+                _label(c.open_ports, highlight),
                 len(styles),
                 w_open="2px",
             )

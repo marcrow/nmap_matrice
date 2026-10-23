@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from functools import cached_property
 
 from seg_matrix.inventory import Inventory, ordered_ips
 from seg_matrix.nmap import HostRecord, Scan
-from seg_matrix.ports import Port, merge_ranges
+from seg_matrix.port_groups import HIGHLIGHT, PortGroups
+from seg_matrix.ports import Port, in_port_set, merge_ranges
 from seg_matrix.verdict import ALIVE, BLOCK, OPEN, REACH, Cell, classify
 
 Row = dict[str, Cell]  # target ip -> verdict cell
@@ -126,6 +129,17 @@ def target_exposure(matrix: Matrix, inv: Inventory) -> Exposure:
     return exp
 
 
+def restrict(matrix: Matrix, keep: Callable[[Port], bool]) -> Matrix:
+    """The OPEN flows on the kept ports only (e.g. a Port Group view); everything else becomes unseen."""
+    out: Matrix = {}
+    for s, row in matrix.items():
+        out[s] = {}
+        for d, c in row.items():
+            ports = [p for p in c.open_ports if keep(p)]
+            out[s][d] = Cell(OPEN, ports, c.scans) if ports else Cell(scans=c.scans)
+    return out
+
+
 @dataclass
 class Analysis:
     """Everything the renderers need, computed once from the inventory and the Scans."""
@@ -139,25 +153,35 @@ class Analysis:
     pn_count: int
     agg: ZoneMatrix
     exp: Exposure
+    port_groups: PortGroups = field(default_factory=dict)
 
     @property
     def sources(self) -> list[str]:
         return [ip for ip in ordered_ips(self.inv) if ip in self.matrix]
 
+    def in_group(self, group: str) -> Callable[[Port], bool]:
+        port_set = self.port_groups.get(group, {})
+        return lambda port: in_port_set(port, port_set)
+
+    @cached_property
+    def group_matrices(self) -> dict[str, Matrix]:
+        """One restricted matrix per Port Group, for the report's group filter."""
+        return {g: restrict(self.matrix, self.in_group(g)) for g in self.port_groups}
+
+    @property
+    def highlight(self) -> Callable[[Port], bool]:
+        """Ports to highlight in every view (the admin Port Group)."""
+        return self.in_group(HIGHLIGHT)
+
 
 def analyze(
-    inv: Inventory, scans: dict[str, list[Scan]], orphan: list[str], force_pn: bool = False
+    inv: Inventory,
+    scans: dict[str, list[Scan]],
+    orphan: list[str],
+    force_pn: bool = False,
+    port_groups: PortGroups | None = None,
 ) -> Analysis:
     scans = {src: sorted(v, key=lambda sc: (sc.start_ts, sc.name)) for src, v in scans.items()}
     matrix, missing, unknown, pn_count = build_matrix(inv, scans, force_pn)
-    return Analysis(
-        inv,
-        scans,
-        orphan,
-        matrix,
-        missing,
-        unknown,
-        pn_count,
-        aggregate_zones(matrix, inv),
-        target_exposure(matrix, inv),
-    )
+    agg, exp = aggregate_zones(matrix, inv), target_exposure(matrix, inv)
+    return Analysis(inv, scans, orphan, matrix, missing, unknown, pn_count, agg, exp, port_groups or {})

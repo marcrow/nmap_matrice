@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections import defaultdict
 from collections.abc import Iterable
 
 Ranges = list[tuple[int, int]]
@@ -53,3 +54,29 @@ def ports_text(ports: Iterable[Port], cap: int | None = None) -> str:
     if cap is not None and len(labels) > cap:
         return ",".join(labels[:cap]) + ",..."
     return ",".join(labels)
+
+
+PortSet = dict[str, Ranges]  # proto -> ranges
+PROTOS = ("tcp", "udp", "sctp")
+
+
+def parse_port_set(spec: str) -> PortSet:
+    """'22,443,8000-8100,udp:161' -> {'tcp': [...], 'udp': [...]}; TCP is implied."""
+    raw: dict[str, list[tuple[int, int]]] = defaultdict(list)
+    for token in spec.split(","):
+        token = token.strip()
+        if not token:
+            continue
+        proto, _, ports = token.rpartition(":")
+        proto = proto.lower() or "tcp"
+        if proto not in PROTOS:
+            raise ValueError(f"unknown protocol in {token!r} (expected {', '.join(PROTOS)})")
+        try:
+            raw[proto] += parse_ranges(ports)
+        except ValueError:
+            raise ValueError(f"invalid port in {token!r}") from None
+    return {proto: merge_ranges(r) for proto, r in raw.items()}
+
+
+def in_port_set(port: Port, port_set: PortSet) -> bool:
+    return in_ranges(port[0], port_set.get(port[1], []))

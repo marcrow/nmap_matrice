@@ -2,9 +2,11 @@ from pathlib import Path
 
 import pytest
 
-from seg_matrix.analysis import analyze, build_matrix
+from seg_matrix.analysis import analyze, build_matrix, restrict
 from seg_matrix.inventory import load_inventory
 from seg_matrix.nmap import HostRecord, discover_scans, parse_scan
+from seg_matrix.port_groups import load_port_groups
+from seg_matrix.ports import in_port_set
 from seg_matrix.render.html import write_html
 from seg_matrix.verdict import ALIVE, BLOCK, NODATA, OPEN, REACH, classify
 
@@ -101,3 +103,17 @@ def test_inventory_free_columns(tmp_path):
     path.write_text("10.0.0.1;prod;vm;app;alice\n")
     with pytest.raises(SystemExit, match="no header"):
         load_inventory(str(path))
+
+
+def test_port_groups_override_and_filter(tmp_path):
+    override = tmp_path / "port_groups.csv"
+    override.write_text("group;ports\nadmin;22,udp:161\n")
+    groups = load_port_groups(str(override))
+    assert groups["admin"] == {"tcp": [(22, 22)], "udp": [(161, 161)]}  # mission file replaces the default
+    assert "db" in groups  # other defaults kept
+
+    inv = load_inventory(str(MISSION / "inventory.csv"))
+    scans = {SRC: [parse_scan(p, SRC) for p in discover_scans(str(MISSION / "scans"))[SRC]]}
+    admin = restrict(build_matrix(inv, scans)[0], lambda p: in_port_set(p, groups["admin"]))
+    assert admin[SRC]["172.31.250.10"].open_ports == [(22, "tcp"), (161, "udp")]
+    assert admin[SRC]["172.31.250.20"].verdict == NODATA  # 5432 is not an admin port

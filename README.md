@@ -6,6 +6,7 @@ Everything for one engagement lives in a **mission folder**:
 ```
 mission/
   inventory.csv            ip;zone;type;name
+  port_groups.csv          optional, overrides the default Port Groups
   scans/<source_ip>/*.xml  any file name, one folder per Source
   report/                  generated
 ```
@@ -48,6 +49,14 @@ mission/
    ```
    Run from the repository root: no installation and no dependency needed (Python >= 3.10).
    `pip install .` also provides a `seg_matrix` command.
+
+## Port Groups
+Named sets of ports (`admin`, `directory`, `db`, `web`, `file`) shipped in
+`seg_matrix/defaults/port_groups.csv`. A `mission/port_groups.csv` (`group;ports`, e.g.
+`admin;22,3389,5985,udp:161`) replaces a group of the same name or adds new ones.
+The **Port group** selector in the report header restricts every view (matrices, diagrams,
+exposure) to the OPEN flows on that group's ports. Open `admin` ports are always highlighted:
+red bar on cells, red labels on diagram edges.
 
 ## Self exclusion
 All interfaces of the source machine are always removed from the results: a scan that
