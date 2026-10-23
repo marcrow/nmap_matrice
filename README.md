@@ -2,20 +2,19 @@
 
 ## Workflow
 
+Everything for one engagement lives in a **mission folder**:
+```
+mission/
+  inventory.csv            ip;zone;type;name
+  scans/<source_ip>/*.xml  any file name, one folder per Source
+  report/                  generated
+```
+
 1. **Inventory** `inventory.csv` (`;` separator, optional header), `type` in snake_case:
    ```
    ip;zone;type;name
    10.0.2.1;internal;vm;app-01
    ```
-
-2. **Scans** — one scan *from each source*, output named after the source IP:
-   ```bash
-   nmap -Pn -p- --open -oA "$SRC_IP" <targets>   # through proxychains/SOCKS if pivoting
-   ```
-   `-oA` produces `<SRC_IP>.xml/.gnmap/.nmap`. Parsing priority: xml > gnmap > nmap.
-   A file whose name is not an inventory IP is **ignored**: it is listed in the terminal
-   and in the Anomalies tab ("Ignored scans").
-
    Multi-interface machines (admin, service, iLO, monitoring...): one row per
    interface, same `name`. Without a name, the machine = the IP. A duplicate IP is an error.
    ```
@@ -24,9 +23,24 @@
    10.8.0.1;ilo;ilo;app-01
    ```
 
+2. **Scans** — launched *from each Source*, stored in `scans/<source_ip>/`:
+   ```bash
+   mkdir -p mission/scans/$SRC_IP && cd mission/scans/$SRC_IP
+   nmap -Pn -p- -oA broad <targets>          # through proxychains/SOCKS if pivoting
+   nmap -Pn -p 8443,9200 -oA follow-up <ip>  # any later follow-up, any parameters
+   ```
+   A Source may have **any number of Scans**: they are combined into its Source View
+   (the most permissive state of a port wins, see `docs/adr/0001-*`; disagreements are kept).
+   Keep the **XML** output: it is the reference format, the only one telling which ports
+   were tested (Coverage). For one scan written in several formats (`-oA`), xml > gnmap > nmap.
+   Avoid `--open`: closed ports are what reveals a REACHABLE flow.
+   A source folder that is not an inventory IP is **ignored** and listed in the terminal and
+   the Anomalies tab. The legacy layout `scans/<source_ip>.xml` is still accepted.
+
 3. **Generation**:
    ```bash
-   python3 -m seg_matrix -i inventory.csv -s ./scans/ -o ./report/ --host-graph
+   python3 -m seg_matrix mission/ --host-graph
+   python3 -m seg_matrix -i inventory.csv -s ./scans/ -o ./report/   # explicit paths (override)
    ```
    Run from the repository root: no installation and no dependency needed (Python >= 3.10).
    `pip install .` also provides a `seg_matrix` command.

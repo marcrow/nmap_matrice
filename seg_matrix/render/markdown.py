@@ -120,8 +120,8 @@ def write_findings_md(
         lines += [f"- {ip}" for ip in unknown]
         lines.append("")
     if orphan:
-        lines.append("**Ignored scans (file name is not a source IP of the inventory):**")
-        lines += [f"- {ip}.*" for ip in orphan]
+        lines.append("**Ignored scans (source folder or file name is not an inventory IP):**")
+        lines += [f"- {ip}" for ip in orphan]
     if not missing and not unknown and not orphan:
         lines.append("_Full coverage._")
     write_output(out_dir, "findings.md", "\n".join(lines))

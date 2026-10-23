@@ -212,12 +212,13 @@ def write_html(
         "<ul>" + ("".join(f'<li class="warn">{ip}</li>' for ip in unknown) or "<li>None</li>") + "</ul>"
     )
     anomalies.append(
-        "<h2>Ignored scans</h2><p>File name is not a source IP of the inventory "
-        "(expected: <code>&lt;source_ip&gt;.xml|.gnmap|.nmap</code>).</p>"
+        "<h2>Ignored scans</h2><p>Source folder or file name is not an inventory IP "
+        "(expected: <code>scans/&lt;source_ip&gt;/*.xml</code> "
+        "or <code>scans/&lt;source_ip&gt;.xml</code>).</p>"
     )
     anomalies.append(
         "<ul>"
-        + ("".join(f'<li class="warn">{html.escape(ip)}.*</li>' for ip in orphan) or "<li>None</li>")
+        + ("".join(f'<li class="warn">{html.escape(ip)}</li>' for ip in orphan) or "<li>None</li>")
         + "</ul>"
     )
 

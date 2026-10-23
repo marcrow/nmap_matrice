@@ -8,7 +8,7 @@ import sys
 
 from seg_matrix.analysis import aggregate_zones, build_matrix, target_exposure
 from seg_matrix.inventory import load_inventory
-from seg_matrix.nmap import SCAN_EXT_PRIORITY, discover_scans
+from seg_matrix.nmap import SCAN_EXT_PRIORITY, discover_scans, parse_scan
 from seg_matrix.render.common import write_output
 from seg_matrix.render.html import write_html
 from seg_matrix.render.markdown import (
@@ -20,28 +20,45 @@ from seg_matrix.render.markdown import (
 from seg_matrix.render.mermaid import mermaid_hosts, mermaid_source, mermaid_zone
 
 
-def main() -> None:
+def _parse_args() -> argparse.Namespace:
     ap = argparse.ArgumentParser(
         description="Segmentation matrix + Mermaid + HTML report.",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="Mission folder: inventory.csv, scans/<source_ip>/*.xml, report/ (generated).",
     )
-    ap.add_argument("-i", "--inventory", required=True, help="Inventory CSV (ip;zone;type;name)")
-    ap.add_argument("-s", "--scans", required=True, help="Directory of nmap outputs (<ip>.xml/.gnmap/.nmap)")
-    ap.add_argument("-o", "--out", default="./seg_report", help="Output directory")
+    ap.add_argument("mission", nargs="?", help="Mission folder (sets the defaults of -i, -s and -o)")
+    ap.add_argument("-i", "--inventory", help="Inventory CSV (ip;zone;type;name) [mission/inventory.csv]")
+    ap.add_argument(
+        "-s", "--scans", help="nmap outputs: <dir>/<source_ip>/* or <dir>/<source_ip>.<ext> [mission/scans]"
+    )
+    ap.add_argument("-o", "--out", help="Output directory [mission/report, else ./seg_report]")
     ap.add_argument(
         "--pn", action="store_true", help="Force -Pn mode (host-up ignored, verdict from ports only)"
     )
     ap.add_argument("--host-graph", action="store_true", help="Also generate the global host-level Mermaid")
     args = ap.parse_args()
+    if args.mission:
+        args.inventory = args.inventory or os.path.join(args.mission, "inventory.csv")
+        args.scans = args.scans or os.path.join(args.mission, "scans")
+        args.out = args.out or os.path.join(args.mission, "report")
+    elif not (args.inventory and args.scans):
+        ap.error("give a mission folder, or both -i and -s")
+    args.out = args.out or "./seg_report"
+    return args
+
+
+def main() -> None:
+    args = _parse_args()
+    inv = load_inventory(args.inventory)
+    if not os.path.isdir(args.scans):
+        sys.exit(f"[!] Scan directory not found: {args.scans}")
+    files = discover_scans(args.scans)
+    orphan = sorted(set(files) - set(inv))  # source folder / file name that is not an inventory IP
+    scans = {src: [parse_scan(p, src) for p in paths] for src, paths in files.items() if src in inv}
+    if not scans:
+        sys.exit(f"[!] No scan of an inventory source found in {args.scans} ({', '.join(SCAN_EXT_PRIORITY)})")
 
     os.makedirs(os.path.join(args.out, "mermaid"), exist_ok=True)
-    inv = load_inventory(args.inventory)
-    scans = discover_scans(args.scans)
-    if not scans:
-        sys.exit(f"[!] No scan found in {args.scans} ({', '.join(SCAN_EXT_PRIORITY)})")
-
     matrix, missing, unknown, pn_count = build_matrix(inv, scans, force_pn=args.pn)
-    orphan = sorted(set(scans) - set(inv))  # files whose name is not a source IP of the inventory
     agg = aggregate_zones(matrix, inv)
     exp = target_exposure(matrix, inv)
 
@@ -56,15 +73,13 @@ def main() -> None:
         write_output(os.path.join(args.out, "mermaid"), f"{s}.mmd", mermaid_source(s, matrix[s], inv))
     html_path = write_html(matrix, inv, agg, exp, missing, unknown, orphan, args.out)
 
+    n_scans = sum(len(v) for v in scans.values())
     print(
-        f"[+] Inventory: {len(inv)} targets | Scans: {len(scans)} file(s) -> {len(matrix)} source(s) "
-        f"(-Pn detected/forced on {pn_count})"
+        f"[+] Inventory: {len(inv)} targets | Scans: {n_scans} -> {len(matrix)} source(s) "
+        f"(-Pn detected/forced on {pn_count} scan(s))"
     )
     if orphan:
-        print(
-            f"[!] {len(orphan)} ignored scan(s), file name is not a source IP of the inventory: "
-            f"{', '.join(orphan)}"
-        )
+        print(f"[!] {len(orphan)} ignored scan(s), not an inventory source IP: {', '.join(orphan)}")
     if missing:
         print(f"[!] {len(missing)} source(s) without scan: {', '.join(missing)}")
     if unknown:

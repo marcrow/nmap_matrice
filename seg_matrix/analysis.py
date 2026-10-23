@@ -6,37 +6,79 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 
 from seg_matrix.inventory import Inventory
-from seg_matrix.nmap import detect_pn, parse_scan
+from seg_matrix.nmap import HostRecord, Scan
+from seg_matrix.ports import merge_ranges
 from seg_matrix.verdict import ALIVE, BLOCK, OPEN, REACH, Cell, classify
 
 Row = dict[str, Cell]  # target ip -> verdict cell
 Matrix = dict[str, Row]  # source ip -> row
 Exposure = dict[str, tuple[list[tuple[str, list[int]]], list[str]]]  # target -> (OPEN sources, REACH sources)
+Observation = tuple[Scan, HostRecord]  # what one Scan saw of one target
+
+
+def _conflicts(observations: list[Observation]) -> dict[tuple[int, str], dict[str, str]]:
+    """Ports on which the Scans disagree, with each Scan's state.
+
+    ponytail: only ports some Scan lists explicitly; a grouped-range change (closed -> filtered on
+    ports nobody lists) is not flagged, add a range comparison if that case matters.
+    """
+    listed = {(p, proto) for _, rec in observations for p, proto, _ in rec.ports}
+    out = {}
+    for port, proto in sorted(listed):
+        states = {sc.name: st for sc, rec in observations if (st := rec.state_of(port, proto)) is not None}
+        if len(set(states.values())) > 1:
+            out[(port, proto)] = states
+    return out
+
+
+def source_view_cell(observations: list[Observation], force_pn: bool = False) -> Cell:
+    """Combines a Source's Scans of one target: the most permissive state wins (ADR-0001)."""
+    if not observations:
+        return Cell()
+    cells = [classify(rec, force_pn or sc.pn) for sc, rec in observations]
+    tested: dict[str, list[tuple[int, int]]] = defaultdict(list)
+    for sc, _ in observations:
+        for proto, ranges in (sc.coverage or {}).items():
+            tested[proto] += ranges
+    return Cell(
+        verdict=max(c.verdict for c in cells),
+        open_ports=sorted({p for c in cells for p in c.open_ports}),
+        scans=[sc.name for sc, _ in observations],
+        conflicts=_conflicts(observations),
+        tested={proto: merge_ranges(r) for proto, r in tested.items()},
+        coverage_known=all(sc.coverage is not None for sc, _ in observations),
+    )
 
 
 def build_matrix(
-    inv: Inventory, scans: dict[str, str], force_pn: bool = False
+    inv: Inventory, scans: dict[str, list[Scan]], force_pn: bool = False
 ) -> tuple[Matrix, list[str], list[str], int]:
-    """Returns (matrix, sources without scan, reachable IPs outside the inventory, -Pn source count)."""
-    parsed = {ip: parse_scan(path) for ip, path in scans.items()}
-    pn_of = {ip: (True if force_pn else detect_pn(path)) for ip, path in scans.items()}
+    """Source Views of every scanned Source.
+
+    Returns (matrix, sources without scan, reachable IPs outside the inventory, -Pn Scan count).
+    """
     matrix: Matrix = {}
     unknown: set[str] = set()
     for src in inv:
-        if src not in parsed:
+        if src not in scans:
             continue
-        pn = pn_of[src]
+        src_scans = sorted(scans[src], key=lambda sc: (sc.start_ts, sc.name))
         self_ips = {ip for ip, h in inv.items() if h.machine == inv[src].machine}
-        seen = parsed[src]
-        for dip, rec in seen.items():
-            if dip in self_ips or dip in inv:
-                continue
-            if classify(rec, pn).verdict >= ALIVE:
-                unknown.add(dip)
-        row = {dst: classify(seen.get(dst), pn) for dst in inv if dst not in self_ips}
-        matrix[src] = row
+        for sc in src_scans:
+            for dip, rec in sc.hosts.items():
+                if (
+                    dip not in self_ips
+                    and dip not in inv
+                    and classify(rec, force_pn or sc.pn).verdict >= ALIVE
+                ):
+                    unknown.add(dip)
+        matrix[src] = {
+            dst: source_view_cell([(sc, sc.hosts[dst]) for sc in src_scans if dst in sc.hosts], force_pn)
+            for dst in inv
+            if dst not in self_ips
+        }
     missing = sorted(ip for ip in inv if ip not in scans)
-    pn_count = sum(1 for ip in matrix if pn_of.get(ip))
+    pn_count = sum(1 for src in matrix for sc in scans[src] if force_pn or sc.pn)
     return matrix, missing, sorted(unknown), pn_count
 
 

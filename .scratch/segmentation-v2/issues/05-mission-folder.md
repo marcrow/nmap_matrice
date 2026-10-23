@@ -1,6 +1,6 @@
 # Mission folder
 
-Status: ready-for-agent
+Status: done
 Blocked by: 03
 Stage: Stage 1 (see ../spec.md)
 

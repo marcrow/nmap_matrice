@@ -1,6 +1,6 @@
 # Source view and coverage
 
-Status: ready-for-agent
+Status: done
 Blocked by: 04, 05
 Stage: Stage 1 (see ../spec.md)
 
