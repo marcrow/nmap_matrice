@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from seg_matrix.nmap import HostRecord
-from seg_matrix.ports import Ranges, in_ranges
+from seg_matrix.ports import Port, Ranges, in_ranges, ports_text
 
 OPEN, REACH, ALIVE, BLOCK, NODATA = 3, 2, 1, 0, -1
 VERDICT_NAME = {OPEN: "OPEN", REACH: "REACHABLE", ALIVE: "ALIVE", BLOCK: "BLOCKED", NODATA: "UNSEEN"}
@@ -18,7 +18,7 @@ class Cell:
     """Verdict of a Source -> Interface pair, with the Scans behind it."""
 
     verdict: int = NODATA
-    open_ports: list[tuple[int, str]] = field(default_factory=list)
+    open_ports: list[Port] = field(default_factory=list)
     scans: list[str] = field(default_factory=list)  # Scans in which the target appears
     conflicts: dict[tuple[int, str], dict[str, str]] = field(default_factory=dict)  # port -> {scan: state}
     tested: dict[str, Ranges] = field(default_factory=dict)  # Coverage: proto -> ports tested
@@ -59,5 +59,5 @@ def classify(rec: HostRecord | None, pn: bool) -> Cell:
 
 def cell_text(c: Cell) -> str:
     if c.verdict == OPEN:
-        return ",".join(str(p) for p, _ in c.open_ports) or "OPEN"
+        return ports_text(c.open_ports) or "OPEN"
     return SYM[c.verdict]

@@ -9,6 +9,7 @@ from pathlib import Path
 
 from seg_matrix.analysis import Exposure, Matrix, Row, ZoneMatrix
 from seg_matrix.inventory import Inventory, ordered_ips
+from seg_matrix.ports import ports_text
 from seg_matrix.render.common import machine_palette, write_output, zone_cell, zone_palette
 from seg_matrix.render.mermaid import hid, mermaid_source, mermaid_zone, zid
 from seg_matrix.verdict import REACH, VCLASS, VERDICT_NAME, Cell, cell_text
@@ -74,7 +75,7 @@ def _source_table_html(src: str, row: Row, inv: Inventory) -> str:
         if inv[d].machine == inv[src].machine:
             continue
         c = row.get(d, Cell())
-        ports = ",".join(str(p) for p, _ in c.open_ports)
+        ports = ports_text(c.open_ports)
         rows.append(
             f"<tr><th>{html.escape(inv[d].short)}</th>"
             f"<td>{html.escape(inv[d].zone)}</td><td>{html.escape(inv[d].htype)}</td>"
@@ -95,7 +96,7 @@ def _exposure_html(exp: Exposure, inv: Inventory) -> str:
             continue
         items = "".join(
             f'<li><span class="warn">OPEN</span> from <b>{html.escape(inv[s].short)}</b> '
-            f'<span class="tag">{html.escape(inv[s].zone)}</span>: {",".join(map(str, ports))}</li>'
+            f'<span class="tag">{html.escape(inv[s].zone)}</span>: {ports_text(ports)}</li>'
             for s, ports in opens
         ) + "".join(
             f"<li>reachable (closed) from {html.escape(inv[s].short)} "

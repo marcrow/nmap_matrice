@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import re
 from collections import defaultdict
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 
 from seg_matrix.analysis import Matrix, Row, ZoneMatrix
 from seg_matrix.inventory import Inventory, ordered_ips
+from seg_matrix.ports import ports_text
 from seg_matrix.render.common import machine_palette, zone_palette
 from seg_matrix.verdict import OPEN, REACH
 
@@ -32,12 +33,6 @@ def hid(ip: str) -> str:
 
 def _safe(s: object) -> str:
     return str(s).replace('"', "'").replace("|", "/")
-
-
-def _ports_label(ports: Iterable[int], cap: int = 6) -> str:
-    ps = sorted(ports)
-    s = ",".join(str(p) for p in ps[:cap])
-    return s + ",..." if len(ps) > cap else s
 
 
 def _edge(
@@ -115,7 +110,7 @@ def mermaid_zone(agg: ZoneMatrix, inv: Inventory) -> str:
     for (zs, zd), a in sorted(agg.items()):
         if a.reach_pairs == 0:
             continue
-        label = _ports_label(a.open_ports) if a.open_ports else f"{a.reach_pairs} host(s)"
+        label = ports_text(a.open_ports, cap=6) if a.open_ports else f"{a.reach_pairs} host(s)"
         line, style = _edge(zid(zs), zid(zd), a.verdict, zs != zd, label, len(styles))
         L.append(line)
         styles.append(style)
@@ -145,7 +140,7 @@ def mermaid_source(src: str, row: Row, inv: Inventory) -> str:
     )
     styles = []
     for d, c in reach.items():
-        label = _ports_label([p for p, _ in c.open_ports]) if c.verdict == OPEN else "reachable"
+        label = ports_text(c.open_ports, cap=6) if c.verdict == OPEN else "reachable"
         line, style = _edge("S", hid(d), c.verdict, inv[src].zone != inv[d].zone, label, len(styles))
         L.append(line)
         styles.append(style)
@@ -169,7 +164,7 @@ def mermaid_hosts(matrix: Matrix, inv: Inventory) -> str:
                 hid(d),
                 OPEN,
                 inv[s].zone != inv[d].zone,
-                _ports_label([p for p, _ in c.open_ports]),
+                ports_text(c.open_ports, cap=6),
                 len(styles),
                 w_open="2px",
             )

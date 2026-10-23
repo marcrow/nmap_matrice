@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+
 Ranges = list[tuple[int, int]]
 
 
@@ -35,3 +37,19 @@ def count_ports(ranges: Ranges) -> int:
 
 def format_ranges(ranges: Ranges) -> str:
     return ",".join(str(lo) if lo == hi else f"{lo}-{hi}" for lo, hi in ranges)
+
+
+Port = tuple[int, str]  # (port, proto)
+
+
+def port_label(port: Port) -> str:
+    """TCP is implied: "22"; any other protocol is prefixed: "udp:161"."""
+    number, proto = port
+    return str(number) if proto == "tcp" else f"{proto}:{number}"
+
+
+def ports_text(ports: Iterable[Port], cap: int | None = None) -> str:
+    labels = [port_label(p) for p in sorted(ports)]
+    if cap is not None and len(labels) > cap:
+        return ",".join(labels[:cap]) + ",..."
+    return ",".join(labels)

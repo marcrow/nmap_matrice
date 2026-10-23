@@ -8,6 +8,7 @@ from pathlib import Path
 
 from seg_matrix.analysis import ZoneAgg
 from seg_matrix.inventory import Inventory
+from seg_matrix.ports import ports_text
 from seg_matrix.verdict import OPEN, VCLASS
 
 # Zone palette (fill, stroke, text) — modern, cyclic
@@ -55,5 +56,5 @@ def zone_cell(a: ZoneAgg | None) -> tuple[str, str]:
         return "v-none", "."
     if a.reach_pairs == 0:
         return "v-block", "x"
-    ports = ",".join(str(p) for p in sorted(a.open_ports)[:6])
+    ports = ports_text(sorted(a.open_ports)[:6])
     return VCLASS[a.verdict], f"{'OPEN' if a.verdict == OPEN else 'o'} {ports}".strip()

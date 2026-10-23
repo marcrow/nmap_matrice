@@ -7,6 +7,7 @@ import os
 
 from seg_matrix.analysis import Exposure, Matrix, ZoneMatrix
 from seg_matrix.inventory import Inventory, ordered_ips
+from seg_matrix.ports import ports_text
 from seg_matrix.render.common import write_output, zone_cell, zone_palette
 from seg_matrix.verdict import OPEN, VERDICT_NAME, Cell, cell_text
 
@@ -29,7 +30,7 @@ def write_host_matrix_md(matrix: Matrix, inv: Inventory, out_dir: str) -> None:
                         inv[s].zone,
                         inv[d].zone,
                         VERDICT_NAME[c.verdict],
-                        ",".join(str(p) for p, _ in c.open_ports),
+                        ports_text(c.open_ports),
                     ]
                 )
     lines = [
@@ -78,7 +79,7 @@ def write_exposure_md(exp: Exposure, inv: Inventory, out_dir: str) -> None:
             continue
         lines.append(f"## {inv[d].short} — {inv[d].ip} ({inv[d].zone}/{inv[d].htype})")
         for s, ports in opens:
-            lines.append(f"- OPEN from **{inv[s].short}** ({inv[s].zone}): {','.join(map(str, ports))}")
+            lines.append(f"- OPEN from **{inv[s].short}** ({inv[s].zone}): {ports_text(ports)}")
         for s in reach:
             lines.append(f"- reachable (closed) from {inv[s].short} ({inv[s].zone})")
         lines.append("")
@@ -106,7 +107,7 @@ def write_findings_md(
                         inv[d].zone,
                         inv[s].short,
                         inv[d].short,
-                        ",".join(str(p) for p, _ in c.open_ports),
+                        ports_text(c.open_ports),
                     )
                 )
     lines += [f"| {a} | {b} | {x} | {y} | {p} |" for a, b, x, y, p in sorted(rows)] or ["_None._"]

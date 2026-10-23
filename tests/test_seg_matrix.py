@@ -85,3 +85,11 @@ def test_source_view_merges_scans_and_tracks_coverage():
     legacy = parse_scan(str(MISSION / "scans" / SRC / "broad.gnmap"), SRC)
     cell = build_matrix(inv, {SRC: [legacy]})[0][SRC]["172.31.250.10"]
     assert cell.is_tested(2000) is None  # gnmap: Coverage unknown, never asserted untested
+
+
+def test_udp_verdicts():
+    inv = load_inventory(str(MISSION / "inventory.csv"))
+    udp = parse_scan(str(MISSION / "scans" / SRC / "udp.xml"), SRC)
+    row = build_matrix(inv, {SRC: [udp]})[0][SRC]
+    assert row["172.31.250.10"].open_ports == [(161, "udp")]
+    assert row["172.31.250.20"].verdict == REACH  # ICMP port unreachable = closed

@@ -7,12 +7,14 @@ from dataclasses import dataclass, field
 
 from seg_matrix.inventory import Inventory
 from seg_matrix.nmap import HostRecord, Scan
-from seg_matrix.ports import merge_ranges
+from seg_matrix.ports import Port, merge_ranges
 from seg_matrix.verdict import ALIVE, BLOCK, OPEN, REACH, Cell, classify
 
 Row = dict[str, Cell]  # target ip -> verdict cell
 Matrix = dict[str, Row]  # source ip -> row
-Exposure = dict[str, tuple[list[tuple[str, list[int]]], list[str]]]  # target -> (OPEN sources, REACH sources)
+Exposure = dict[
+    str, tuple[list[tuple[str, list[Port]]], list[str]]
+]  # target -> (OPEN sources, REACH sources)
 Observation = tuple[Scan, HostRecord]  # what one Scan saw of one target
 
 
@@ -85,7 +87,7 @@ def build_matrix(
 @dataclass
 class ZoneAgg:
     verdict: int = BLOCK
-    open_ports: set[int] = field(default_factory=set)
+    open_ports: set[Port] = field(default_factory=set)
     reach_pairs: int = 0
     total_pairs: int = 0
 
@@ -103,7 +105,7 @@ def aggregate_zones(matrix: Matrix, inv: Inventory) -> ZoneMatrix:
             if c.verdict >= REACH:
                 a.reach_pairs += 1
                 a.verdict = max(a.verdict, c.verdict)
-                a.open_ports.update(p for p, _ in c.open_ports)
+                a.open_ports.update(c.open_ports)
     return agg
 
 
@@ -117,7 +119,7 @@ def target_exposure(matrix: Matrix, inv: Inventory) -> Exposure:
             if not c:
                 continue
             if c.verdict == OPEN:
-                opens.append((s, [p for p, _ in c.open_ports]))
+                opens.append((s, c.open_ports))
             elif c.verdict == REACH:
                 reach.append(s)
         exp[d] = (opens, reach)
