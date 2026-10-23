@@ -1,0 +1,8 @@
+# Nmap 7.94SVN scan initiated Fri Oct 23 16:26:22 2026 as: nmap -sT -Pn -n -p 1-1000 -oA broad 172.31.250.10 172.31.250.20 172.31.250.30
+Host: 172.31.250.10 ()	Status: Up
+Host: 172.31.250.10 ()	Ports: 22/open/tcp//ssh///	Ignored State: closed (999)
+Host: 172.31.250.20 ()	Status: Up
+Host: 172.31.250.20 ()	Ports: 	Ignored State: closed (1000)
+Host: 172.31.250.30 ()	Status: Up
+Host: 172.31.250.30 ()	Ports: 	Ignored State: filtered (1000)
+# Nmap done at Fri Oct 23 16:26:26 2026 -- 3 IP addresses (3 hosts up) scanned in 3.74 seconds
