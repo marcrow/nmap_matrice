@@ -15,6 +15,10 @@ mission/
    ip;zone;type;name
    10.0.2.1;internal;vm;app-01
    ```
+   Extra columns (owner, criticality, OS, notes...) are allowed and shown in the report,
+   with no logic attached; a header line is then required to name them:
+   `ip;zone;type;name;owner;criticality`.
+
    Multi-interface machines (admin, service, iLO, monitoring...): one row per
    interface, same `name`. Without a name, the machine = the IP. A duplicate IP is an error.
    ```

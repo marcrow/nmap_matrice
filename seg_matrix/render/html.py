@@ -8,7 +8,7 @@ from collections import defaultdict
 from pathlib import Path
 
 from seg_matrix.analysis import Exposure, Matrix, Row, ZoneMatrix
-from seg_matrix.inventory import Inventory, ordered_ips
+from seg_matrix.inventory import Host, Inventory, extra_columns, ordered_ips
 from seg_matrix.ports import ports_text
 from seg_matrix.render.common import machine_palette, write_output, zone_cell, zone_palette
 from seg_matrix.render.mermaid import hid, mermaid_source, mermaid_zone, zid
@@ -25,6 +25,13 @@ def _cell_html(c: Cell) -> str:
     return f'<td class="{VCLASS[c.verdict]}">{html.escape(cell_text(c))}</td>'
 
 
+def _host_title(h: Host) -> str:
+    """Tooltip of an Interface: zone, type and free inventory columns."""
+    return html.escape(
+        " · ".join([h.ip, h.zone, h.htype] + [f"{k}: {v}" for k, v in h.extra.items()]), quote=True
+    )
+
+
 def _host_matrix_html(matrix: Matrix, inv: Inventory) -> str:
     dsts = ordered_ips(inv)
     srcs = [ip for ip in dsts if ip in matrix]
@@ -33,7 +40,7 @@ def _host_matrix_html(matrix: Matrix, inv: Inventory) -> str:
     def th(ip: str) -> str:
         m = mpal.get(inv[ip].machine)
         style = f' style="background:{m[0]};color:{m[2]}"' if m else ""
-        return f"<th{style}>{html.escape(inv[ip].short)}</th>"
+        return f'<th{style} title="{_host_title(inv[ip])}">{html.escape(inv[ip].short)}</th>'
 
     head = "".join(th(d) for d in dsts)
     rows = []
@@ -70,6 +77,7 @@ def _zone_matrix_html(agg: ZoneMatrix, inv: Inventory) -> str:
 
 
 def _source_table_html(src: str, row: Row, inv: Inventory) -> str:
+    extras = extra_columns(inv)
     rows = []
     for d in ordered_ips(inv):
         if inv[d].machine == inv[src].machine:
@@ -80,11 +88,15 @@ def _source_table_html(src: str, row: Row, inv: Inventory) -> str:
             f"<tr><th>{html.escape(inv[d].short)}</th>"
             f"<td>{html.escape(inv[d].zone)}</td><td>{html.escape(inv[d].htype)}</td>"
             f'<td class="{VCLASS[c.verdict]}">{VERDICT_NAME[c.verdict]}</td>'
-            f"<td>{html.escape(ports)}</td></tr>"
+            f"<td>{html.escape(ports)}</td>"
+            + "".join(f"<td>{html.escape(inv[d].extra.get(k, ''))}</td>" for k in extras)
+            + "</tr>"
         )
     return (
         '<div class="tablewrap"><table><thead><tr><th>target</th><th>zone</th><th>type</th>'
-        f"<th>verdict</th><th>open ports</th></tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
+        "<th>verdict</th><th>open ports</th>"
+        + "".join(f"<th>{html.escape(k)}</th>" for k in extras)
+        + f"</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
     )
 
 

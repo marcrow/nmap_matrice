@@ -1,5 +1,5 @@
-ip;zone;type;name
-172.31.250.1;audit;laptop;auditor
-172.31.250.10;dmz;container;app-01
-172.31.250.20;data;container;db-01
-172.31.250.30;data;vm;ghost-01
+ip;zone;type;name;owner;criticality
+172.31.250.1;audit;laptop;auditor;;
+172.31.250.10;dmz;container;app-01;web-team;high
+172.31.250.20;data;container;db-01;dba;critical
+172.31.250.30;data;vm;ghost-01;;

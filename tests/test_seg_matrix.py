@@ -93,3 +93,12 @@ def test_udp_verdicts():
     row = build_matrix(inv, {SRC: [udp]})[0][SRC]
     assert row["172.31.250.10"].open_ports == [(161, "udp")]
     assert row["172.31.250.20"].verdict == REACH  # ICMP port unreachable = closed
+
+
+def test_inventory_free_columns(tmp_path):
+    path = tmp_path / "inv.csv"
+    path.write_text("ip;zone;type;name;owner;;\n10.0.0.1;prod;vm;app;alice;;\n")
+    assert load_inventory(str(path))["10.0.0.1"].extra == {"owner": "alice"}
+    path.write_text("10.0.0.1;prod;vm;app;alice\n")
+    with pytest.raises(SystemExit, match="no header"):
+        load_inventory(str(path))
