@@ -1,3 +1,4 @@
+import csv
 from pathlib import Path
 
 import pytest
@@ -8,6 +9,7 @@ from seg_matrix.nmap import HostRecord, discover_scans, parse_scan
 from seg_matrix.policy import load_policy
 from seg_matrix.port_groups import load_port_groups
 from seg_matrix.ports import in_port_set
+from seg_matrix.render.exports import write_observed_zone_flows
 from seg_matrix.render.html import write_html
 from seg_matrix.verdict import ALIVE, BLOCK, NODATA, OPEN, REACH, classify
 
@@ -200,3 +202,19 @@ def test_no_policy_no_findings(tmp_path):
     inv, scans = _policy_case(tmp_path)
     a = analyze(inv, scans, [])
     assert a.findings == [] and a.pair_status(a.matrix) == {}
+
+
+def test_zone_flow_export_bootstraps_a_policy(tmp_path):
+    inv, scans = _policy_case(tmp_path)
+    exported = write_observed_zone_flows(analyze(inv, scans, []), str(tmp_path))
+    rows = list(csv.reader(open(exported, encoding="utf-8"), delimiter=";"))
+    assert rows[0] == ["src", "dst", "ports", "action", "comment"]
+    assert [r[:3] for r in rows[1:]] == [["user", "dmz", "22"], ["user", "dmz", "443"]]
+
+    for r in rows[1:]:
+        r[3] = "deny" if r[2] == "22" else "allow"  # the auditor fills the action column
+    policy_path = tmp_path / "flow_policy.csv"
+    with open(policy_path, "w", newline="", encoding="utf-8") as fh:
+        csv.writer(fh, delimiter=";").writerows(rows)
+    a = analyze(inv, scans, [], policy=load_policy(str(policy_path), inv, load_port_groups()))
+    assert len(a.findings) == 2  # 22 to web and to dc-01

@@ -12,6 +12,7 @@ from seg_matrix.nmap import SCAN_EXT_PRIORITY, discover_scans, parse_scan
 from seg_matrix.policy import load_policy
 from seg_matrix.port_groups import load_port_groups
 from seg_matrix.render.common import write_output
+from seg_matrix.render.exports import write_observed_flows, write_observed_zone_flows
 from seg_matrix.render.html import write_html
 from seg_matrix.render.markdown import (
     write_exposure_md,
@@ -91,6 +92,8 @@ def main() -> None:
     for s in matrix:
         mmd = mermaid_source(s, matrix[s], inv, a.highlight, pair_status)
         write_output(os.path.join(args.out, "mermaid"), f"{s}.mmd", mmd)
+    write_observed_flows(a, args.out)
+    write_observed_zone_flows(a, args.out)
     html_path = write_html(a, args.out)
 
     n_scans = sum(len(v) for v in scans.values())

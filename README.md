@@ -106,6 +106,10 @@ sees itself locally typically shows many "open" ports that would skew the matrix
 - `mermaid/<ip>.mmd`    : per-source Mermaid
 - `segmentation_hosts.mmd` : global host Mermaid (`--host-graph` option)
 - `findings.md`         : Findings and undeclared flows (only with a Flow Policy)
+- `observed_flows.csv`  : one row per Source -> Interface -> open port (plus reachable / alive
+  pairs), with machine, zone, type and free columns on both sides, Flow Policy decision, Scans
+- `observed_zone_flows.csv` : observed OPEN flows per zone pair and port **in Flow Policy format**
+  with an empty `action`: fill it (allow / deny) and save it as `flow_policy.csv` to start a policy
 
 
 ## -Pn mode

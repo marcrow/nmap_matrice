@@ -1,6 +1,6 @@
 # Observed flow exports
 
-Status: ready-for-agent
+Status: done
 Blocked by: 09, 14
 Stage: Stage 4 (see ../spec.md)
 
