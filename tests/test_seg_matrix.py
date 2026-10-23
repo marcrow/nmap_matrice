@@ -207,7 +207,7 @@ def test_no_policy_no_findings(tmp_path):
 def test_zone_flow_export_bootstraps_a_policy(tmp_path):
     inv, scans = _policy_case(tmp_path)
     exported = write_observed_zone_flows(analyze(inv, scans, []), str(tmp_path))
-    rows = list(csv.reader(open(exported, encoding="utf-8"), delimiter=";"))
+    rows = list(csv.reader(open(exported, encoding="utf-8-sig"), delimiter=";"))
     assert rows[0] == ["src", "dst", "ports", "action", "comment"]
     assert [r[:3] for r in rows[1:]] == [["user", "dmz", "22"], ["user", "dmz", "443"]]
 
