@@ -5,6 +5,7 @@ import pytest
 from seg_matrix.analysis import analyze, build_matrix, restrict
 from seg_matrix.inventory import load_inventory
 from seg_matrix.nmap import HostRecord, discover_scans, parse_scan
+from seg_matrix.policy import load_policy
 from seg_matrix.port_groups import load_port_groups
 from seg_matrix.ports import in_port_set
 from seg_matrix.render.html import write_html
@@ -163,3 +164,39 @@ def test_scan_row_is_one_scan_alone():
     row = a.scan_row(after_fix)
     assert set(row) == {"172.31.250.10"}  # the only target of that Scan
     assert row["172.31.250.10"].open_ports == [] and row["172.31.250.10"].is_tested(22)
+
+
+def _policy_case(tmp_path):
+    inv_path = tmp_path / "inv.csv"
+    inv_path.write_text("10.1.0.9;user;ws;pc\n10.0.1.6;dmz;vm;web\n10.0.1.7;dmz;vm;dc-01\n")
+    inv = load_inventory(str(inv_path))
+    scan = tmp_path / "10.1.0.9.gnmap"
+    scan.write_text(
+        "Host: 10.0.1.6 ()\tPorts: 22/open/tcp//ssh///, 443/open/tcp//https///\n"
+        "Host: 10.0.1.7 ()\tPorts: 22/open/tcp//ssh///\n"
+    )
+    return inv, {"10.1.0.9": [parse_scan(str(scan), "10.1.0.9")]}
+
+
+def test_flow_policy_precedence(tmp_path):
+    inv, scans = _policy_case(tmp_path)
+    policy_path = tmp_path / "flow_policy.csv"
+    policy_path.write_text(
+        "src;dst;ports;action;comment\n"
+        "user;dmz;443;allow;web only\n"
+        "user;dmz;*;deny;\n"
+        "user;dc-01;*;allow;the machine rule beats the zone rule\n"
+        "user;dmz;8080;;no decision yet: skipped\n"
+    )
+    policy = load_policy(str(policy_path), inv, load_port_groups())
+    a = analyze(inv, scans, [], policy=policy)
+    assert [(s, d, p, r.line) for s, d, p, r in a.findings] == [("10.1.0.9", "10.0.1.6", (22, "tcp"), 3)]
+    assert a.flow_status("10.1.0.9", "10.0.1.6", (443, "tcp")) == "allow"
+    assert a.flow_status("10.1.0.9", "10.0.1.7", (22, "tcp")) == "allow"
+    assert a.undeclared == []
+
+
+def test_no_policy_no_findings(tmp_path):
+    inv, scans = _policy_case(tmp_path)
+    a = analyze(inv, scans, [])
+    assert a.findings == [] and a.pair_status(a.matrix) == {}

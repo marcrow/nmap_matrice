@@ -9,6 +9,7 @@ from functools import cached_property
 
 from seg_matrix.inventory import Inventory, ordered_ips
 from seg_matrix.nmap import HostRecord, Scan
+from seg_matrix.policy import DENY, UNDECLARED, Rule, decide, worst
 from seg_matrix.port_groups import HIGHLIGHT, PortGroups
 from seg_matrix.ports import Port, in_port_set, merge_ranges, overlaps
 from seg_matrix.verdict import ALIVE, BLOCK, OPEN, REACH, Cell, classify
@@ -193,6 +194,7 @@ class Analysis:
     exp: Exposure
     port_groups: PortGroups = field(default_factory=dict)
     force_pn: bool = False
+    policy: list[Rule] | None = None  # None = no Flow Policy: no Findings, no policy colouring
 
     @property
     def sources(self) -> list[str]:
@@ -215,6 +217,48 @@ class Analysis:
         }
 
     @cached_property
+    def decisions(self) -> dict[tuple[str, str, Port], Rule | None]:
+        """(source, target, open port) -> the deciding rule (None = Undeclared); empty without a policy."""
+        if self.policy is None:
+            return {}
+        return {
+            (s, d, p): decide(self.policy, self.inv[s], self.inv[d], p)
+            for s, row in self.matrix.items()
+            for d, c in row.items()
+            for p in c.open_ports
+        }
+
+    def flow_status(self, s: str, d: str, port: Port) -> str:
+        rule = self.decisions[(s, d, port)]
+        return UNDECLARED if rule is None else rule.action
+
+    @property
+    def findings(self) -> list[tuple[str, str, Port, Rule]]:
+        """Observed flows the Flow Policy explicitly denies."""
+        return [(s, d, p, r) for (s, d, p), r in self.decisions.items() if r is not None and r.action == DENY]
+
+    @property
+    def undeclared(self) -> list[tuple[str, str, Port]]:
+        return [(s, d, p) for (s, d, p), r in self.decisions.items() if r is None]
+
+    def pair_status(self, matrix: Matrix) -> dict[tuple[str, str], str]:
+        """Worst policy status of the OPEN flows of each (source, target) pair; empty without a policy."""
+        if self.policy is None:
+            return {}
+        out = {}
+        for s, row in matrix.items():
+            for d, c in row.items():
+                if status := worst([self.flow_status(s, d, p) for p in c.open_ports]):
+                    out[(s, d)] = status
+        return out
+
+    def zone_status(self, matrix: Matrix) -> dict[tuple[str, str], str]:
+        by_zone: dict[tuple[str, str], list[str]] = defaultdict(list)
+        for (s, d), status in self.pair_status(matrix).items():
+            by_zone[(self.inv[s].zone, self.inv[d].zone)].append(status)
+        return {k: worst(v) for k, v in by_zone.items()}
+
+    @cached_property
     def pivots(self) -> Pivots:
         return pivot_machines(self.matrix, self.inv)
 
@@ -234,10 +278,11 @@ def analyze(
     orphan: list[str],
     force_pn: bool = False,
     port_groups: PortGroups | None = None,
+    policy: list[Rule] | None = None,
 ) -> Analysis:
     scans = {src: sorted(v, key=lambda sc: (sc.start_ts, sc.name)) for src, v in scans.items()}
     matrix, missing, unknown, pn_count = build_matrix(inv, scans, force_pn)
     agg, exp = aggregate_zones(matrix, inv), target_exposure(matrix, inv)
     return Analysis(
-        inv, scans, orphan, matrix, missing, unknown, pn_count, agg, exp, port_groups or {}, force_pn
+        inv, scans, orphan, matrix, missing, unknown, pn_count, agg, exp, port_groups or {}, force_pn, policy
     )

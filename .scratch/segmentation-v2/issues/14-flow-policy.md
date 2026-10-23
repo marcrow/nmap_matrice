@@ -1,6 +1,6 @@
 # Flow policy
 
-Status: ready-for-agent
+Status: done
 Blocked by: 10
 Stage: Stage 4 (see ../spec.md)
 

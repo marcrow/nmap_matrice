@@ -13,7 +13,7 @@ The script cross-checks each scan with the CSV inventory (ip;zone;type;name) and
   - exposure_targets.md       : target-oriented view (who reaches what)
   - segmentation.mmd          : global zone Mermaid
   - mermaid/<ip>.mmd          : per-source Mermaid
-  - findings.md               : cross-zone exposures + anomalies
+  - findings.md               : Findings and undeclared flows (with a Flow Policy only)
   - report.html               : standalone tabbed report (Global / Per source / Anomalies)
     (assets/mermaid.min.js is inlined -> viewable offline; otherwise CDN)
 

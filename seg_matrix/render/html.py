@@ -13,7 +13,7 @@ from seg_matrix.analysis import Analysis, Exposure, Matrix, Row, ZoneMatrix, agg
 from seg_matrix.inventory import Host, Inventory, extra_columns, ordered_ips
 from seg_matrix.ports import Port, count_ports, format_ranges, port_label, ports_text
 from seg_matrix.render.common import machine_palette, write_output, zone_cell, zone_palette
-from seg_matrix.render.mermaid import hid, mermaid_source, mermaid_zone, zid
+from seg_matrix.render.mermaid import EdgeStatus, hid, mermaid_source, mermaid_zone, zid
 from seg_matrix.verdict import REACH, VCLASS, VERDICT_NAME, Cell, cell_text
 
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
@@ -59,7 +59,9 @@ def _host_title(h: Host) -> str:
     )
 
 
-def _host_matrix_html(matrix: Matrix, inv: Inventory, highlight: Highlight = _no_highlight) -> str:
+def _host_matrix_html(
+    matrix: Matrix, inv: Inventory, highlight: Highlight = _no_highlight, status: EdgeStatus | None = None
+) -> str:
     dsts = ordered_ips(inv)
     srcs = [ip for ip in dsts if ip in matrix]
     mpal = machine_palette(inv)
@@ -77,7 +79,10 @@ def _host_matrix_html(matrix: Matrix, inv: Inventory, highlight: Highlight = _no
             if inv[d].machine == inv[s].machine:
                 cells.append('<td class="v-self">-</td>')
             else:
-                cells.append(_cell_html(matrix[s].get(d, Cell()), highlight))
+                cell = _cell_html(matrix[s].get(d, Cell()), highlight)
+                if st := (status or {}).get((s, d)):
+                    cell = cell.replace('<td class="', f'<td class="p-{st} ', 1)
+                cells.append(cell)
         rows.append(f"<tr>{th(s)}{''.join(cells)}</tr>")
     return (
         f'<div class="tablewrap"><table><thead><tr><th>source \\ target</th>{head}</tr></thead>'
@@ -85,7 +90,9 @@ def _host_matrix_html(matrix: Matrix, inv: Inventory, highlight: Highlight = _no
     )
 
 
-def _zone_matrix_html(agg: ZoneMatrix, inv: Inventory, highlight: Highlight = _no_highlight) -> str:
+def _zone_matrix_html(
+    agg: ZoneMatrix, inv: Inventory, highlight: Highlight = _no_highlight, status: EdgeStatus | None = None
+) -> str:
     zones = sorted(zone_palette(inv))
     head = "".join(f"<th>{html.escape(z)}</th>" for z in zones)
     rows = []
@@ -96,6 +103,8 @@ def _zone_matrix_html(agg: ZoneMatrix, inv: Inventory, highlight: Highlight = _n
             cls, txt = zone_cell(a)
             pairs = f"<br><small>{a.reach_pairs}/{a.total_pairs}</small>" if a and a.reach_pairs else ""
             attr, hl = _ports_attr(a.open_ports if a else [], highlight)
+            st = (status or {}).get((zs, zd))
+            cls += f" p-{st}" if st else ""
             cells.append(f'<td class="{cls}{hl}"{attr}>{html.escape(txt)}{pairs}</td>')
         rows.append(f"<tr><th>{html.escape(zs)}</th>{''.join(cells)}</tr>")
     return (
@@ -177,7 +186,14 @@ def _zone_legend_html(inv: Inventory) -> str:
     return f'<div style="margin:4px 0 12px;">{chips}</div>'
 
 
-def _legend() -> str:
+def _legend(policy: bool = False) -> str:
+    colours = (
+        '<span class="p-deny v-open">denied (Finding)</span>'
+        '<span class="p-undeclared v-open">undeclared</span>'
+        '<span class="p-allow v-open">allowed</span> — OPEN flows by Flow Policy'
+        if policy
+        else '<span style="color:#e11d48">— red = cross-zone OPEN</span>'
+    )
     return (
         '<div class="legend">'
         '<span class="v-open">OPEN service</span>'
@@ -186,7 +202,7 @@ def _legend() -> str:
         '<span class="v-block">blocked</span>'
         '<span class="v-none">unseen</span>'
         '<span class="v-none conflict">Scans disagree</span>'
-        '<span style="color:#e11d48">— red = cross-zone OPEN</span></div>'
+        f"{colours}</div>"
     )
 
 
@@ -229,20 +245,20 @@ def _global_tab(a: Analysis) -> str:
         [
             "<h2>Global diagram (zone &rarr; zone)</h2>",
             _zone_legend_html(a.inv),
-            _legend(),
+            _legend(a.policy is not None),
             _diagram(
-                mermaid_zone(a.agg, a.inv, a.highlight),
+                mermaid_zone(a.agg, a.inv, a.highlight, a.zone_status(a.matrix)),
                 [
-                    mermaid_zone(aggregate_zones(m, a.inv), a.inv, a.highlight)
+                    mermaid_zone(aggregate_zones(m, a.inv), a.inv, a.highlight, a.zone_status(m))
                     for m in a.group_matrices.values()
                 ],
             ),
             "<h2>Consolidated zone &rarr; zone matrix</h2>",
-            _zone_matrix_html(a.agg, a.inv, a.highlight),
+            _zone_matrix_html(a.agg, a.inv, a.highlight, a.zone_status(a.matrix)),
             "<h2>Consolidated host &rarr; host matrix</h2>",
             '<p class="legend">Hover a cell for the Scans behind its verdict.</p>',
-            _legend(),
-            _host_matrix_html(a.matrix, a.inv, a.highlight),
+            _legend(a.policy is not None),
+            _host_matrix_html(a.matrix, a.inv, a.highlight, a.pair_status(a.matrix)),
             "<h2>Pivot Machines</h2>",
             '<p class="legend">Machines spanning several zones and reached OPEN: from the source zone, '
             "a one-hop path to the machine's other zones.</p>",
@@ -255,6 +271,8 @@ def _global_tab(a: Analysis) -> str:
 
 def _persource_tab(a: Analysis) -> str:
     inv, matrix = a.inv, a.matrix
+    status = a.pair_status(matrix)
+    group_views = [(m, a.pair_status(m)) for m in a.group_matrices.values()]
     by_m = defaultdict(list)
     for s in a.sources:
         by_m[inv[s].machine].append(s)
@@ -288,8 +306,8 @@ def _persource_tab(a: Analysis) -> str:
             f'<span class="tag">{len(a.scans[s])} scan(s)</span></h2>'
             + bar
             + _diagram(
-                mermaid_source(s, matrix[s], inv, a.highlight),
-                [mermaid_source(s, m[s], inv, a.highlight) for m in a.group_matrices.values()],
+                mermaid_source(s, matrix[s], inv, a.highlight, status),
+                [mermaid_source(s, m[s], inv, a.highlight, st) for m, st in group_views],
             )
             + f"<h3>Target details</h3>{_source_table_html(s, matrix[s], inv, a.highlight)}</div>"
         )
@@ -472,8 +490,55 @@ def _mermaid_script() -> str:
     return f'<script src="{MERMAID_CDN}"></script>'
 
 
+def _flows_table(rows: list[list[str]], head: list[str]) -> str:
+    body = "".join("<tr>" + "".join(f"<td>{c}</td>" for c in r) + "</tr>" for r in rows)
+    return (
+        f'{_filter_box()}<div class="tablewrap"><table><thead><tr>{"".join(f"<th>{h}</th>" for h in head)}'
+        f"</tr></thead><tbody>{body or '<tr><td>None.</td></tr>'}</tbody></table></div>"
+    )
+
+
+def _policy_tab(a: Analysis) -> str:
+    inv, e = a.inv, html.escape
+    hits = Counter(r.line for r in a.decisions.values() if r is not None)
+    side = ["source", "src zone", "target", "dst zone", "port"]
+
+    def flow(s: str, d: str, p: Port) -> list[str]:
+        return [e(inv[s].short), e(inv[s].zone), e(inv[d].short), e(inv[d].zone), port_label(p)]
+
+    def zkey(t: tuple) -> tuple:
+        return inv[t[0]].zone, inv[t[1]].zone, t
+
+    findings = [flow(s, d, p) + [e(str(r)), e(r.comment)] for s, d, p, r in sorted(a.findings, key=zkey)]
+    undeclared = [flow(s, d, p) for s, d, p in sorted(a.undeclared, key=zkey)]
+    rules = [
+        [str(r.line), e(r.src), e(r.dst), e(r.ports_spec), r.action, e(r.comment), str(hits[r.line]) or "0"]
+        + ([] if hits[r.line] else ['<span class="warn">never matched</span>'])
+        for r in a.policy or []
+    ]
+    allowed = len(a.decisions) - len(findings) - len(undeclared)
+    return (
+        "<h2>Flow Policy</h2>"
+        f'<div class="legend"><span class="p-deny v-open">{len(findings)} Finding(s)</span>'
+        f'<span class="p-undeclared v-open">{len(undeclared)} undeclared</span>'
+        f'<span class="p-allow v-open">{allowed} allowed</span> '
+        f"OPEN flows · {len(a.policy or [])} rule(s)</div>"
+        '<p class="legend">Evaluated on OPEN ports. The most specific rule wins '
+        "(src Machine &gt; Zone &gt; *, "
+        "then dst, then listed ports &gt; *); at equal specificity deny wins. A flow no rule covers is "
+        "undeclared, never a Finding.</p>"
+        "<h3>Findings: OPEN flows explicitly denied</h3>"
+        + _flows_table(findings, side + ["rule", "comment"])
+        + "<h3>Undeclared flows</h3>"
+        + _flows_table(undeclared, side)
+        + "<h3>Rules</h3>"
+        + _flows_table(rules, ["line", "src", "dst", "ports", "action", "comment", "flows decided", ""])
+    )
+
+
 TABS = (
     ("global", "Global view", _global_tab),
+    ("policy", "Flow Policy", _policy_tab),
     ("persource", "Per source", _persource_tab),
     ("scans", "Scans", _scans_tab),
     ("diff", "Diff", _diff_tab),
@@ -495,6 +560,7 @@ def _group_filter(a: Analysis) -> str:
 
 
 def write_html(a: Analysis, out_dir: str) -> str:
+    tabs = [t for t in TABS if t[0] != "policy" or a.policy is not None]
     n_scans = sum(len(v) for v in a.scans.values())
     meta = (
         f"{len(a.inv)} targets · {len(a.sources)} scanned source(s) · {n_scans} scan(s) · "
@@ -504,11 +570,11 @@ def write_html(a: Analysis, out_dir: str) -> str:
     buttons = "".join(
         f'<button class="tab{" active" if i == 0 else ""}" data-tab="{key}" '
         f"onclick=\"showTab('{key}')\">{title}</button>"
-        for i, (key, title, _) in enumerate(TABS)
+        for i, (key, title, _) in enumerate(tabs)
     )
     panes = "".join(
         f'<section id="tab-{key}" class="pane{" active" if i == 0 else ""}">{render(a)}</section>'
-        for i, (key, _, render) in enumerate(TABS)
+        for i, (key, _, render) in enumerate(tabs)
     )
     doc = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

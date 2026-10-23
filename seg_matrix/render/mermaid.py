@@ -8,6 +8,7 @@ from collections.abc import Callable, Iterable
 
 from seg_matrix.analysis import Matrix, Row, ZoneMatrix
 from seg_matrix.inventory import Inventory, ordered_ips
+from seg_matrix.policy import ALLOW, DENY, UNDECLARED
 from seg_matrix.ports import Port, port_label
 from seg_matrix.render.common import machine_palette, zone_palette
 from seg_matrix.verdict import OPEN, REACH
@@ -21,6 +22,10 @@ MERMAID_INIT = (
     "'flowchart':{'curve':'linear','htmlLabels':true,"
     "'nodeSpacing':40,'rankSpacing':60,'padding':8}}}%%"
 )
+
+
+POLICY_COLORS = {DENY: "#dc2626", UNDECLARED: "#f59e0b", ALLOW: "#16a34a"}
+EdgeStatus = dict[tuple[str, str], str]  # (from, to) -> Flow Policy status of the OPEN flows on that edge
 
 
 def _no_highlight(port: Port) -> bool:
@@ -57,10 +62,14 @@ def _edge(
     idx: int,
     w_open: str = "2.5px",
     w_reach: str = "2px",
+    status: str | None = None,
 ) -> tuple[str, str]:
-    """Mermaid edge + its linkStyle: solid red/green if OPEN, dashed amber/grey otherwise."""
+    """Mermaid edge + its linkStyle: solid if OPEN, dashed otherwise.
+
+    OPEN colour: the Flow Policy status when there is one, else red cross-zone / green same-zone.
+    """
     if verdict == OPEN:
-        col = "#e11d48" if cross else "#16a34a"
+        col = POLICY_COLORS[status] if status else "#e11d48" if cross else "#16a34a"
         return (
             f'  {a} ==>|"{_safe(label)}"| {b}',
             f"  linkStyle {idx} stroke:{col},stroke-width:{w_open},stroke-linecap:round;",
@@ -113,7 +122,13 @@ def _machine_links(ips: list[str], inv: Inventory, idx: int) -> tuple[list[str],
     return lines, styles
 
 
-def mermaid_zone(agg: ZoneMatrix, inv: Inventory, highlight: Callable[[Port], bool] = _no_highlight) -> str:
+def mermaid_zone(
+    agg: ZoneMatrix,
+    inv: Inventory,
+    highlight: Callable[[Port], bool] = _no_highlight,
+    status: EdgeStatus | None = None,
+) -> str:
+    """Zone graph; status = Flow Policy status per (src zone, dst zone)."""
     pal = zone_palette(inv)
     L = [MERMAID_INIT, "flowchart LR"]
     for z, (f, s, t) in sorted(pal.items()):
@@ -124,16 +139,24 @@ def mermaid_zone(agg: ZoneMatrix, inv: Inventory, highlight: Callable[[Port], bo
         if a.reach_pairs == 0:
             continue
         label = _label(a.open_ports, highlight) if a.open_ports else f"{a.reach_pairs} host(s)"
-        line, style = _edge(zid(zs), zid(zd), a.verdict, zs != zd, label, len(styles))
+        st = (status or {}).get((zs, zd))
+        line, style = _edge(zid(zs), zid(zd), a.verdict, zs != zd, label, len(styles), status=st)
         L.append(line)
         styles.append(style)
     return "\n".join(L + styles)
 
 
 def mermaid_source(
-    src: str, row: Row, inv: Inventory, highlight: Callable[[Port], bool] = _no_highlight
+    src: str,
+    row: Row,
+    inv: Inventory,
+    highlight: Callable[[Port], bool] = _no_highlight,
+    status: EdgeStatus | None = None,
 ) -> str:
-    """Modern radial view: source (hexagon) + reachable targets, grouped/tinted by zone."""
+    """Modern radial view: source (hexagon) + reachable targets, grouped/tinted by zone.
+
+    status = Flow Policy status per (source, target).
+    """
     reach = {d: c for d, c in row.items() if c.verdict >= REACH}
     if not reach:
         return (
@@ -156,14 +179,22 @@ def mermaid_source(
     styles = []
     for d, c in reach.items():
         label = _label(c.open_ports, highlight) if c.verdict == OPEN else "reachable"
-        line, style = _edge("S", hid(d), c.verdict, inv[src].zone != inv[d].zone, label, len(styles))
+        st = (status or {}).get((src, d))
+        line, style = _edge(
+            "S", hid(d), c.verdict, inv[src].zone != inv[d].zone, label, len(styles), status=st
+        )
         L.append(line)
         styles.append(style)
     ml, ms = _machine_links(list(reach), inv, len(styles))
     return "\n".join(L + ml + styles + ms)
 
 
-def mermaid_hosts(matrix: Matrix, inv: Inventory, highlight: Callable[[Port], bool] = _no_highlight) -> str:
+def mermaid_hosts(
+    matrix: Matrix,
+    inv: Inventory,
+    highlight: Callable[[Port], bool] = _no_highlight,
+    status: EdgeStatus | None = None,
+) -> str:
     zones = defaultdict(list)
     for ip in ordered_ips(inv):
         zones[inv[ip].zone].append(ip)
@@ -182,6 +213,7 @@ def mermaid_hosts(matrix: Matrix, inv: Inventory, highlight: Callable[[Port], bo
                 _label(c.open_ports, highlight),
                 len(styles),
                 w_open="2px",
+                status=(status or {}).get((s, d)),
             )
             L.append(line)
             styles.append(style)

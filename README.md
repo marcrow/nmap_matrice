@@ -7,6 +7,7 @@ Everything for one engagement lives in a **mission folder**:
 mission/
   inventory.csv            ip;zone;type;name
   port_groups.csv          optional, overrides the default Port Groups
+  flow_policy.csv          optional, the expected flows
   scans/<source_ip>/*.xml  any file name, one folder per Source
   report/                  generated
 ```
@@ -58,6 +59,24 @@ The **Port group** selector in the report header restricts every view (matrices,
 exposure) to the OPEN flows on that group's ports. Open `admin` ports are always highlighted:
 red bar on cells, red labels on diagram edges.
 
+## Flow Policy (optional)
+Without a Flow Policy the tool shows the views and the auditor judges: there are no Findings.
+With `mission/flow_policy.csv` (or `--policy FILE`), every OPEN flow is evaluated:
+```
+src;dst;ports;action;comment
+user;dmz;443;allow;web only
+user;dmz;*;deny;
+user;dc-01;*;allow;the machine rule beats the zone rule
+```
+- `src` / `dst`: a Zone, a Machine or `*`; `ports`: `*`, `22,443`, `8000-8100`, `udp:161`,
+  `@admin` (Port Group), combinable; `action`: `allow` / `deny` (empty = no decision yet, skipped).
+- The most specific rule wins: src (Machine > Zone > `*`), then dst, then ports (listed > `*`);
+  at equal specificity `deny` wins (`docs/adr/0002-*`).
+- An explicitly denied flow is a **Finding**; a flow no rule covers is **undeclared**, never a Finding.
+  In the example: user -> dmz:22 is a Finding, user -> dmz:443 and user -> dc-01:* are allowed.
+- The report gains a Flow Policy tab (Findings, undeclared flows, rules and how many flows each
+  decided) and colours OPEN flows by status: red denied, amber undeclared, green allowed.
+
 ## Scan Diff
 The **Diff** tab compares the open ports seen by any two Scans or Source Views: over time
 (same Source, before / after a fix) or across Sources (what one sees that the other does not).
@@ -86,7 +105,7 @@ sees itself locally typically shows many "open" ports that would skew the matrix
 - `segmentation.mmd`    : global zone Mermaid
 - `mermaid/<ip>.mmd`    : per-source Mermaid
 - `segmentation_hosts.mmd` : global host Mermaid (`--host-graph` option)
-- `findings.md`         : cross-zone exposures + anomalies
+- `findings.md`         : Findings and undeclared flows (only with a Flow Policy)
 
 
 ## -Pn mode

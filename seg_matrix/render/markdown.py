@@ -5,11 +5,11 @@ from __future__ import annotations
 import csv
 import os
 
-from seg_matrix.analysis import Exposure, Matrix, ZoneMatrix
+from seg_matrix.analysis import Analysis, Exposure, Matrix, ZoneMatrix
 from seg_matrix.inventory import Inventory, ordered_ips
-from seg_matrix.ports import ports_text
+from seg_matrix.ports import port_label, ports_text
 from seg_matrix.render.common import write_output, zone_cell, zone_palette
-from seg_matrix.verdict import OPEN, VERDICT_NAME, Cell, cell_text
+from seg_matrix.verdict import VERDICT_NAME, Cell, cell_text
 
 
 def write_host_matrix_md(matrix: Matrix, inv: Inventory, out_dir: str) -> None:
@@ -86,43 +86,33 @@ def write_exposure_md(exp: Exposure, inv: Inventory, out_dir: str) -> None:
     write_output(out_dir, "exposure_targets.md", "\n".join(lines))
 
 
-def write_findings_md(
-    matrix: Matrix, inv: Inventory, missing: list[str], unknown: list[str], orphan: list[str], out_dir: str
-) -> None:
+def write_findings_md(a: Analysis, out_dir: str) -> None:
+    """Findings (flows the Flow Policy explicitly denies) and Undeclared Flows; only with a Flow Policy."""
+    inv = a.inv
     lines = [
-        "# Segmentation summary",
+        "# Findings",
         "",
-        "## Cross-zone exposures (effective access)",
+        "Observed OPEN flows explicitly denied by the Flow Policy.",
         "",
-        "| src zone | dst zone | source | target | open ports |",
+        "| src zone | source | dst zone | target | port | rule | comment |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    rows = sorted(
+        (inv[s].zone, inv[s].short, inv[d].zone, inv[d].short, port_label(p), str(r), r.comment)
+        for s, d, p, r in a.findings
+    )
+    lines += ["| " + " | ".join(row) + " |" for row in rows] or ["_None._"]
+    lines += [
+        "",
+        "## Undeclared flows",
+        "",
+        "Observed OPEN flows the Flow Policy says nothing about.",
+        "",
+        "| src zone | source | dst zone | target | port |",
         "|---|---|---|---|---|",
     ]
-    rows = []
-    for s, row in matrix.items():
-        for d, c in row.items():
-            if inv[s].zone != inv[d].zone and c.verdict == OPEN:
-                rows.append(
-                    (
-                        inv[s].zone,
-                        inv[d].zone,
-                        inv[s].short,
-                        inv[d].short,
-                        ports_text(c.open_ports),
-                    )
-                )
-    lines += [f"| {a} | {b} | {x} | {y} | {p} |" for a, b, x, y, p in sorted(rows)] or ["_None._"]
-    lines += ["", "## Coverage anomalies", ""]
-    if missing:
-        lines.append("**Sources without scan:**")
-        lines += [f"- {ip} ({inv[ip].short}, {inv[ip].zone})" for ip in missing]
-        lines.append("")
-    if unknown:
-        lines.append("**Reachable hosts outside the inventory:**")
-        lines += [f"- {ip}" for ip in unknown]
-        lines.append("")
-    if orphan:
-        lines.append("**Ignored scans (source folder or file name is not an inventory IP):**")
-        lines += [f"- {ip}" for ip in orphan]
-    if not missing and not unknown and not orphan:
-        lines.append("_Full coverage._")
+    rows = sorted(
+        (inv[s].zone, inv[s].short, inv[d].zone, inv[d].short, port_label(p)) for s, d, p in a.undeclared
+    )
+    lines += ["| " + " | ".join(row) + " |" for row in rows] or ["_None._"]
     write_output(out_dir, "findings.md", "\n".join(lines))

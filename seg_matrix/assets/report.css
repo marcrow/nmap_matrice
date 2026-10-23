@@ -46,3 +46,9 @@ li.admin{box-shadow:none;border-left:3px solid #dc2626;padding-left:6px;}
 .d-removed{background:#d7f5dd;color:#04611f;}
 .d-not-comparable{background:#f1f1f3;color:#6b7280;}
 .d-unchanged{background:#eef1f6;color:#33415c;}
+.p-deny{box-shadow:inset 0 -4px 0 #dc2626;}
+.p-undeclared{box-shadow:inset 0 -4px 0 #f59e0b;}
+.p-allow{box-shadow:inset 0 -4px 0 #16a34a;}
+.admin.p-deny{box-shadow:inset 3px 0 0 #dc2626,inset 0 -4px 0 #dc2626;}
+.admin.p-undeclared{box-shadow:inset 3px 0 0 #dc2626,inset 0 -4px 0 #f59e0b;}
+.admin.p-allow{box-shadow:inset 3px 0 0 #dc2626,inset 0 -4px 0 #16a34a;}
