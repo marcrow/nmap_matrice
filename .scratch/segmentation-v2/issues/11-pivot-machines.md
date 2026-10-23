@@ -1,6 +1,6 @@
 # Pivot machines
 
-Status: ready-for-agent
+Status: done
 Blocked by: 06
 Stage: Stage 2 (see ../spec.md)
 

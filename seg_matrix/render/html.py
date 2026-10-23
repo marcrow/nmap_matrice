@@ -190,6 +190,34 @@ def _legend() -> str:
     )
 
 
+def _zone_tag(z: str) -> str:
+    return f'<span class="tag">{html.escape(z)}</span>'
+
+
+def _pivots_html(a: Analysis) -> str:
+    inv, blocks = a.inv, []
+    for machine, hits in sorted(a.pivots.items()):
+        zones = sorted({h.zone for h in inv.values() if h.machine == machine})
+        by_zone = defaultdict(list)
+        for s, d, ports in hits:
+            by_zone[inv[s].zone].append((s, d, ports))
+        groups = []
+        for z, rows in sorted(by_zone.items()):
+            onward = ", ".join(_zone_tag(x) for x in zones if x != z)
+            items = "".join(
+                '<li class="{1}"{0}>'.format(*_ports_attr(ports, a.highlight))
+                + f"{html.escape(inv[s].short)} &rarr; {html.escape(d)} {_zone_tag(inv[d].zone)}: "
+                f'<span class="pl">{ports_text(ports)}</span></li>'
+                for s, d, ports in rows
+            )
+            groups.append(f"<div>from {_zone_tag(z)} &rarr; leads to {onward}<ul>{items}</ul></div>")
+        blocks.append(
+            f'<div class="card"><b>{html.escape(machine)}</b> spans {", ".join(_zone_tag(z) for z in zones)}'
+            f"{''.join(groups)}</div>"
+        )
+    return "".join(blocks) or "<p>None: no machine spanning several zones is reached OPEN.</p>"
+
+
 def _diagram(base: str, variants: list[str]) -> str:
     """Mermaid block; data-g<i> holds the diagram restricted to the i-th Port Group (filter in the header)."""
     attrs = "".join(f' data-g{i}="{html.escape(v, quote=True)}"' for i, v in enumerate(variants))
@@ -215,6 +243,10 @@ def _global_tab(a: Analysis) -> str:
             '<p class="legend">Hover a cell for the Scans behind its verdict.</p>',
             _legend(),
             _host_matrix_html(a.matrix, a.inv, a.highlight),
+            "<h2>Pivot Machines</h2>",
+            '<p class="legend">Machines spanning several zones and reached OPEN: from the source zone, '
+            "a one-hop path to the machine's other zones.</p>",
+            _pivots_html(a),
             "<h2>Exposure per target</h2>",
             _exposure_html(a.exp, a.inv, a.highlight),
         ]

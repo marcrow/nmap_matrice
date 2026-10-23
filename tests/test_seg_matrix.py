@@ -117,3 +117,17 @@ def test_port_groups_override_and_filter(tmp_path):
     admin = restrict(build_matrix(inv, scans)[0], lambda p: in_port_set(p, groups["admin"]))
     assert admin[SRC]["172.31.250.10"].open_ports == [(22, "tcp"), (161, "udp")]
     assert admin[SRC]["172.31.250.20"].verdict == NODATA  # 5432 is not an admin port
+
+
+def test_pivot_machine(tmp_path):
+    inv_path = tmp_path / "inv.csv"
+    inv_path.write_text(
+        "10.0.1.5;dmz;vm;bastion\n10.9.0.5;T0;vm;bastion\n10.1.0.9;user;ws;pc\n10.0.1.6;dmz;vm;web\n"
+    )
+    inv = load_inventory(str(inv_path))
+    scan = tmp_path / "10.1.0.9.gnmap"
+    scan.write_text(
+        "Host: 10.0.1.5 ()\tPorts: 22/open/tcp//ssh///\nHost: 10.0.1.6 ()\tPorts: 80/open/tcp//http///\n"
+    )
+    a = analyze(inv, {"10.1.0.9": [parse_scan(str(scan), "10.1.0.9")]}, [])
+    assert a.pivots == {"bastion": [("10.1.0.9", "10.0.1.5", [(22, "tcp")])]}  # web spans one zone only

@@ -140,6 +140,26 @@ def restrict(matrix: Matrix, keep: Callable[[Port], bool]) -> Matrix:
     return out
 
 
+# machine -> [(source ip, reached interface ip, open ports)]
+Pivots = dict[str, list[tuple[str, str, list[Port]]]]
+
+
+def pivot_machines(matrix: Matrix, inv: Inventory) -> Pivots:
+    """Machines spanning several Zones and reached OPEN: one-hop paths from the Source's Zone to their others.
+
+    ponytail: one hop only; chain pivots (A reaches M1 which reaches M2) if an engagement needs it.
+    """
+    zones_of: dict[str, set[str]] = defaultdict(set)
+    for h in inv.values():
+        zones_of[h.machine].add(h.zone)
+    out: Pivots = defaultdict(list)
+    for s, row in matrix.items():
+        for d, c in row.items():
+            if c.verdict == OPEN and len(zones_of[inv[d].machine]) > 1:
+                out[inv[d].machine].append((s, d, c.open_ports))
+    return dict(out)
+
+
 @dataclass
 class Analysis:
     """Everything the renderers need, computed once from the inventory and the Scans."""
@@ -167,6 +187,10 @@ class Analysis:
     def group_matrices(self) -> dict[str, Matrix]:
         """One restricted matrix per Port Group, for the report's group filter."""
         return {g: restrict(self.matrix, self.in_group(g)) for g in self.port_groups}
+
+    @cached_property
+    def pivots(self) -> Pivots:
+        return pivot_machines(self.matrix, self.inv)
 
     @property
     def highlight(self) -> Callable[[Port], bool]:

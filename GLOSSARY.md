@@ -76,7 +76,7 @@ Observed flow that the Flow Policy explicitly denies. Without a Flow Policy ther
 _Avoid_: vulnerability, violation
 
 **Pivot Machine**:
-A Machine spanning at least two Zones that a Source from another Zone reaches with an OPEN verdict, making it a one-hop path between Zones.
+A Machine spanning at least two Zones that a Source reaches with an OPEN verdict: from the Source's Zone, it is a one-hop path to the Machine's other Zones.
 _Avoid_: bastion, jump host, bridge
 
 **Port Group**:
