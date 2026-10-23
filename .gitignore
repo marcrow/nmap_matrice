@@ -1,3 +1,18 @@
 __pycache__/
 *.pyc
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Mission data (client inventories, scans, reports) never goes to git.
 seg_report/
+report/
+mission*/
+scans/
+*.csv
+*.xml
+*.gnmap
+*.nmap
+# Only synthetic test data and shipped defaults are tracked.
+!tests/fixtures/**
+!src/seg_matrix/defaults/**

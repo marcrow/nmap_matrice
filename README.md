@@ -1,68 +1,69 @@
-# seg_matrix — matrice de cloisonnement + Mermaid + rapport HTML
+# seg_matrix — segmentation matrix + Mermaid + HTML report
 
 ## Workflow
 
-1. **Inventaire** `inventaire.csv` (separateur `;`, en-tete optionnel), `type` en snake_case :
+1. **Inventory** `inventory.csv` (`;` separator, optional header), `type` in snake_case:
    ```
-   ip;zone;type;nom
-   10.0.2.1;interne;vm;app-01
+   ip;zone;type;name
+   10.0.2.1;internal;vm;app-01
    ```
 
-2. **Scans** — un scan *depuis chaque source*, sortie nommee par l'IP source :
+2. **Scans** — one scan *from each source*, output named after the source IP:
    ```bash
-   nmap -Pn -p- --open -oA "$SRC_IP" <cibles>   # via proxychains/SOCKS si pivot
+   nmap -Pn -p- --open -oA "$SRC_IP" <targets>   # through proxychains/SOCKS if pivoting
    ```
-   `-oA` produit `<SRC_IP>.xml/.gnmap/.nmap`. Priorite de parsing : xml > gnmap > nmap.
+   `-oA` produces `<SRC_IP>.xml/.gnmap/.nmap`. Parsing priority: xml > gnmap > nmap.
+   A file whose name is not an inventory IP is **ignored**: it is listed in the terminal
+   and in the Anomalies tab ("Ignored scans").
 
-   Machines multi-interfaces (admin, service, iLO, supervision...) : une ligne par
-   interface, meme `nom`. Sans nom, la machine = l'IP. Une IP en double est une erreur.
+   Multi-interface machines (admin, service, iLO, monitoring...): one row per
+   interface, same `name`. Without a name, the machine = the IP. A duplicate IP is an error.
    ```
    10.0.2.1;T1-service;vm;app-01
    10.9.0.1;T0-admin;vm;app-01
    10.8.0.1;ilo;ilo;app-01
    ```
 
-3. **Generation** :
+3. **Generation**:
    ```bash
-   python3 seg_matrix.py -i inventaire.csv -s ./scans/ -o ./report/ --host-graph
+   python3 seg_matrix.py -i inventory.csv -s ./scans/ -o ./report/ --host-graph
    ```
 
-## Exclusion du self
-Toutes les interfaces de la machine source sont systematiquement retirees des resultats :
-un scan qui se voit lui-meme en local affiche typiquement de nombreux ports "open"
-qui fausseraient la matrice.
+## Self exclusion
+All interfaces of the source machine are always removed from the results: a scan that
+sees itself locally typically shows many "open" ports that would skew the matrix.
 
-## Sorties
-- `report.html`         : **rapport standalone a onglets** (Vue globale / Par source / Anomalies)
-- `matrix_hosts.md/.csv`: matrice consolidee hote -> hote
-- `matrix_zones.md`     : matrice consolidee zone -> zone
-- `exposure_targets.md` : vue orientee cible (qui accede a quoi)
-- `segmentation.mmd`    : Mermaid global zone
-- `mermaid/<ip>.mmd`    : Mermaid par source
-- `segmentation_hosts.mmd` : Mermaid global hote (option `--host-graph`)
-- `findings.md`         : expositions inter-zones + anomalies
+## Outputs
+- `report.html`         : **standalone tabbed report** (Global view / Per source / Anomalies)
+- `matrix_hosts.md/.csv`: consolidated host -> host matrix
+- `matrix_zones.md`     : consolidated zone -> zone matrix
+- `exposure_targets.md` : target-oriented view (who reaches what)
+- `segmentation.mmd`    : global zone Mermaid
+- `mermaid/<ip>.mmd`    : per-source Mermaid
+- `segmentation_hosts.mmd` : global host Mermaid (`--host-graph` option)
+- `findings.md`         : cross-zone exposures + anomalies
 
 
-## Mode -Pn
-Tes scans en `-Pn` sont pris en charge nativement (et meme recommandes) : l'option
-est auto-detectee depuis l'entete des fichiers nmap, ou forcable via `--pn`. En mode
--Pn l'etat "host up" (toujours vrai) est ignore ; le verdict repose uniquement sur
-l'etat des ports (open/closed/filtered). Avantage : les cibles bloquees apparaissent
-en `filtered` (-> bloque) au lieu d'etre absentes.
+## -Pn mode
+`-Pn` scans are supported natively (and even recommended): the option is auto-detected
+from the nmap file header, or can be forced with `--pn`. In -Pn mode the "host up" state
+(always true) is ignored; the verdict relies only on port states (open/closed/filtered).
+Benefit: blocked targets show up as `filtered` (-> blocked) instead of being absent.
 
 ## Verdicts
-- `OPEN`  : >=1 port open -> service joignable
-- `o`     : ports closed (RST) -> flux L4 admis jusqu'a l'hote (cloisonnement permeable, sans service)
-- `~`     : vivant (ping/ARP), aucun port qui passe -> hors `-Pn` uniquement
-- `x`     : filtered / down -> bloque
-- `.`     : cible absente de la sortie du scan (non vu)
+- `OPEN`  : >=1 open port -> service reachable
+- `o`     : closed ports (RST) -> L4 flow admitted up to the host (permeable segmentation, no service)
+- `~`     : alive (ping/ARP), no port getting through -> outside `-Pn` only
+- `x`     : filtered / down -> blocked
+- `.`     : target absent from the scan output (unseen)
 
-## Graphes
-La zone colore le fond de son cadre. Chaque machine multi-interfaces a sa propre
-couleur de noeud, et ses interfaces sont reliees par un pointille gris ; les machines
-a une seule interface restent en blanc borde de la couleur de zone.
+## Graphs
+The zone colours the background of its frame. Each multi-interface machine has its own
+node colour, and its interfaces are linked by a grey dotted line; single-interface
+machines stay white, bordered with the zone colour.
 
-## Rapport HTML
-`report.html` charge mermaid.js depuis un CDN (jsdelivr) : prevoir une connexion au
-premier affichage. Pour un livrable hors-ligne, bundler mermaid.min.js en local et
-remplacer l'URL du `<script>`.
+## HTML report (offline)
+If `mermaid.min.js` sits next to `seg_matrix.py` (shipped in the repo, v10.9.8), it is
+inlined into `report.html`: the report is self-contained and renders without network.
+Otherwise the report loads mermaid from the jsdelivr CDN (network required) and, on
+failure, shows the diagram source instead of a `mermaid is not defined` error.

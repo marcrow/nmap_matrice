@@ -1,58 +1,84 @@
-# Test de cloisonnement
+# Segmentation testing
 
-Mesure, à partir de scans réseau lancés depuis l'intérieur du périmètre, des flux réellement admis entre segments, pour que l'auditeur juge si le cloisonnement voulu est respecté.
+Measures, from network scans launched inside the perimeter, which flows are actually allowed between segments, so the auditor can judge whether the intended segmentation holds.
 
 ## Language
 
-### Périmètre
+### Perimeter
 
-**Zone** :
-Segment réseau déclaré par l'auditeur dans l'inventaire, représentant une intention de cloisonnement, et non un VLAN ou un sous-réseau observé. Un tier d'administration (T0, T1…) ou un environnement (admin, iLO, supervision) s'exprime comme une Zone.
-_Avoid_ : VLAN, sous-réseau, segment, tier, environnement
+**Zone**:
+Network segment declared by the auditor in the inventory, representing a segmentation intent, not an observed VLAN or subnet. An administration tier (T0, T1…) or an environment (admin, iLO, monitoring) is expressed as a Zone.
+_Avoid_: VLAN, subnet, segment, tier, environment
 
-**Machine** :
-Équipement physique ou virtuel, identifié par son nom dans l'inventaire, qui porte une ou plusieurs Interfaces.
-_Avoid_ : hôte, serveur, asset
+**Machine**:
+Physical or virtual device, identified by its name in the inventory, carrying one or more Interfaces.
+_Avoid_: host, server, asset
 
-**Interface** :
-Une IP d'une Machine, rattachée à exactement une Zone. Une Machine dont les Interfaces sont dans plusieurs Zones enjambe ces Zones.
-_Avoid_ : alias, patte, IP secondaire
+**Interface**:
+One IP of a Machine, attached to exactly one Zone. A Machine whose Interfaces sit in several Zones spans those Zones.
+_Avoid_: alias, leg, secondary IP
 
-**Politique de zone** :
-Jugement, porté manuellement par l'auditeur à la lecture des graphes, sur les paires de zones qui doivent ou non communiquer. L'outil ne la connaît pas.
-_Avoid_ : règle, matrice de flux attendue
+**Flow Policy**:
+The optional, auditor-supplied statement of which flows between Zones (and, by exception, Machines) are allowed or denied, possibly restricted to ports. Often absent: building it is time-consuming, and the tool must stay useful without it.
+_Avoid_: rule, expected matrix, zone policy
+
+**Undeclared Flow**:
+Observed flow about which the Flow Policy says nothing. Shown apart, never a Finding.
 
 ### Scan
 
-**Source** :
-L'IP depuis laquelle un scan est lancé. Elle est en pratique confondue avec la machine, car le routage système choisit l'interface de sortie.
-_Avoid_ : pivot, origine, hôte source
+**Source**:
+The IP a Scan is launched from. In practice it stands for its Machine, since system routing picks the outgoing Interface.
+_Avoid_: pivot, origin, source host
 
-**Self** :
-Toutes les Interfaces de la Machine qui porte la Source. Elles sont exclues de son propre scan.
+**Scan**:
+One nmap run from a Source, against a set of targets and a set of ports. A Source may have several Scans (e.g. a broad sweep then a targeted follow-up with extra ports); they are combined into its Source View.
+_Avoid_: campaign, run, job
+
+**Coverage**:
+What was actually tested from a Source towards an Interface: which ports, by which Scans. Distinguishes "tested and not seen" from "never tested".
+_Avoid_: scope
+
+**Source View**:
+Everything a Source sees, combining all its Scans. When Scans disagree on a port, the most permissive state wins (an open port observed once proves the flow passed), and the disagreement stays visible to the auditor.
+
+**Self**:
+All the Interfaces of the Machine carrying the Source. They are excluded from its own Scans.
+
+**Scan Diff**:
+Comparison of what two Scans, or two Source Views, observed, either over time (same Source, before/after) or across Sources (what one sees that the other does not). A difference on a port only one side tested is not comparable.
+_Avoid_: delta, comparison
 
 ### Verdict
 
-Verdict d'un couple Source → Interface, du plus permissif au plus fermé :
+Verdict of a Source → Interface pair, from most permissive to most closed:
 
-**OPEN** :
-Au moins un port open : un service est joignable.
+**OPEN**:
+At least one open port: a service is reachable.
 
-**REACHABLE** :
-Aucun port open mais au moins un port closed (RST reçu) : le flux L4 traverse la segmentation.
+**REACHABLE**:
+No open port but at least one closed port (RST received): the L4 flow crosses the segmentation.
 
-**ALIVE** :
-L'Interface répond au niveau L3/L2 (ping, ARP) sans qu'aucun port TCP ne passe. N'existe pas en scan -Pn.
-_Avoid_ : host up, joignable
+**ALIVE**:
+The Interface answers at L3/L2 (ping, ARP) without any port getting through. Does not exist in a -Pn Scan.
+_Avoid_: host up, joinable
 
-**BLOCKED** :
-Uniquement des ports filtered. En -Pn, cela ne distingue pas un filtrage d'une Interface éteinte ou inexistante.
+**BLOCKED**:
+Only filtered ports. In -Pn, this does not distinguish filtering from a powered-off or nonexistent Interface.
 
-**NON-VU** :
-L'Interface est absente de la sortie du scan.
+**UNSEEN**:
+The Interface is absent from the Scan output.
 
-### Résultat
+### Result
 
-**Finding** :
-Flux OPEN entre deux zones différentes, présenté à l'auditeur qui décide s'il s'agit d'un écart à la Politique de zone.
-_Avoid_ : vulnérabilité, violation
+**Finding**:
+Observed flow that the Flow Policy explicitly denies. Without a Flow Policy there are no Findings: the auditor reads the views.
+_Avoid_: vulnerability, violation
+
+**Pivot Machine**:
+A Machine spanning at least two Zones that a Source from another Zone reaches with an OPEN verdict, making it a one-hop path between Zones.
+_Avoid_: bastion, jump host, bridge
+
+**Port Group**:
+Named set of ports (e.g. admin, db, web) used to filter and highlight flows, and to express the Flow Policy.
+_Avoid_: service class, port list

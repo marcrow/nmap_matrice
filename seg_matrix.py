@@ -1,42 +1,43 @@
 #!/usr/bin/env python3
 """
-seg_matrix.py — Matrice de couverture & schemas Mermaid pour test de cloisonnement.
+seg_matrix.py — Segmentation matrix & Mermaid diagrams for network segmentation testing.
 
-PRINCIPE
---------
-Pour chaque hote "source" de l'inventaire, on lance un scan nmap *depuis* cet hote
-(pivot SSH/SOCKS, agent local, etc.) vers le reste du perimetre. La sortie nmap est
-nommee d'apres l'IP source : <ip_source>.xml | .gnmap | .nmap.
-Un seul `nmap -oA <ip_source> ...` produit les trois formats d'un coup.
+PRINCIPLE
+---------
+For each "source" host in the inventory, an nmap scan is launched *from* that host
+(SSH/SOCKS pivot, local agent, etc.) towards the rest of the perimeter. The nmap output
+is named after the source IP: <source_ip>.xml | .gnmap | .nmap.
+A single `nmap -oA <source_ip> ...` produces all three formats at once.
 
-Le script recoupe chaque scan avec l'inventaire CSV (ip;zone;type;nom) et produit :
-  - matrix_hosts.md / .csv    : matrice consolidee hote -> hote
-  - matrix_zones.md           : matrice consolidee zone -> zone
-  - exposure_targets.md       : vue orientee cible (qui accede a quoi)
-  - segmentation.mmd          : Mermaid global zone
-  - mermaid/<ip>.mmd          : Mermaid par source
-  - findings.md               : expositions inter-zones + anomalies
-  - report.html               : rendu standalone a onglets (Global / Par source / Anomalies)
+The script cross-checks each scan with the CSV inventory (ip;zone;type;name) and writes:
+  - matrix_hosts.md / .csv    : consolidated host -> host matrix
+  - matrix_zones.md           : consolidated zone -> zone matrix
+  - exposure_targets.md       : target-oriented view (who reaches what)
+  - segmentation.mmd          : global zone Mermaid
+  - mermaid/<ip>.mmd          : per-source Mermaid
+  - findings.md               : cross-zone exposures + anomalies
+  - report.html               : standalone tabbed report (Global / Per source / Anomalies)
+    (mermaid.min.js next to the script is inlined -> viewable offline; otherwise CDN)
 
-MACHINES MULTI-INTERFACES & EXCLUSION DU SELF
----------------------------------------------
-Chaque ligne d'inventaire est une interface (une IP dans une zone). Les lignes de
-meme `nom` forment une machine (sans nom : machine = IP). Toutes les interfaces de
-la machine source sont exclues de son scan (elle se voit elle-meme en local).
-Une IP en double dans l'inventaire est une erreur.
+MULTI-INTERFACE MACHINES & SELF EXCLUSION
+-----------------------------------------
+Each inventory row is an interface (one IP in one zone). Rows sharing the same `name`
+form a machine (no name: machine = IP). All interfaces of the source machine are
+excluded from its scan (it sees itself locally).
+A duplicate IP in the inventory is an error.
 
-SEMANTIQUE DE CLOISONNEMENT
----------------------------
-  OPEN       : >=1 port "open"        -> service joignable (acces effectif)
-  REACHABLE  : 0 open mais des closed -> RST recu, le flux L4 traverse la segmentation
-  ALIVE      : aucun port, host up    -> repond en L3/L2 (ping/ARP) ; jamais en -Pn
-  BLOCKED    : uniquement "filtered"  -> flux bloque (isolation OK) / host down
-  NON-VU     : cible absente de la sortie du scan
+SEGMENTATION SEMANTICS
+----------------------
+  OPEN       : >=1 "open" port        -> service reachable (effective access)
+  REACHABLE  : no open but closed     -> RST received, the L4 flow crosses the segmentation
+  ALIVE      : no port, host up       -> answers at L3/L2 (ping/ARP); never with -Pn
+  BLOCKED    : "filtered" only        -> flow blocked (isolation OK) / host down
+  UNSEEN     : target absent from the scan output
 
 USAGE
 -----
-  python3 seg_matrix.py -i inventaire.csv -s ./scans/ -o ./report/
-  python3 seg_matrix.py -i inventaire.csv -s ./scans/ --host-graph
+  python3 seg_matrix.py -i inventory.csv -s ./scans/ -o ./report/
+  python3 seg_matrix.py -i inventory.csv -s ./scans/ --host-graph
 """
 
 from __future__ import annotations
@@ -55,28 +56,31 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 OPEN, REACH, ALIVE, BLOCK, NODATA = 3, 2, 1, 0, -1
-VERDICT_NAME = {OPEN: "OPEN", REACH: "REACHABLE", ALIVE: "ALIVE", BLOCK: "BLOCKED", NODATA: "NON-VU"}
+VERDICT_NAME = {OPEN: "OPEN", REACH: "REACHABLE", ALIVE: "ALIVE", BLOCK: "BLOCKED", NODATA: "UNSEEN"}
 SYM = {OPEN: "OPEN", REACH: "o", ALIVE: "~", BLOCK: "x", NODATA: "."}
 VCLASS = {OPEN: "v-open", REACH: "v-reach", ALIVE: "v-alive", BLOCK: "v-block", NODATA: "v-none"}
 SCAN_EXT_PRIORITY = (".xml", ".gnmap", ".nmap")
+MERMAID_JS = Path(__file__).with_name("mermaid.min.js")   # present -> inlined in report.html (offline)
+MERMAID_CDN = "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"
 
-# Palette de zones (fill, stroke, texte) — moderne, cyclique
+# Zone palette (fill, stroke, text) — modern, cyclic
 ZONE_COLORS = [
-    ("#eef5ff", "#3b82f6", "#1e3a5f"),  # bleu
-    ("#eafaf1", "#22a565", "#14532d"),  # vert
-    ("#fff4e6", "#f59e0b", "#7c4a03"),  # ambre
-    ("#fdeef4", "#db2777", "#7a1840"),  # rose
+    ("#eef5ff", "#3b82f6", "#1e3a5f"),  # blue
+    ("#eafaf1", "#22a565", "#14532d"),  # green
+    ("#fff4e6", "#f59e0b", "#7c4a03"),  # amber
+    ("#fdeef4", "#db2777", "#7a1840"),  # pink
     ("#f1eefe", "#7c3aed", "#3f2a7a"),  # violet
     ("#e6fbf8", "#14b8a6", "#115e59"),  # teal
-    ("#fef0f0", "#ef4444", "#7f1d1d"),  # rouge
+    ("#fef0f0", "#ef4444", "#7f1d1d"),  # red
 ]
 
-# Directive d'init Mermaid (theme, police, courbes douces)
+# Mermaid init directive (theme, font). 'linear' curve is mandatory: Mermaid puts the label in
+# the middle of the dagre polyline, and 'basis' smooths the path beside it (label off by one link).
 MERMAID_INIT = (
     "%%{init: {'theme':'base','themeVariables':{"
     "'fontFamily':'ui-sans-serif,-apple-system,Segoe UI,Roboto,sans-serif',"
     "'fontSize':'13px','lineColor':'#94a3b8'},"
-    "'flowchart':{'curve':'basis','htmlLabels':true,"
+    "'flowchart':{'curve':'linear','htmlLabels':true,"
     "'nodeSpacing':40,'rankSpacing':60,'padding':8}}}%%"
 )
 
@@ -93,7 +97,7 @@ def zone_palette(inv) -> Dict[str, Tuple[str, str, str]]:
 
 
 def machine_palette(inv) -> Dict[str, Tuple[str, str, str]]:
-    """Couleur propre (fill, stroke, texte) par machine multi-interfaces ; teintes a angle d'or."""
+    """Own colour (fill, stroke, text) per multi-interface machine; golden-angle hues."""
     count = defaultdict(int)
     for h in inv.values():
         count[h.machine] += 1
@@ -106,13 +110,13 @@ def machine_palette(inv) -> Dict[str, Tuple[str, str, str]]:
 
 
 def ordered_ips(inv) -> List[str]:
-    """IPs de l'inventaire, interfaces d'une meme machine cote a cote (ordre de 1re apparition)."""
+    """Inventory IPs, interfaces of the same machine side by side (first-appearance order)."""
     rank = {m: i for i, m in enumerate(dict.fromkeys(h.machine for h in inv.values()))}
     return sorted(inv, key=lambda ip: rank[inv[ip].machine])
 
 
 def detect_pn(path: str) -> bool:
-    """Detecte l'option -Pn dans l'entete du fichier nmap (args xml / commentaire gnmap)."""
+    """Detect the -Pn option in the nmap file header (xml args / gnmap comment)."""
     try:
         head = open(path, encoding="utf-8", errors="replace").read(4096)
     except OSError:
@@ -121,22 +125,22 @@ def detect_pn(path: str) -> bool:
 
 
 # =============================================================================
-# Inventaire
+# Inventory
 # =============================================================================
 @dataclass
 class Host:
     ip: str
     zone: str
     htype: str
-    nom: str
+    name: str
 
     @property
     def machine(self) -> str:
-        return self.nom or self.ip
+        return self.name or self.ip
 
     @property
     def short(self) -> str:
-        return f"{self.nom} · {self.ip}" if self.nom else self.ip
+        return f"{self.name} · {self.ip}" if self.name else self.ip
 
 
 def load_inventory(path: str) -> Dict[str, Host]:
@@ -150,21 +154,21 @@ def load_inventory(path: str) -> Dict[str, Host]:
                 continue
             ip = row[0]
             if ip in hosts:
-                sys.exit(f"[!] IP en double dans {path} : {ip} ({hosts[ip].zone}/{hosts[ip].nom} "
-                         f"et {';'.join(row[1:])}) — une interface n'appartient qu'a une zone")
+                sys.exit(f"[!] Duplicate IP in {path}: {ip} ({hosts[ip].zone}/{hosts[ip].name} "
+                         f"and {';'.join(row[1:])}) — an interface belongs to exactly one zone")
             hosts[ip] = Host(
                 ip=ip,
                 zone=row[1] if len(row) > 1 else "?",
                 htype=row[2] if len(row) > 2 else "?",
-                nom=row[3] if len(row) > 3 else "",
+                name=row[3] if len(row) > 3 else "",
             )
     if not hosts:
-        sys.exit(f"[!] Aucun hote charge depuis {path} (attendu : ip;zone;type;nom)")
+        sys.exit(f"[!] No host loaded from {path} (expected: ip;zone;type;name)")
     return hosts
 
 
 # =============================================================================
-# Decouverte & parsing nmap
+# nmap discovery & parsing
 # =============================================================================
 def discover_scans(scan_dir: str) -> Dict[str, str]:
     by_ip: Dict[str, Dict[str, str]] = defaultdict(dict)
@@ -190,7 +194,7 @@ def parse_xml(path: str) -> Dict[str, dict]:
     try:
         root = ET.parse(path).getroot()
     except ET.ParseError as e:
-        print(f"[!] XML illisible {path}: {e}", file=sys.stderr)
+        print(f"[!] Unreadable XML {path}: {e}", file=sys.stderr)
         return out
     for host in root.iter("host"):
         st = host.find("status")
@@ -290,14 +294,14 @@ class Cell:
 def classify(rec: Optional[dict], pn: bool) -> Cell:
     if rec is None:
         return Cell()
-    open_ports = sorted({(pid, proto) for (pid, proto, s) in rec["ports"]
-                         if s in ("open", "open|filtered")})
+    # open|filtered = no reply (UDP, -sF/-sN/-sX): proves nothing got through, counts as filtered
+    open_ports = sorted({(pid, proto) for (pid, proto, s) in rec["ports"] if s == "open"})
     closed = sum(1 for (_, _, s) in rec["ports"] if s == "closed")
-    filtered = sum(1 for (_, _, s) in rec["ports"] if s == "filtered")
+    filtered = sum(1 for (_, _, s) in rec["ports"] if s in ("filtered", "open|filtered"))
     for (s, c) in rec["ignored"]:
         if s == "closed":
             closed += c
-        elif s == "filtered":
+        elif s in ("filtered", "open|filtered"):
             filtered += c
     up = rec.get("state") == "up"
     if open_ports:
@@ -307,9 +311,9 @@ def classify(rec: Optional[dict], pn: bool) -> Cell:
     elif filtered > 0:
         v = BLOCK
     elif not pn:
-        v = ALIVE if up else BLOCK   # repond en L3/L2 (ping/ARP) sans port qui passe
+        v = ALIVE if up else BLOCK   # answers at L3/L2 (ping/ARP) with no port getting through
     else:
-        v = NODATA         # -Pn : 'host up' non informatif, aucune donnee de port exploitable
+        v = NODATA         # -Pn: 'host up' carries no information, no usable port data
     return Cell(v, open_ports)
 
 
@@ -320,7 +324,7 @@ def _cell_txt(c: Cell) -> str:
 
 
 def _zone_cell(a) -> Tuple[str, str]:
-    """(classe css, texte) d'une case zone -> zone, sans le compteur de paires."""
+    """(css class, text) of a zone -> zone cell, without the pair counter."""
     if not a:
         return "v-none", "."
     if a.reach_pairs == 0:
@@ -330,7 +334,7 @@ def _zone_cell(a) -> Tuple[str, str]:
 
 
 # =============================================================================
-# Matrice
+# Matrix
 # =============================================================================
 def build_matrix(inv, scans, force_pn=False) -> Tuple[Dict[str, Dict[str, Cell]], List[str], List[str], int]:
     parsed = {ip: parse_scan(path) for ip, path in scans.items()}
@@ -378,7 +382,7 @@ def aggregate_zones(matrix, inv) -> Dict[Tuple[str, str], ZoneAgg]:
 
 
 # =============================================================================
-# Helpers Mermaid
+# Mermaid helpers
 # =============================================================================
 def _zid(z): return "Z_" + re.sub(r"[^A-Za-z0-9]", "_", z)
 def _hid(ip): return "H_" + ip.replace(".", "_").replace(":", "_")
@@ -392,7 +396,7 @@ def _ports_label(ports, cap=6):
 
 
 def _edge(a, b, verdict, cross, label, idx, w_open="2.5px", w_reach="2px"):
-    """Arete Mermaid + son linkStyle : pleine rouge/verte si OPEN, pointillee ambre/grise sinon."""
+    """Mermaid edge + its linkStyle: solid red/green if OPEN, dashed amber/grey otherwise."""
     if verdict == OPEN:
         col = "#e11d48" if cross else "#16a34a"
         return (f'  {a} ==>|"{_safe(label)}"| {b}',
@@ -403,9 +407,9 @@ def _edge(a, b, verdict, cross, label, idx, w_open="2.5px", w_reach="2px"):
 
 
 def _zone_subgraphs(zones, inv, node_label) -> List[str]:
-    """classDef + subgraph par zone ; zones = {zone: [ip]}, node_label(ip) -> texte du noeud.
-    La zone colore le fond du sous-graphe ; le noeud prend la couleur de sa machine si elle est
-    multi-interfaces, sinon un fond blanc borde de la couleur de zone."""
+    """classDef + subgraph per zone; zones = {zone: [ip]}, node_label(ip) -> node text.
+    The zone colours the subgraph background; the node takes its machine colour if it is
+    multi-interface, otherwise a white fill bordered with the zone colour."""
     pal, mpal = zone_palette(inv), machine_palette(inv)
     L = []
     for z in sorted(zones):
@@ -424,7 +428,7 @@ def _zone_subgraphs(zones, inv, node_label) -> List[str]:
 
 
 def _machine_links(ips, inv, idx):
-    """Pointille gris sans fleche entre interfaces d'une meme machine presentes dans le graphe."""
+    """Grey dotted line without arrow between interfaces of the same machine present in the graph."""
     by_m = defaultdict(list)
     for ip in ips:
         by_m[inv[ip].machine].append(ip)
@@ -446,7 +450,7 @@ def mermaid_zone(agg, inv) -> str:
     for (zs, zd), a in sorted(agg.items()):
         if a.reach_pairs == 0:
             continue
-        label = _ports_label(a.open_ports) if a.open_ports else f"{a.reach_pairs} hote(s)"
+        label = _ports_label(a.open_ports) if a.open_ports else f"{a.reach_pairs} host(s)"
         line, style = _edge(_zid(zs), _zid(zd), a.verdict, zs != zd, label, len(styles))
         L.append(line)
         styles.append(style)
@@ -454,11 +458,11 @@ def mermaid_zone(agg, inv) -> str:
 
 
 def mermaid_source(src, row, inv) -> str:
-    """Vue radiale moderne : source (hexagone) + cibles joignables, groupees/teintees par zone."""
+    """Modern radial view: source (hexagon) + reachable targets, grouped/tinted by zone."""
     reach = {d: c for d, c in row.items() if c.verdict >= REACH}
     if not reach:
         return (MERMAID_INIT + "\nflowchart LR\n"
-                f'  S{{{{"{_safe(inv[src].short)}<br/><small>aucune cible joignable</small>"}}}}\n'
+                f'  S{{{{"{_safe(inv[src].short)}<br/><small>no reachable target</small>"}}}}\n'
                 "  style S fill:#1f2937,stroke:#0f172a,stroke-width:2px,color:#ffffff")
     zones = defaultdict(list)
     for d in reach:
@@ -470,7 +474,7 @@ def mermaid_source(src, row, inv) -> str:
                          lambda ip: f"{_safe(inv[ip].short)}<br/><small>{_safe(inv[ip].htype)}</small>")
     styles = []
     for d, c in reach.items():
-        label = _ports_label([p for p, _ in c.open_ports]) if c.verdict == OPEN else "joignable"
+        label = _ports_label([p for p, _ in c.open_ports]) if c.verdict == OPEN else "reachable"
         line, style = _edge("S", _hid(d), c.verdict, inv[src].zone != inv[d].zone, label, len(styles))
         L.append(line)
         styles.append(style)
@@ -498,7 +502,7 @@ def mermaid_hosts(matrix, inv) -> str:
 
 
 # =============================================================================
-# Sorties markdown / csv
+# Markdown / csv outputs
 # =============================================================================
 def write_host_matrix_md(matrix, inv, out_dir):
     dsts = ordered_ips(inv)
@@ -513,10 +517,10 @@ def write_host_matrix_md(matrix, inv, out_dir):
                 c = matrix[s].get(d, Cell())
                 w.writerow([s, d, inv[s].zone, inv[d].zone, VERDICT_NAME[c.verdict],
                             ",".join(str(p) for p, _ in c.open_ports)])
-    lines = ["# Matrice consolidee hote -> hote", "",
-             "Legende : `OPEN`=service joignable | `o`=joignable (closed) | `~`=vivant (ping/ARP) | "
-             "`x`=bloque | `.`=non vu | `-`=meme machine", "",
-             "| source \\ cible | " + " | ".join(inv[d].short for d in dsts) + " |",
+    lines = ["# Consolidated host -> host matrix", "",
+             "Legend: `OPEN`=service reachable | `o`=reachable (closed) | `~`=alive (ping/ARP) | "
+             "`x`=blocked | `.`=unseen | `-`=same machine", "",
+             "| source \\ target | " + " | ".join(inv[d].short for d in dsts) + " |",
              "|" + "---|" * (len(dsts) + 1)]
     for s in srcs:
         cells = []
@@ -531,7 +535,7 @@ def write_host_matrix_md(matrix, inv, out_dir):
 
 def write_zone_matrix_md(agg, inv, out_dir):
     zones = sorted(zone_palette(inv))
-    md = ["# Matrice consolidee zone -> zone", "",
+    md = ["# Consolidated zone -> zone matrix", "",
           "| src \\ dst | " + " | ".join(zones) + " |", "|" + "---|" * (len(zones) + 1)]
     for zs in zones:
         cells = []
@@ -544,7 +548,7 @@ def write_zone_matrix_md(agg, inv, out_dir):
 
 
 def target_exposure(matrix, inv):
-    """Pour chaque cible : sources OPEN (avec ports) et sources REACH."""
+    """For each target: OPEN sources (with ports) and REACH sources."""
     exp = {}
     for d in inv:
         opens, reach = [], []
@@ -561,45 +565,49 @@ def target_exposure(matrix, inv):
 
 
 def write_exposure_md(exp, inv, out_dir):
-    lines = ["# Exposition par cible (qui accede a quoi)", ""]
+    lines = ["# Exposure per target (who reaches what)", ""]
     for d in inv:
         opens, reach = exp[d]
         if not opens and not reach:
             continue
         lines.append(f"## {inv[d].short} — {inv[d].ip} ({inv[d].zone}/{inv[d].htype})")
         for s, ports in opens:
-            lines.append(f"- OPEN depuis **{inv[s].short}** ({inv[s].zone}) : {','.join(map(str, ports))}")
+            lines.append(f"- OPEN from **{inv[s].short}** ({inv[s].zone}): {','.join(map(str, ports))}")
         for s in reach:
-            lines.append(f"- joignable (closed) depuis {inv[s].short} ({inv[s].zone})")
+            lines.append(f"- reachable (closed) from {inv[s].short} ({inv[s].zone})")
         lines.append("")
     _write(out_dir, "exposure_targets.md", "\n".join(lines))
 
 
-def write_findings_md(matrix, inv, missing, unknown, out_dir):
-    lines = ["# Synthese cloisonnement", "", "## Expositions inter-zones (acces effectif)", "",
-             "| zone src | zone dst | source | cible | ports open |", "|---|---|---|---|---|"]
+def write_findings_md(matrix, inv, missing, unknown, orphan, out_dir):
+    lines = ["# Segmentation summary", "", "## Cross-zone exposures (effective access)", "",
+             "| src zone | dst zone | source | target | open ports |", "|---|---|---|---|---|"]
     rows = []
     for s, row in matrix.items():
         for d, c in row.items():
             if inv[s].zone != inv[d].zone and c.verdict == OPEN:
                 rows.append((inv[s].zone, inv[d].zone, inv[s].short, inv[d].short,
                              ",".join(str(p) for p, _ in c.open_ports)))
-    lines += [f"| {a} | {b} | {x} | {y} | {p} |" for a, b, x, y, p in sorted(rows)] or ["_Aucune._"]
-    lines += ["", "## Anomalies de couverture", ""]
+    lines += [f"| {a} | {b} | {x} | {y} | {p} |" for a, b, x, y, p in sorted(rows)] or ["_None._"]
+    lines += ["", "## Coverage anomalies", ""]
     if missing:
-        lines.append("**Sources sans scan :**")
+        lines.append("**Sources without scan:**")
         lines += [f"- {ip} ({inv[ip].short}, {inv[ip].zone})" for ip in missing]
         lines.append("")
     if unknown:
-        lines.append("**Hotes joignables hors inventaire :**")
+        lines.append("**Reachable hosts outside the inventory:**")
         lines += [f"- {ip}" for ip in unknown]
-    if not missing and not unknown:
-        lines.append("_Couverture complete._")
+        lines.append("")
+    if orphan:
+        lines.append("**Ignored scans (file name is not a source IP of the inventory):**")
+        lines += [f"- {ip}.*" for ip in orphan]
+    if not missing and not unknown and not orphan:
+        lines.append("_Full coverage._")
     _write(out_dir, "findings.md", "\n".join(lines))
 
 
 # =============================================================================
-# Rendu HTML standalone a onglets
+# Standalone tabbed HTML rendering
 # =============================================================================
 HTML_CSS = """
 :root{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;}
@@ -628,23 +636,29 @@ tbody th{position:sticky;left:0;background:#f3f5f9;text-align:left;z-index:1;}
 .v-block{background:#f6dada;color:#8a1a1a;}
 .v-none{background:#f1f1f3;color:#9aa3b2;}
 .v-self{background:#e9eef6;color:#5a6b86;}
-.mermaid{background:#fff;border:1px solid #e1e5ec;border-radius:8px;padding:10px;margin:8px 0;overflow:auto;}
+.mermaid{background:#fff;border:1px solid #e1e5ec;border-radius:8px;padding:10px;margin:8px 0;overflow:auto;font-family:inherit;}  /* pre is monospace otherwise: labels measured in sans-serif then truncated */
 .err{color:#c0392b;font-size:12px;white-space:pre-wrap;}
 select{padding:6px 10px;font-size:14px;border-radius:6px;border:1px solid #c3cad6;margin:6px 0 12px;}
 .card{background:#fff;border:1px solid #e1e5ec;border-radius:8px;padding:12px 14px;margin:8px 0;font-size:13px;}
 .tag{display:inline-block;background:#eef1f6;border-radius:4px;padding:1px 6px;font-size:11px;margin-left:6px;color:#5a6678;}
 ul{margin:4px 0 4px 18px;padding:0;font-size:13px;}
 .warn{color:#b5651d;font-weight:600;}
+.srcbar{font-size:13px;margin:4px 0;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;}
+.srcbar label{cursor:pointer;}
+.srcbar button{padding:4px 10px;border-radius:6px;border:1px solid #c3cad6;background:#fff;cursor:pointer;}
 """
 
-HTML_JS = """
-mermaid.initialize({startOnLoad:false, securityLevel:'loose', theme:'default', flowchart:{htmlLabels:true}});
+HTML_JS = r"""
+const HAS_MM = typeof mermaid !== 'undefined';
+if(HAS_MM) mermaid.initialize({startOnLoad:false, securityLevel:'loose', theme:'default', flowchart:{htmlLabels:true}});
 let idc=0;
 async function renderVisible(scope){
   if(!scope) return;
   for(const el of [...scope.querySelectorAll('.mermaid:not([data-done])')]){
     if(el.offsetParent===null) continue;
     el.setAttribute('data-done','1');
+    if(!HAS_MM){el.innerHTML='<b class="err">mermaid.js not loaded (offline? put mermaid.min.js next to seg_matrix.py); diagram source:</b><br>'+el.innerHTML; continue;}
+    el.dataset.src=el.textContent;
     try{const {svg}=await mermaid.render('mm'+(idc++), el.textContent); el.innerHTML=svg;}
     catch(e){el.innerHTML='<pre class="err">'+String(e)+'</pre>';}
   }
@@ -660,6 +674,66 @@ function showSource(key){
   document.querySelectorAll('.srcpane').forEach(p=>p.style.display='none');
   const el=document.getElementById(key);
   if(el){el.style.display='block'; renderVisible(el);}
+}
+// Removes from the Mermaid source the subgraphs of unchecked zones (off = Set of Z_* ids), their edges,
+// and renumbers the linkStyle lines (index = order of edges in the source).
+function filterZones(src, off){
+  const lines=src.split('\n'), drop=new Set(), out=[], styles=[], keep=[];
+  let cur=null;
+  const sub=l=>(l.match(/^\s*subgraph (\w+)\[/)||[])[1], isEnd=l=>/^\s*end\s*$/.test(l);
+  for(const l of lines){
+    if(sub(l)){cur=sub(l);continue;} if(isEnd(l)){cur=null;continue;}
+    const n=l.match(/^\s*(H_\w+)\(/); if(n && off.has(cur)) drop.add(n[1]);
+  }
+  cur=null;
+  for(const l of lines){
+    if(sub(l)) cur=sub(l);
+    const skip=cur!==null && off.has(cur);
+    if(isEnd(l)) cur=null;
+    if(skip) continue;
+    const st=l.match(/^\s*style (\w+)/); if(st && off.has(st[1])) continue;
+    if(/^\s*linkStyle /.test(l)){styles.push(l);continue;}
+    if(/(==>|-\.-)/.test(l)){
+      const p=l.trim().split(/\s+/), ok=!drop.has(p[0]) && !drop.has(p[p.length-1]);
+      keep.push(ok); if(ok) out.push(l); continue;
+    }
+    out.push(l);
+  }
+  let k=0;
+  styles.forEach((s,i)=>{ if(keep[i]) out.push(s.replace(/linkStyle \d+/, 'linkStyle '+(k++))); });
+  return out.join('\n');
+}
+async function refilter(cb){
+  const pane=cb.closest('.srcpane'), el=pane.querySelector('.mermaid');
+  if(!HAS_MM || !el.dataset.src) return;
+  const off=new Set([...pane.querySelectorAll('.srcbar input:not(:checked)')].map(i=>i.value));
+  try{const {svg}=await mermaid.render('mm'+(idc++), filterZones(el.dataset.src, off)); el.innerHTML=svg;}
+  catch(e){el.innerHTML='<pre class="err">'+String(e)+'</pre>';}
+}
+function dl(name, url){const a=document.createElement('a'); a.href=url; a.download=name; a.click();}
+// Exports the displayed (thus filtered) diagram; fully local, no network.
+function exportImg(btn, fmt){
+  const bar=btn.closest('.srcbar'), s=bar.closest('.srcpane').querySelector('.mermaid svg');
+  if(!s) return;
+  const zs=[...bar.querySelectorAll('input:checked')].map(i=>i.parentNode.textContent.trim());
+  const all=bar.querySelectorAll('input').length===zs.length;
+  const name=(bar.dataset.name+(all?'':'_'+zs.join('-'))).replace(/[^\w.-]+/g,'_');
+  const vb=s.viewBox.baseVal, w=Math.ceil(vb.width), h=Math.ceil(vb.height);
+  const c=s.cloneNode(true);
+  c.setAttribute('xmlns','http://www.w3.org/2000/svg');
+  c.setAttribute('width',w); c.setAttribute('height',h);
+  c.setAttribute('style','font-family:'+getComputedStyle(document.body).fontFamily+';background:#fff');
+  const x=new XMLSerializer().serializeToString(c);
+  if(fmt==='svg'){dl(name+'.svg', URL.createObjectURL(new Blob([x],{type:'image/svg+xml'}))); return;}
+  const img=new Image();
+  img.onload=()=>{
+    const k=2, cv=document.createElement('canvas'); cv.width=w*k; cv.height=h*k;
+    const g=cv.getContext('2d'); g.fillStyle='#fff'; g.fillRect(0,0,cv.width,cv.height);
+    g.scale(k,k); g.drawImage(img,0,0,w,h);
+    try{cv.toBlob(b=>dl(name+'.png', URL.createObjectURL(b)));}
+    catch(e){alert('PNG refused by this browser (HTML labels): use the SVG export.');}
+  };
+  img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(x);
 }
 window.addEventListener('DOMContentLoaded',()=>renderVisible(document.getElementById('tab-global')));
 """
@@ -688,7 +762,7 @@ def _host_matrix_html(matrix, inv) -> str:
             else:
                 cells.append(_cell_html(matrix[s].get(d, Cell())))
         rows.append(f'<tr>{th(s)}{"".join(cells)}</tr>')
-    return (f'<div class="tablewrap"><table><thead><tr><th>source \\ cible</th>{head}</tr></thead>'
+    return (f'<div class="tablewrap"><table><thead><tr><th>source \\ target</th>{head}</tr></thead>'
             f'<tbody>{"".join(rows)}</tbody></table></div>')
 
 
@@ -719,8 +793,8 @@ def _source_table_html(src, row, inv) -> str:
                     f'<td>{html.escape(inv[d].zone)}</td><td>{html.escape(inv[d].htype)}</td>'
                     f'<td class="{VCLASS[c.verdict]}">{VERDICT_NAME[c.verdict]}</td>'
                     f'<td>{html.escape(ports)}</td></tr>')
-    return ('<div class="tablewrap"><table><thead><tr><th>cible</th><th>zone</th><th>type</th>'
-            f'<th>verdict</th><th>ports open</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>')
+    return ('<div class="tablewrap"><table><thead><tr><th>target</th><th>zone</th><th>type</th>'
+            f'<th>verdict</th><th>open ports</th></tr></thead><tbody>{"".join(rows)}</tbody></table></div>')
 
 
 def _exposure_html(exp, inv) -> str:
@@ -730,17 +804,17 @@ def _exposure_html(exp, inv) -> str:
         if not opens and not reach:
             continue
         items = "".join(
-            f'<li><span class="warn">OPEN</span> depuis <b>{html.escape(inv[s].short)}</b> '
-            f'<span class="tag">{html.escape(inv[s].zone)}</span> : {",".join(map(str, ports))}</li>'
+            f'<li><span class="warn">OPEN</span> from <b>{html.escape(inv[s].short)}</b> '
+            f'<span class="tag">{html.escape(inv[s].zone)}</span>: {",".join(map(str, ports))}</li>'
             for s, ports in opens
         ) + "".join(
-            f'<li>joignable (closed) depuis {html.escape(inv[s].short)} '
+            f'<li>reachable (closed) from {html.escape(inv[s].short)} '
             f'<span class="tag">{html.escape(inv[s].zone)}</span></li>' for s in reach
         )
         blocks.append(f'<div class="card"><b>{html.escape(inv[d].short)}</b> '
                       f'<span class="tag">{html.escape(inv[d].zone)} · {html.escape(inv[d].htype)}</span>'
                       f'<ul>{items}</ul></div>')
-    return "".join(blocks) or "<p>Aucune exposition.</p>"
+    return "".join(blocks) or "<p>No exposure.</p>"
 
 
 def _zone_legend_html(inv) -> str:
@@ -754,24 +828,24 @@ def _zone_legend_html(inv) -> str:
     return f'<div style="margin:4px 0 12px;">{chips}</div>'
 
 
-def write_html(matrix, inv, agg, exp, missing, unknown, out_dir):
+def write_html(matrix, inv, agg, exp, missing, unknown, orphan, out_dir):
     srcs = [ip for ip in ordered_ips(inv) if ip in matrix]
     legend = ('<div class="legend">'
               '<span class="v-open">OPEN service</span>'
-              '<span class="v-reach">joignable (closed)</span>'
-              '<span class="v-alive">vivant (ping/ARP)</span>'
-              '<span class="v-block">bloque</span>'
-              '<span class="v-none">non vu</span>'
-              '<span style="color:#e11d48">— rouge = inter-zone OPEN</span></div>')
+              '<span class="v-reach">reachable (closed)</span>'
+              '<span class="v-alive">alive (ping/ARP)</span>'
+              '<span class="v-block">blocked</span>'
+              '<span class="v-none">unseen</span>'
+              '<span style="color:#e11d48">— red = cross-zone OPEN</span></div>')
 
-    # Onglet global
-    glob = ["<h2>Schema global (zone &rarr; zone)</h2>", _zone_legend_html(inv), legend,
+    # Global tab
+    glob = ["<h2>Global diagram (zone &rarr; zone)</h2>", _zone_legend_html(inv), legend,
             f'<pre class="mermaid">{html.escape(mermaid_zone(agg, inv))}</pre>',
-            "<h2>Matrice consolidee zone &rarr; zone</h2>", _zone_matrix_html(agg, inv),
-            "<h2>Matrice consolidee hote &rarr; hote</h2>", legend, _host_matrix_html(matrix, inv),
-            "<h2>Exposition par cible</h2>", _exposure_html(exp, inv)]
+            "<h2>Consolidated zone &rarr; zone matrix</h2>", _zone_matrix_html(agg, inv),
+            "<h2>Consolidated host &rarr; host matrix</h2>", legend, _host_matrix_html(matrix, inv),
+            "<h2>Exposure per target</h2>", _exposure_html(exp, inv)]
 
-    # Onglet par source
+    # Per-source tab
     by_m = defaultdict(list)
     for s in srcs:
         by_m[inv[s].machine].append(s)
@@ -784,32 +858,49 @@ def write_html(matrix, inv, agg, exp, missing, unknown, out_dir):
     src_panes = []
     for i, s in enumerate(srcs):
         disp = "block" if i == 0 else "none"
+        zs = sorted({inv[d].zone for d, c in matrix[s].items() if c.verdict >= REACH})
+        boxes = "".join(f'<label><input type="checkbox" checked value="{_zid(z)}" onchange="refilter(this)"> '
+                        f'{html.escape(z)}</label>' for z in zs)
+        bar = (f'<div class="srcbar" data-name="{html.escape(inv[s].short)}"><b>Zones:</b>{boxes}'
+               '<span><button onclick="exportImg(this,\'svg\')">Export SVG</button> '
+               '<button onclick="exportImg(this,\'png\')">Export PNG</button></span></div>')
         src_panes.append(
             f'<div class="srcpane" id="src_{_hid(s)}" style="display:{disp}">'
             f'<h2>{html.escape(inv[s].short)} <span class="tag">{html.escape(inv[s].zone)} · {html.escape(inv[s].htype)} · {s}</span></h2>'
-            f'<pre class="mermaid">{html.escape(mermaid_source(s, matrix[s], inv))}</pre>'
-            f'<h3>Detail des cibles</h3>{_source_table_html(s, matrix[s], inv)}</div>')
+            f'{bar}<pre class="mermaid">{html.escape(mermaid_source(s, matrix[s], inv))}</pre>'
+            f'<h3>Target details</h3>{_source_table_html(s, matrix[s], inv)}</div>')
     persource = [f'<select id="srcsel" onchange="showSource(this.value)">{options}</select>'] + src_panes
 
-    # Onglet anomalies
-    anomalies = ["<h2>Sources sans scan</h2>"]
+    # Anomalies tab
+    anomalies = ["<h2>Sources without scan</h2>"]
     anomalies.append("<ul>" + ("".join(f"<li>{ip} — {html.escape(inv[ip].short)} "
                      f'<span class="tag">{html.escape(inv[ip].zone)}</span></li>' for ip in missing)
-                     or "<li>Aucune</li>") + "</ul>")
-    anomalies.append("<h2>Hotes joignables hors inventaire</h2>")
+                     or "<li>None</li>") + "</ul>")
+    anomalies.append("<h2>Reachable hosts outside the inventory</h2>")
     anomalies.append("<ul>" + ("".join(f'<li class="warn">{ip}</li>' for ip in unknown)
-                     or "<li>Aucun</li>") + "</ul>")
+                     or "<li>None</li>") + "</ul>")
+    anomalies.append("<h2>Ignored scans</h2><p>File name is not a source IP of the inventory "
+                     "(expected: <code>&lt;source_ip&gt;.xml|.gnmap|.nmap</code>).</p>")
+    anomalies.append("<ul>" + ("".join(f'<li class="warn">{html.escape(ip)}.*</li>' for ip in orphan)
+                     or "<li>None</li>") + "</ul>")
 
-    doc = f"""<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
+    if MERMAID_JS.is_file():
+        mjs = "<script>" + MERMAID_JS.read_text(encoding="utf-8").replace("</script", "<\\/script") + "</script>"
+    else:
+        print(f"[!] {MERMAID_JS.name} missing next to the script: report.html will load mermaid from the CDN "
+              "(network required)", file=sys.stderr)
+        mjs = f'<script src="{MERMAID_CDN}"></script>'
+
+    doc = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Rapport de cloisonnement</title>
-<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<title>Segmentation report</title>
+{mjs}
 <style>{HTML_CSS}</style></head><body>
-<header><h1>Rapport de cloisonnement reseau</h1>
-<div class="meta">{len(inv)} cibles · {len(srcs)} source(s) scannee(s) · {len(missing)} sans scan · {len(unknown)} hote(s) hors inventaire</div></header>
+<header><h1>Network segmentation report</h1>
+<div class="meta">{len(inv)} targets · {len(srcs)} scanned source(s) · {len(missing)} without scan · {len(unknown)} host(s) outside inventory · {len(orphan)} ignored scan(s)</div></header>
 <div class="tabs">
-<button class="tab active" data-tab="global" onclick="showTab('global')">Vue globale</button>
-<button class="tab" data-tab="persource" onclick="showTab('persource')">Par source</button>
+<button class="tab active" data-tab="global" onclick="showTab('global')">Global view</button>
+<button class="tab" data-tab="persource" onclick="showTab('persource')">Per source</button>
 <button class="tab" data-tab="anomalies" onclick="showTab('anomalies')">Anomalies</button>
 </div>
 <section id="tab-global" class="pane active">{''.join(glob)}</section>
@@ -823,44 +914,48 @@ def write_html(matrix, inv, agg, exp, missing, unknown, out_dir):
 # Main
 # =============================================================================
 def main():
-    ap = argparse.ArgumentParser(description="Matrice de cloisonnement + Mermaid + rapport HTML.",
+    ap = argparse.ArgumentParser(description="Segmentation matrix + Mermaid + HTML report.",
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("-i", "--inventory", required=True, help="CSV inventaire (ip;zone;type;nom)")
-    ap.add_argument("-s", "--scans", required=True, help="Repertoire des sorties nmap (<ip>.xml/.gnmap/.nmap)")
-    ap.add_argument("-o", "--out", default="./seg_report", help="Repertoire de sortie")
-    ap.add_argument("--pn", action="store_true", help="Force le mode -Pn (host-up ignore, verdict sur ports seuls)")
-    ap.add_argument("--host-graph", action="store_true", help="Genere aussi le Mermaid global au niveau hote")
+    ap.add_argument("-i", "--inventory", required=True, help="Inventory CSV (ip;zone;type;name)")
+    ap.add_argument("-s", "--scans", required=True, help="Directory of nmap outputs (<ip>.xml/.gnmap/.nmap)")
+    ap.add_argument("-o", "--out", default="./seg_report", help="Output directory")
+    ap.add_argument("--pn", action="store_true", help="Force -Pn mode (host-up ignored, verdict from ports only)")
+    ap.add_argument("--host-graph", action="store_true", help="Also generate the global host-level Mermaid")
     args = ap.parse_args()
 
     os.makedirs(os.path.join(args.out, "mermaid"), exist_ok=True)
     inv = load_inventory(args.inventory)
     scans = discover_scans(args.scans)
     if not scans:
-        sys.exit(f"[!] Aucun scan trouve dans {args.scans} ({', '.join(SCAN_EXT_PRIORITY)})")
+        sys.exit(f"[!] No scan found in {args.scans} ({', '.join(SCAN_EXT_PRIORITY)})")
 
     matrix, missing, unknown, pn_count = build_matrix(inv, scans, force_pn=args.pn)
+    orphan = sorted(set(scans) - set(inv))   # files whose name is not a source IP of the inventory
     agg = aggregate_zones(matrix, inv)
     exp = target_exposure(matrix, inv)
 
     write_host_matrix_md(matrix, inv, args.out)
     write_zone_matrix_md(agg, inv, args.out)
     write_exposure_md(exp, inv, args.out)
-    write_findings_md(matrix, inv, missing, unknown, args.out)
+    write_findings_md(matrix, inv, missing, unknown, orphan, args.out)
     _write(args.out, "segmentation.mmd", mermaid_zone(agg, inv))
     if args.host_graph:
         _write(args.out, "segmentation_hosts.mmd", mermaid_hosts(matrix, inv))
     for s in matrix:
         _write(os.path.join(args.out, "mermaid"), f"{s}.mmd", mermaid_source(s, matrix[s], inv))
-    html_path = write_html(matrix, inv, agg, exp, missing, unknown, args.out)
+    html_path = write_html(matrix, inv, agg, exp, missing, unknown, orphan, args.out)
 
-    print(f"[+] Inventaire : {len(inv)} cibles | Scans : {len(scans)} source(s) "
-          f"(-Pn detecte/force sur {pn_count})")
+    print(f"[+] Inventory: {len(inv)} targets | Scans: {len(scans)} file(s) -> {len(matrix)} source(s) "
+          f"(-Pn detected/forced on {pn_count})")
+    if orphan:
+        print(f"[!] {len(orphan)} ignored scan(s), file name is not a source IP of the inventory: "
+              f"{', '.join(orphan)}")
     if missing:
-        print(f"[!] {len(missing)} source(s) sans scan : {', '.join(missing)}")
+        print(f"[!] {len(missing)} source(s) without scan: {', '.join(missing)}")
     if unknown:
-        print(f"[!] {len(unknown)} hote(s) hors inventaire : {', '.join(unknown)}")
-    print(f"[+] Rapport HTML : {html_path}")
-    print(f"[+] Sorties md/csv/mmd dans : {args.out}")
+        print(f"[!] {len(unknown)} host(s) outside inventory: {', '.join(unknown)}")
+    print(f"[+] HTML report: {html_path}")
+    print(f"[+] md/csv/mmd outputs in: {args.out}")
 
 
 if __name__ == "__main__":
