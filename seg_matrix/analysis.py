@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-from seg_matrix.inventory import Inventory
+from seg_matrix.inventory import Inventory, ordered_ips
 from seg_matrix.nmap import HostRecord, Scan
 from seg_matrix.ports import Port, merge_ranges
 from seg_matrix.verdict import ALIVE, BLOCK, OPEN, REACH, Cell, classify
@@ -124,3 +124,40 @@ def target_exposure(matrix: Matrix, inv: Inventory) -> Exposure:
                 reach.append(s)
         exp[d] = (opens, reach)
     return exp
+
+
+@dataclass
+class Analysis:
+    """Everything the renderers need, computed once from the inventory and the Scans."""
+
+    inv: Inventory
+    scans: dict[str, list[Scan]]  # source ip -> its Scans, oldest first
+    orphan: list[str]  # ignored scans: source folder / file name that is not an inventory IP
+    matrix: Matrix
+    missing: list[str]  # inventory IPs without any Scan
+    unknown: list[str]  # reachable IPs outside the inventory
+    pn_count: int
+    agg: ZoneMatrix
+    exp: Exposure
+
+    @property
+    def sources(self) -> list[str]:
+        return [ip for ip in ordered_ips(self.inv) if ip in self.matrix]
+
+
+def analyze(
+    inv: Inventory, scans: dict[str, list[Scan]], orphan: list[str], force_pn: bool = False
+) -> Analysis:
+    scans = {src: sorted(v, key=lambda sc: (sc.start_ts, sc.name)) for src, v in scans.items()}
+    matrix, missing, unknown, pn_count = build_matrix(inv, scans, force_pn)
+    return Analysis(
+        inv,
+        scans,
+        orphan,
+        matrix,
+        missing,
+        unknown,
+        pn_count,
+        aggregate_zones(matrix, inv),
+        target_exposure(matrix, inv),
+    )

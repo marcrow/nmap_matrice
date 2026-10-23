@@ -85,3 +85,8 @@ function exportImg(btn, fmt){
   img.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(x);
 }
 window.addEventListener('DOMContentLoaded',()=>renderVisible(document.getElementById('tab-global')));
+// Hides the rows of the table following the filter box that do not contain its text.
+function filterRows(inp){
+  const q=inp.value.toLowerCase(), rows=inp.nextElementSibling.querySelectorAll('tbody tr');
+  rows.forEach(r=>{r.style.display=r.textContent.toLowerCase().includes(q)?'':'none';});
+}

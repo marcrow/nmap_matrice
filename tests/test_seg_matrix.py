@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from seg_matrix.analysis import aggregate_zones, build_matrix, target_exposure
+from seg_matrix.analysis import analyze, build_matrix
 from seg_matrix.inventory import load_inventory
 from seg_matrix.nmap import HostRecord, discover_scans, parse_scan
 from seg_matrix.render.html import write_html
@@ -44,11 +44,10 @@ def test_self_is_excluded_and_report_renders(tmp_path, inventory_file):
     scan.write_text(
         "Host: 10.0.0.1 ()\tPorts: 22/open/tcp//ssh///\nHost: 10.0.0.2 ()\tPorts: 22/open/tcp//ssh///\n"
     )
-    matrix, *_ = build_matrix(inv, {"10.9.0.1": [parse_scan(str(scan), "10.9.0.1")]})
-    assert set(matrix["10.9.0.1"]) == {"10.0.0.2"}
+    a = analyze(inv, {"10.9.0.1": [parse_scan(str(scan), "10.9.0.1")]}, ["bogus_scan"])
+    assert set(a.matrix["10.9.0.1"]) == {"10.0.0.2"}
 
-    agg, exp = aggregate_zones(matrix, inv), target_exposure(matrix, inv)
-    report = write_html(matrix, inv, agg, exp, [], [], ["bogus_scan"], str(tmp_path))
+    report = write_html(a, str(tmp_path))
     doc = open(report, encoding="utf-8").read()
     # mermaid bundle inlined without breaking the <script> tag, ignored scan listed
     assert doc.count("</script>") == 2 and '<li class="warn">bogus_scan</li>' in doc

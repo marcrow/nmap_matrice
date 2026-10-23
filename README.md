@@ -54,7 +54,9 @@ All interfaces of the source machine are always removed from the results: a scan
 sees itself locally typically shows many "open" ports that would skew the matrix.
 
 ## Outputs
-- `report.html`         : **standalone tabbed report** (Global view / Per source / Anomalies)
+- `report.html`         : **standalone tabbed report** (Global view / Per source / Scans / Anomalies).
+  The Scans tab lists every Scan (file, date, command, tested ports, conflicts) and the
+  Coverage per target; matrix cells show in a tooltip the Scans behind their verdict.
 - `matrix_hosts.md/.csv`: consolidated host -> host matrix
 - `matrix_zones.md`     : consolidated zone -> zone matrix
 - `exposure_targets.md` : target-oriented view (who reaches what)

@@ -34,3 +34,7 @@ ul{margin:4px 0 4px 18px;padding:0;font-size:13px;}
 .srcbar{font-size:13px;margin:4px 0;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;}
 .srcbar label{cursor:pointer;}
 .srcbar button{padding:4px 10px;border-radius:6px;border:1px solid #c3cad6;background:#fff;cursor:pointer;}
+.conflict{outline:2px dashed #b5651d;outline-offset:-3px;}
+.filter{padding:5px 9px;font-size:13px;border-radius:6px;border:1px solid #c3cad6;margin:4px 0 8px;width:260px;}
+td.cmd{text-align:left;white-space:normal;min-width:240px;max-width:380px;}
+td.cmd code{white-space:pre-wrap;word-break:break-word;font-size:11px;}

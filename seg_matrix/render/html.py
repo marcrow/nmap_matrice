@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import html
 import sys
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
-from seg_matrix.analysis import Exposure, Matrix, Row, ZoneMatrix
+from seg_matrix.analysis import Analysis, Exposure, Matrix, Row, ZoneMatrix
 from seg_matrix.inventory import Host, Inventory, extra_columns, ordered_ips
-from seg_matrix.ports import ports_text
+from seg_matrix.ports import count_ports, format_ranges, port_label, ports_text
 from seg_matrix.render.common import machine_palette, write_output, zone_cell, zone_palette
 from seg_matrix.render.mermaid import hid, mermaid_source, mermaid_zone, zid
 from seg_matrix.verdict import REACH, VCLASS, VERDICT_NAME, Cell, cell_text
@@ -21,8 +21,19 @@ MERMAID_JS = ASSETS / "mermaid.min.js"  # bundled -> inlined in report.html (off
 MERMAID_CDN = "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"
 
 
+def _provenance(c: Cell) -> str:
+    """Tooltip of a matrix cell: the Scans behind the verdict and their disagreements."""
+    lines = ["Scans: " + (", ".join(c.scans) or "none")]
+    for (port, proto), states in c.conflicts.items():
+        lines.append(
+            f"Conflict {port_label((port, proto))}: " + ", ".join(f"{st} ({sc})" for sc, st in states.items())
+        )
+    return html.escape("\n".join(lines), quote=True)
+
+
 def _cell_html(c: Cell) -> str:
-    return f'<td class="{VCLASS[c.verdict]}">{html.escape(cell_text(c))}</td>'
+    cls = VCLASS[c.verdict] + (" conflict" if c.conflicts else "")
+    return f'<td class="{cls}" title="{_provenance(c)}">{html.escape(cell_text(c))}</td>'
 
 
 def _host_title(h: Host) -> str:
@@ -76,6 +87,16 @@ def _zone_matrix_html(agg: ZoneMatrix, inv: Inventory) -> str:
     )
 
 
+def _tested_html(c: Cell) -> str:
+    """Coverage of a cell: ports tested per protocol, '?' when a non-XML Scan cannot tell."""
+    if not c.scans:
+        return ""
+    parts = [f"{proto} {html.escape(format_ranges(r))}" for proto, r in sorted(c.tested.items())]
+    if not c.coverage_known:
+        parts.append('<span class="warn" title="a Scan behind this cell is not XML">?</span>')
+    return "<br>".join(parts)
+
+
 def _source_table_html(src: str, row: Row, inv: Inventory) -> str:
     extras = extra_columns(inv)
     rows = []
@@ -88,13 +109,14 @@ def _source_table_html(src: str, row: Row, inv: Inventory) -> str:
             f"<tr><th>{html.escape(inv[d].short)}</th>"
             f"<td>{html.escape(inv[d].zone)}</td><td>{html.escape(inv[d].htype)}</td>"
             f'<td class="{VCLASS[c.verdict]}">{VERDICT_NAME[c.verdict]}</td>'
-            f"<td>{html.escape(ports)}</td>"
+            f"<td>{html.escape(ports)}</td><td>{_tested_html(c)}</td>"
+            f"<td>{html.escape(', '.join(sc.split('/', 1)[1] for sc in c.scans))}</td>"
             + "".join(f"<td>{html.escape(inv[d].extra.get(k, ''))}</td>" for k in extras)
             + "</tr>"
         )
     return (
         '<div class="tablewrap"><table><thead><tr><th>target</th><th>zone</th><th>type</th>'
-        "<th>verdict</th><th>open ports</th>"
+        "<th>verdict</th><th>open ports</th><th>tested ports</th><th>scans</th>"
         + "".join(f"<th>{html.escape(k)}</th>" for k in extras)
         + f"</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
     )
@@ -134,45 +156,42 @@ def _zone_legend_html(inv: Inventory) -> str:
     return f'<div style="margin:4px 0 12px;">{chips}</div>'
 
 
-def write_html(
-    matrix: Matrix,
-    inv: Inventory,
-    agg: ZoneMatrix,
-    exp: Exposure,
-    missing: list[str],
-    unknown: list[str],
-    orphan: list[str],
-    out_dir: str,
-) -> str:
-    srcs = [ip for ip in ordered_ips(inv) if ip in matrix]
-    legend = (
+def _legend() -> str:
+    return (
         '<div class="legend">'
         '<span class="v-open">OPEN service</span>'
         '<span class="v-reach">reachable (closed)</span>'
         '<span class="v-alive">alive (ping/ARP)</span>'
         '<span class="v-block">blocked</span>'
         '<span class="v-none">unseen</span>'
+        '<span class="v-none conflict">Scans disagree</span>'
         '<span style="color:#e11d48">— red = cross-zone OPEN</span></div>'
     )
 
-    # Global tab
-    glob = [
-        "<h2>Global diagram (zone &rarr; zone)</h2>",
-        _zone_legend_html(inv),
-        legend,
-        f'<pre class="mermaid">{html.escape(mermaid_zone(agg, inv))}</pre>',
-        "<h2>Consolidated zone &rarr; zone matrix</h2>",
-        _zone_matrix_html(agg, inv),
-        "<h2>Consolidated host &rarr; host matrix</h2>",
-        legend,
-        _host_matrix_html(matrix, inv),
-        "<h2>Exposure per target</h2>",
-        _exposure_html(exp, inv),
-    ]
 
-    # Per-source tab
+def _global_tab(a: Analysis) -> str:
+    return "".join(
+        [
+            "<h2>Global diagram (zone &rarr; zone)</h2>",
+            _zone_legend_html(a.inv),
+            _legend(),
+            f'<pre class="mermaid">{html.escape(mermaid_zone(a.agg, a.inv))}</pre>',
+            "<h2>Consolidated zone &rarr; zone matrix</h2>",
+            _zone_matrix_html(a.agg, a.inv),
+            "<h2>Consolidated host &rarr; host matrix</h2>",
+            '<p class="legend">Hover a cell for the Scans behind its verdict.</p>',
+            _legend(),
+            _host_matrix_html(a.matrix, a.inv),
+            "<h2>Exposure per target</h2>",
+            _exposure_html(a.exp, a.inv),
+        ]
+    )
+
+
+def _persource_tab(a: Analysis) -> str:
+    inv, matrix = a.inv, a.matrix
     by_m = defaultdict(list)
-    for s in srcs:
+    for s in a.sources:
         by_m[inv[s].machine].append(s)
     options = "".join(
         f'<optgroup label="{html.escape(m)}">'
@@ -183,8 +202,8 @@ def write_html(
         + "</optgroup>"
         for m, ips in by_m.items()
     )
-    src_panes = []
-    for i, s in enumerate(srcs):
+    panes = []
+    for i, s in enumerate(a.sources):
         disp = "block" if i == 0 else "none"
         zs = sorted({inv[d].zone for d, c in matrix[s].items() if c.verdict >= REACH})
         boxes = "".join(
@@ -197,76 +216,155 @@ def write_html(
             "<span><button onclick=\"exportImg(this,'svg')\">Export SVG</button> "
             "<button onclick=\"exportImg(this,'png')\">Export PNG</button></span></div>"
         )
-        src_panes.append(
+        panes.append(
             f'<div class="srcpane" id="src_{hid(s)}" style="display:{disp}">'
             f"<h2>{html.escape(inv[s].short)} "
-            f'<span class="tag">{html.escape(inv[s].zone)} · {html.escape(inv[s].htype)} · {s}</span></h2>'
+            f'<span class="tag">{html.escape(inv[s].zone)} · {html.escape(inv[s].htype)} · {s}</span>'
+            f'<span class="tag">{len(a.scans[s])} scan(s)</span></h2>'
             f'{bar}<pre class="mermaid">{html.escape(mermaid_source(s, matrix[s], inv))}</pre>'
             f"<h3>Target details</h3>{_source_table_html(s, matrix[s], inv)}</div>"
         )
-    persource = [f'<select id="srcsel" onchange="showSource(this.value)">{options}</select>'] + src_panes
+    return f'<select id="srcsel" onchange="showSource(this.value)">{options}</select>' + "".join(panes)
 
-    # Anomalies tab
-    anomalies = ["<h2>Sources without scan</h2>"]
-    anomalies.append(
-        "<ul>"
-        + (
-            "".join(
-                f"<li>{ip} — {html.escape(inv[ip].short)} "
-                f'<span class="tag">{html.escape(inv[ip].zone)}</span></li>'
-                for ip in missing
-            )
-            or "<li>None</li>"
+
+def _filter_box() -> str:
+    return '<input class="filter" placeholder="Filter rows..." oninput="filterRows(this)">'
+
+
+def _scans_tab(a: Analysis) -> str:
+    rows = []
+    for src in a.sources:
+        h = a.inv[src]
+        # number of (target, port) disagreements each Scan takes part in
+        conflicts = Counter(
+            sc for c in a.matrix[src].values() for states in c.conflicts.values() for sc in states
         )
-        + "</ul>"
+        for sc in a.scans[src]:
+            if sc.coverage is None:
+                cov = '<span class="warn">unknown (not XML)</span>'
+            else:
+                cov = "<br>".join(
+                    f"{proto} {html.escape(format_ranges(r))} <small>({count_ports(r)} ports)</small>"
+                    for proto, r in sorted(sc.coverage.items())
+                )
+            rows.append(
+                f"<tr><th>{html.escape(h.short)}</th><td>{html.escape(h.zone)}</td>"
+                f"<td>{html.escape(sc.name.split('/', 1)[1])}</td><td>{html.escape(sc.started)}</td>"
+                f"<td>{cov}</td><td>{len(sc.hosts)}</td>"
+                f'<td class="{"warn" if conflicts[sc.name] else ""}">{conflicts[sc.name] or ""}</td>'
+                f'<td class="cmd"><code>{html.escape(sc.command)}</code></td></tr>'
+            )
+    scans_table = (
+        f'{_filter_box()}<div class="tablewrap"><table><thead><tr>'
+        "<th>source</th><th>zone</th><th>file</th><th>started</th><th>tested ports</th>"
+        "<th>hosts in output</th><th>conflicts</th><th>command</th></tr>"
+        f"</thead><tbody>{''.join(rows)}</tbody></table></div>"
     )
-    anomalies.append("<h2>Reachable hosts outside the inventory</h2>")
-    anomalies.append(
-        "<ul>" + ("".join(f'<li class="warn">{ip}</li>' for ip in unknown) or "<li>None</li>") + "</ul>"
+
+    # Coverage per target Interface: which Source tested it, how many ports, through which Scans
+    inv, srcs = a.inv, a.sources
+    head = "".join(f'<th title="{html.escape(inv[s].zone)}">{html.escape(inv[s].short)}</th>' for s in srcs)
+    cov_rows = []
+    for d in ordered_ips(inv):
+        cells = []
+        for s in srcs:
+            c = a.matrix[s].get(d)
+            if c is None:
+                cells.append('<td class="v-self">-</td>')
+            elif not c.scans:
+                cells.append('<td class="v-none" title="in no Scan output">.</td>')
+            else:
+                txt = " · ".join(f"{proto} {count_ports(r)}" for proto, r in sorted(c.tested.items()))
+                txt += "" if c.coverage_known else " ?"
+                tip = html.escape("\n".join(c.scans), quote=True)
+                cells.append(
+                    f'<td title="{tip}">{html.escape(txt.strip())} <small>({len(c.scans)})</small></td>'
+                )
+        cov_rows.append(
+            f'<tr><th title="{_host_title(inv[d])}">{html.escape(inv[d].short)}</th>{"".join(cells)}</tr>'
+        )
+    coverage_table = (
+        f'{_filter_box()}<div class="tablewrap"><table><thead>'
+        f"<tr><th>target \\ source</th>{head}</tr></thead>"
+        f"<tbody>{''.join(cov_rows)}</tbody></table></div>"
     )
-    anomalies.append(
+    return (
+        "<h2>Scans</h2>"
+        '<p class="legend">One row per Scan. When Scans of a Source disagree on a port, the most '
+        "permissive state wins (an open port seen once proves the flow passed); the conflicts column "
+        "counts the disagreements a Scan takes part in, detailed in the matrix cell tooltips.</p>"
+        f"{scans_table}"
+        "<h2>Coverage per target</h2>"
+        '<p class="legend">Number of ports tested per protocol from each Source (number of Scans); '
+        "<code>.</code> = in no Scan output, <code>?</code> = a non-XML Scan does not tell which ports it "
+        "tested. Hover a cell for the Scans.</p>"
+        f"{coverage_table}"
+    )
+
+
+def _anomalies_tab(a: Analysis) -> str:
+    inv = a.inv
+    missing = "".join(
+        f'<li>{ip} — {html.escape(inv[ip].short)} <span class="tag">{html.escape(inv[ip].zone)}</span></li>'
+        for ip in a.missing
+    )
+    unknown = "".join(f'<li class="warn">{ip}</li>' for ip in a.unknown)
+    orphan = "".join(f'<li class="warn">{html.escape(ip)}</li>' for ip in a.orphan)
+    return (
+        f"<h2>Sources without scan</h2><ul>{missing or '<li>None</li>'}</ul>"
+        f"<h2>Reachable hosts outside the inventory</h2><ul>{unknown or '<li>None</li>'}</ul>"
         "<h2>Ignored scans</h2><p>Source folder or file name is not an inventory IP "
         "(expected: <code>scans/&lt;source_ip&gt;/*.xml</code> "
-        "or <code>scans/&lt;source_ip&gt;.xml</code>).</p>"
-    )
-    anomalies.append(
-        "<ul>"
-        + ("".join(f'<li class="warn">{html.escape(ip)}</li>' for ip in orphan) or "<li>None</li>")
-        + "</ul>"
+        f"or <code>scans/&lt;source_ip&gt;.xml</code>).</p><ul>{orphan or '<li>None</li>'}</ul>"
     )
 
+
+def _mermaid_script() -> str:
     if MERMAID_JS.is_file():
-        mjs = (
+        return (
             "<script>"
             + MERMAID_JS.read_text(encoding="utf-8").replace("</script", "<\\/script")
             + "</script>"
         )
-    else:
-        print(
-            f"[!] {MERMAID_JS.name} missing next to the script: report.html will load mermaid from the CDN "
-            "(network required)",
-            file=sys.stderr,
-        )
-        mjs = f'<script src="{MERMAID_CDN}"></script>'
+    print(
+        f"[!] {MERMAID_JS} missing: report.html will load mermaid from the CDN (network required)",
+        file=sys.stderr,
+    )
+    return f'<script src="{MERMAID_CDN}"></script>'
 
+
+TABS = (
+    ("global", "Global view", _global_tab),
+    ("persource", "Per source", _persource_tab),
+    ("scans", "Scans", _scans_tab),
+    ("anomalies", "Anomalies", _anomalies_tab),
+)
+
+
+def write_html(a: Analysis, out_dir: str) -> str:
+    n_scans = sum(len(v) for v in a.scans.values())
     meta = (
-        f"{len(inv)} targets · {len(srcs)} scanned source(s) · {len(missing)} without scan · "
-        f"{len(unknown)} host(s) outside inventory · {len(orphan)} ignored scan(s)"
+        f"{len(a.inv)} targets · {len(a.sources)} scanned source(s) · {n_scans} scan(s) · "
+        f"{len(a.missing)} without scan · {len(a.unknown)} host(s) outside inventory · "
+        f"{len(a.orphan)} ignored scan(s)"
+    )
+    buttons = "".join(
+        f'<button class="tab{" active" if i == 0 else ""}" data-tab="{key}" '
+        f"onclick=\"showTab('{key}')\">{title}</button>"
+        for i, (key, title, _) in enumerate(TABS)
+    )
+    panes = "".join(
+        f'<section id="tab-{key}" class="pane{" active" if i == 0 else ""}">{render(a)}</section>'
+        for i, (key, _, render) in enumerate(TABS)
     )
     doc = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Segmentation report</title>
-{mjs}
+{_mermaid_script()}
 <style>{HTML_CSS}</style></head><body>
 <header><h1>Network segmentation report</h1>
 <div class="meta">{meta}</div></header>
-<div class="tabs">
-<button class="tab active" data-tab="global" onclick="showTab('global')">Global view</button>
-<button class="tab" data-tab="persource" onclick="showTab('persource')">Per source</button>
-<button class="tab" data-tab="anomalies" onclick="showTab('anomalies')">Anomalies</button>
-</div>
-<section id="tab-global" class="pane active">{"".join(glob)}</section>
-<section id="tab-persource" class="pane">{"".join(persource)}</section>
-<section id="tab-anomalies" class="pane">{"".join(anomalies)}</section>
+<div class="tabs">{buttons}</div>
+{panes}
 <script>{HTML_JS}</script></body></html>"""
     return write_output(out_dir, "report.html", doc)

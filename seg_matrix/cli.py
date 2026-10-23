@@ -6,7 +6,7 @@ import argparse
 import os
 import sys
 
-from seg_matrix.analysis import aggregate_zones, build_matrix, target_exposure
+from seg_matrix.analysis import analyze
 from seg_matrix.inventory import load_inventory
 from seg_matrix.nmap import SCAN_EXT_PRIORITY, discover_scans, parse_scan
 from seg_matrix.render.common import write_output
@@ -58,9 +58,8 @@ def main() -> None:
         sys.exit(f"[!] No scan of an inventory source found in {args.scans} ({', '.join(SCAN_EXT_PRIORITY)})")
 
     os.makedirs(os.path.join(args.out, "mermaid"), exist_ok=True)
-    matrix, missing, unknown, pn_count = build_matrix(inv, scans, force_pn=args.pn)
-    agg = aggregate_zones(matrix, inv)
-    exp = target_exposure(matrix, inv)
+    a = analyze(inv, scans, orphan, force_pn=args.pn)
+    matrix, missing, unknown, agg, exp = a.matrix, a.missing, a.unknown, a.agg, a.exp
 
     write_host_matrix_md(matrix, inv, args.out)
     write_zone_matrix_md(agg, inv, args.out)
@@ -71,12 +70,12 @@ def main() -> None:
         write_output(args.out, "segmentation_hosts.mmd", mermaid_hosts(matrix, inv))
     for s in matrix:
         write_output(os.path.join(args.out, "mermaid"), f"{s}.mmd", mermaid_source(s, matrix[s], inv))
-    html_path = write_html(matrix, inv, agg, exp, missing, unknown, orphan, args.out)
+    html_path = write_html(a, args.out)
 
     n_scans = sum(len(v) for v in scans.values())
     print(
         f"[+] Inventory: {len(inv)} targets | Scans: {n_scans} -> {len(matrix)} source(s) "
-        f"(-Pn detected/forced on {pn_count} scan(s))"
+        f"(-Pn detected/forced on {a.pn_count} scan(s))"
     )
     if orphan:
         print(f"[!] {len(orphan)} ignored scan(s), not an inventory source IP: {', '.join(orphan)}")
