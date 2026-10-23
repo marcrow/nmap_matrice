@@ -115,20 +115,23 @@ def _zone_matrix_html(
     )
 
 
-def _ranges_html(ranges: list[tuple[int, int]], cap: int = 60) -> str:
-    """Port ranges, shortened when long (e.g. --top-ports 1000); the full list is in the tooltip."""
+def _ranges_html(proto: str, ranges: list[tuple[int, int]], label: str | None = None, cap: int = 40) -> str:
+    """'tcp 22,80' inline; a long list (e.g. --top-ports 1000) folds into a click-to-open spoiler."""
     full = format_ranges(ranges)
-    if len(full) <= cap:
-        return html.escape(full)
-    short = html.escape(full[:cap].rsplit(",", 1)[0])
-    return f'<span title="{html.escape(full, quote=True)}">{short},&hellip;</span>'
+    if label is None and len(full) <= cap:
+        return f"{proto} {html.escape(full)}"
+    summary = f"{proto} {label or f'{count_ports(ranges)} ports'}"
+    return (
+        f'<details class="ports"><summary>{html.escape(summary)}</summary>'
+        f'<div class="plist">{html.escape(full)}</div></details>'
+    )
 
 
 def _tested_html(c: Cell) -> str:
     """Coverage of a cell: ports tested per protocol, '?' when a non-XML Scan cannot tell."""
     if not c.scans:
         return ""
-    parts = [f"{proto} {_ranges_html(r)}" for proto, r in sorted(c.tested.items())]
+    parts = [_ranges_html(proto, r) for proto, r in sorted(c.tested.items())]
     if not c.coverage_known:
         parts.append('<span class="warn" title="a Scan behind this cell is not XML">?</span>')
     return "<br>".join(parts)
@@ -153,7 +156,7 @@ def _source_table_html(src: str, row: Row, inv: Inventory, highlight: Highlight 
             + "</tr>"
         )
     return (
-        '<div class="tablewrap"><table><thead><tr><th>target</th><th>zone</th><th>type</th>'
+        '<div class="tablewrap"><table class="fit"><thead><tr><th>target</th><th>zone</th><th>type</th>'
         "<th>verdict</th><th>open ports</th><th>tested ports</th><th>scans</th>"
         + "".join(f"<th>{html.escape(k)}</th>" for k in extras)
         + f"</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
@@ -342,14 +345,8 @@ def _scans_tab(a: Analysis) -> str:
                 cov = '<span class="warn">unknown (not XML)</span>'
             else:
                 top = re.search(r"--top-ports[ =](\d+)", sc.command)
-                cov = "<br>".join(
-                    (
-                        f'{proto} <span title="{html.escape(format_ranges(r), quote=True)}">'
-                        f"top-ports {top.group(1)}</span>"
-                        if top
-                        else f"{proto} {_ranges_html(r)}"
-                    )
-                    + f" <small>({count_ports(r)} ports)</small>"
+                cov = "".join(
+                    _ranges_html(proto, r, f"top-ports {top.group(1)}" if top else None)
                     for proto, r in sorted(sc.coverage.items())
                 )
             rows.append(
@@ -360,7 +357,7 @@ def _scans_tab(a: Analysis) -> str:
                 f'<td class="cmd"><code>{html.escape(sc.command)}</code></td></tr>'
             )
     scans_table = (
-        f'{_filter_box()}<div class="tablewrap"><table><thead><tr>'
+        f'{_filter_box()}<div class="tablewrap"><table class="fit"><thead><tr>'
         "<th>source</th><th>zone</th><th>file</th><th>started</th><th>tested ports</th>"
         "<th>hosts in output</th><th>conflicts</th><th>command</th></tr>"
         f"</thead><tbody>{''.join(rows)}</tbody></table></div>"
@@ -383,7 +380,7 @@ def _scans_tab(a: Analysis) -> str:
                     f"<td><b>{html.escape(kept)}</b> <small>from {html.escape(from_)}</small></td></tr>"
                 )
     conflicts_table = (
-        f'{_filter_box()}<div class="tablewrap"><table><thead><tr><th>source</th><th>target</th>'
+        f'{_filter_box()}<div class="tablewrap"><table class="fit"><thead><tr><th>source</th><th>target</th>'
         "<th>zone</th><th>port</th><th>state per Scan</th><th>kept (most permissive)</th></tr></thead>"
         f"<tbody>{''.join(conf_rows)}</tbody></table></div>"
         if conf_rows

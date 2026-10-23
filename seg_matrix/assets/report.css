@@ -52,3 +52,10 @@ li.admin{box-shadow:none;border-left:3px solid #dc2626;padding-left:6px;}
 .admin.p-deny{box-shadow:inset 3px 0 0 #dc2626,inset 0 -4px 0 #dc2626;}
 .admin.p-undeclared{box-shadow:inset 3px 0 0 #dc2626,inset 0 -4px 0 #f59e0b;}
 .admin.p-allow{box-shadow:inset 3px 0 0 #dc2626,inset 0 -4px 0 #16a34a;}
+details.ports{white-space:normal;overflow-wrap:anywhere;max-width:340px;text-align:left;font-size:11px;}
+details.ports .plist{max-height:220px;overflow:auto;}
+details.ports summary{cursor:pointer;font-size:12px;white-space:nowrap;}
+details.ports[open]{background:#f8fafc;padding:2px 4px;border-radius:4px;}
+table.fit{width:100%;}
+table.fit td,table.fit th{white-space:normal;}
+table.fit td.cmd{min-width:0;}
