@@ -4,18 +4,18 @@ from pathlib import Path
 
 import pytest
 
-from seg_matrix.analysis import aggregate_zones, analyze, build_matrix, restrict
-from seg_matrix.cli import main
-from seg_matrix.inventory import Host, load_inventory
-from seg_matrix.nmap import HostRecord, Scan, discover_excluded, discover_scans, parse_scan
-from seg_matrix.policy import load_policy
-from seg_matrix.port_groups import load_port_groups
-from seg_matrix.ports import in_port_set
-from seg_matrix.render.common import zone_cell
-from seg_matrix.render.exports import write_observed_zone_flows
-from seg_matrix.render.html import write_html
-from seg_matrix.render.mermaid import mermaid_zone, zid
-from seg_matrix.verdict import ALIVE, BLOCK, NODATA, OPEN, REACH, Cell, classify
+from segowl.analysis import aggregate_zones, analyze, build_matrix, restrict
+from segowl.cli import main
+from segowl.inventory import Host, load_inventory
+from segowl.nmap import HostRecord, Scan, discover_excluded, discover_scans, parse_scan
+from segowl.policy import load_policy
+from segowl.port_groups import load_port_groups
+from segowl.ports import in_port_set
+from segowl.render.common import zone_cell
+from segowl.render.exports import write_observed_zone_flows
+from segowl.render.html import write_html
+from segowl.render.mermaid import mermaid_zone, zid
+from segowl.verdict import ALIVE, BLOCK, NODATA, OPEN, REACH, Cell, classify
 
 MISSION = Path(__file__).parent / "fixtures" / "mission"
 SRC = "172.31.250.1"  # the fixtures' Source (see fixtures/generate.sh)
@@ -274,7 +274,7 @@ def test_excluded_paths_are_relative_to_the_source_folder(tmp_path):
 
 
 def test_missing_port_groups_file_is_an_error_with_a_mission(tmp_path, monkeypatch):
-    argv = ["seg_matrix", str(MISSION), "-o", str(tmp_path), "--port-groups", str(tmp_path / "typo.csv")]
+    argv = ["segowl", str(MISSION), "-o", str(tmp_path), "--port-groups", str(tmp_path / "typo.csv")]
     monkeypatch.setattr("sys.argv", argv)
     with pytest.raises(SystemExit, match="Port Groups file not found"):
         main()

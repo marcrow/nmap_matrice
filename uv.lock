@@ -103,7 +103,7 @@ wheels = [
 ]
 
 [[package]]
-name = "seg-matrix"
+name = "segowl"
 version = "0.2.0"
 source = { editable = "." }
 

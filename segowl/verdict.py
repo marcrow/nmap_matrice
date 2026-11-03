@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from seg_matrix.nmap import HostRecord
-from seg_matrix.ports import Port, Ranges, in_ranges, ports_text
+from segowl.nmap import HostRecord
+from segowl.ports import Port, Ranges, in_ranges, ports_text
 
 OPEN, REACH, ALIVE, BLOCK, NODATA = 3, 2, 1, 0, -1
 VERDICT_NAME = {OPEN: "OPEN", REACH: "REACHABLE", ALIVE: "ALIVE", BLOCK: "BLOCKED", NODATA: "UNSEEN"}

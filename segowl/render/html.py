@@ -10,12 +10,12 @@ from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable
 from pathlib import Path
 
-from seg_matrix.analysis import Analysis, Exposure, Matrix, Row, ZoneMatrix, aggregate_zones
-from seg_matrix.inventory import Host, Inventory, extra_columns, ordered_ips
-from seg_matrix.ports import Port, count_ports, format_ranges, port_label, ports_text
-from seg_matrix.render.common import machine_palette, write_output, zone_cell, zone_palette
-from seg_matrix.render.mermaid import EdgeStatus, hid, mermaid_source, mermaid_zone, zid
-from seg_matrix.verdict import ALIVE, STATE_RANK, VCLASS, VERDICT_NAME, Cell, cell_text
+from segowl.analysis import Analysis, Exposure, Matrix, Row, ZoneMatrix, aggregate_zones
+from segowl.inventory import Host, Inventory, extra_columns, ordered_ips
+from segowl.ports import Port, count_ports, format_ranges, port_label, ports_text
+from segowl.render.common import machine_palette, write_output, zone_cell, zone_palette
+from segowl.render.mermaid import EdgeStatus, hid, mermaid_source, mermaid_zone, zid
+from segowl.verdict import ALIVE, STATE_RANK, VCLASS, VERDICT_NAME, Cell, cell_text
 
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
 HTML_CSS = (ASSETS / "report.css").read_text(encoding="utf-8")
@@ -629,7 +629,7 @@ def write_html(a: Analysis, out_dir: str) -> str:
     )
     doc = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Segmentation report</title>
+<title>SegOWL segmentation report</title>
 {_mermaid_script()}
 <style>{HTML_CSS}</style></head><body>
 <header><h1>Network segmentation report</h1>

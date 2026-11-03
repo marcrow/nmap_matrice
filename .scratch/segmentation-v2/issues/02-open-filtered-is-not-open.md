@@ -6,7 +6,7 @@ Stage: Stage 0 (see ../spec.md)
 
 ## What
 
-`classify` counts `open|filtered` as open (`seg_matrix.py:297`). Treat it as filtered: UDP no-reply and -sF/-sN/-sX scans must not produce OPEN.
+`classify` counts `open|filtered` as open (`segowl.py:297`). Treat it as filtered: UDP no-reply and -sF/-sN/-sX scans must not produce OPEN.
 
 ## Acceptance
 

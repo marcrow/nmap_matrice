@@ -6,11 +6,11 @@ Intended change to a view: `UPDATE_SNAPSHOTS=1 uv run pytest`, then review the s
 import os
 from pathlib import Path
 
-from seg_matrix.analysis import analyze
-from seg_matrix.cli import main
-from seg_matrix.inventory import load_inventory
-from seg_matrix.nmap import parse_scan
-from seg_matrix.render.html import write_html
+from segowl.analysis import analyze
+from segowl.cli import main
+from segowl.inventory import load_inventory
+from segowl.nmap import parse_scan
+from segowl.render.html import write_html
 
 MISSION = Path(__file__).parent / "fixtures" / "mission"
 SNAPSHOTS = Path(__file__).parent / "fixtures" / "snapshots"
@@ -25,7 +25,7 @@ def _texts(root: Path) -> dict[Path, str]:
 
 
 def test_text_views_match_snapshots(tmp_path, monkeypatch, capsys):  # capsys: silences the CLI
-    monkeypatch.setattr("sys.argv", ["seg_matrix", str(MISSION), "-o", str(tmp_path)])
+    monkeypatch.setattr("sys.argv", ["segowl", str(MISSION), "-o", str(tmp_path)])
     main()
     produced = _texts(tmp_path)
     if os.environ.get("UPDATE_SNAPSHOTS"):

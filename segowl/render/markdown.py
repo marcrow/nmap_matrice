@@ -5,11 +5,11 @@ from __future__ import annotations
 import csv
 import os
 
-from seg_matrix.analysis import Analysis, Exposure, Matrix, ZoneMatrix
-from seg_matrix.inventory import Inventory, ordered_ips
-from seg_matrix.ports import port_label, ports_text
-from seg_matrix.render.common import write_output, zone_cell, zone_palette
-from seg_matrix.verdict import ALIVE, VERDICT_NAME, Cell, cell_text
+from segowl.analysis import Analysis, Exposure, Matrix, ZoneMatrix
+from segowl.inventory import Inventory, ordered_ips
+from segowl.ports import port_label, ports_text
+from segowl.render.common import write_output, zone_cell, zone_palette
+from segowl.verdict import ALIVE, VERDICT_NAME, Cell, cell_text
 
 
 def write_host_matrix_md(matrix: Matrix, inv: Inventory, out_dir: str) -> None:

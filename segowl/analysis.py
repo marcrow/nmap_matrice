@@ -7,12 +7,12 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import cached_property
 
-from seg_matrix.inventory import Inventory, ordered_ips
-from seg_matrix.nmap import HostRecord, Scan
-from seg_matrix.policy import DENY, UNDECLARED, Rule, decide, worst
-from seg_matrix.port_groups import HIGHLIGHT, PortGroups
-from seg_matrix.ports import Port, in_port_set, merge_ranges, overlaps
-from seg_matrix.verdict import ALIVE, BLOCK, NODATA, OPEN, REACH, Cell, classify
+from segowl.inventory import Inventory, ordered_ips
+from segowl.nmap import HostRecord, Scan
+from segowl.policy import DENY, UNDECLARED, Rule, decide, worst
+from segowl.port_groups import HIGHLIGHT, PortGroups
+from segowl.ports import Port, in_port_set, merge_ranges, overlaps
+from segowl.verdict import ALIVE, BLOCK, NODATA, OPEN, REACH, Cell, classify
 
 Row = dict[str, Cell]  # target ip -> verdict cell
 Matrix = dict[str, Row]  # source ip -> row

@@ -6,11 +6,11 @@ import csv
 import os
 from collections import defaultdict
 
-from seg_matrix.analysis import Analysis
-from seg_matrix.inventory import Host, extra_columns
-from seg_matrix.policy import UNDECLARED
-from seg_matrix.ports import Port, port_label
-from seg_matrix.verdict import ALIVE, OPEN, REACH
+from segowl.analysis import Analysis
+from segowl.inventory import Host, extra_columns
+from segowl.policy import UNDECLARED
+from segowl.ports import Port, port_label
+from segowl.verdict import ALIVE, OPEN, REACH
 
 
 def write_observed_flows(a: Analysis, out_dir: str) -> str:

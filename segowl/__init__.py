@@ -1,4 +1,4 @@
-"""seg_matrix — Segmentation matrix & Mermaid diagrams for network segmentation testing.
+"""segowl — Segmentation matrix & Mermaid diagrams for network segmentation testing.
 
 PRINCIPLE
 ---------
@@ -34,6 +34,6 @@ SEGMENTATION SEMANTICS
 
 USAGE
 -----
-  python3 -m seg_matrix -i inventory.csv -s ./scans/ -o ./report/
-  python3 -m seg_matrix -i inventory.csv -s ./scans/ --host-graph
+  python3 -m segowl -i inventory.csv -s ./scans/ -o ./report/
+  python3 -m segowl -i inventory.csv -s ./scans/ --host-graph
 """

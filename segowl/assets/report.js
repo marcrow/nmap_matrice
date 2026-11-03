@@ -16,7 +16,7 @@ async function renderVisible(scope){
   for(const el of [...scope.querySelectorAll('.mermaid:not([data-done])')]){
     if(el.offsetParent===null) continue;
     el.setAttribute('data-done','1');
-    if(!HAS_MM){el.innerHTML='<b class="err">mermaid.js not loaded (offline? seg_matrix/assets/mermaid.min.js missing); diagram source:</b><br>'+el.innerHTML; continue;}
+    if(!HAS_MM){el.innerHTML='<b class="err">mermaid.js not loaded (offline? segowl/assets/mermaid.min.js missing); diagram source:</b><br>'+el.innerHTML; continue;}
     await draw(el);
   }
 }

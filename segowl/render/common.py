@@ -6,10 +6,10 @@ import colorsys
 from collections import defaultdict
 from pathlib import Path
 
-from seg_matrix.analysis import ZoneAgg
-from seg_matrix.inventory import Inventory
-from seg_matrix.ports import ports_text
-from seg_matrix.verdict import NODATA, OPEN, REACH, SYM, VCLASS
+from segowl.analysis import ZoneAgg
+from segowl.inventory import Inventory
+from segowl.ports import ports_text
+from segowl.verdict import NODATA, OPEN, REACH, SYM, VCLASS
 
 # Zone palette (fill, stroke, text) — modern, cyclic
 ZONE_COLORS = [

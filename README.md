@@ -1,4 +1,4 @@
-# seg_matrix — segmentation matrix + Mermaid + HTML report
+# SegOWL — segmentation matrix + Mermaid + HTML report
 
 ## Workflow
 
@@ -49,15 +49,15 @@ mission/
 
 3. **Generation**:
    ```bash
-   python3 -m seg_matrix mission/ --host-graph
-   python3 -m seg_matrix -i inventory.csv -s ./scans/ -o ./report/   # explicit paths (override)
+   python3 -m segowl mission/ --host-graph
+   python3 -m segowl -i inventory.csv -s ./scans/ -o ./report/   # explicit paths (override)
    ```
    Run from the repository root: no installation and no dependency needed (Python >= 3.10).
-   `pip install .` also provides a `seg_matrix` command.
+   `pip install .` also provides a `segowl` command.
 
 ## Port Groups
 Named sets of ports (`admin`, `directory`, `db`, `web`, `file`) shipped in
-`seg_matrix/defaults/port_groups.csv`. A `mission/port_groups.csv` (`group;ports`, e.g.
+`segowl/defaults/port_groups.csv`. A `mission/port_groups.csv` (`group;ports`, e.g.
 `admin;22,3389,5985,udp:161`) replaces a group of the same name or adds new ones.
 The **Port group** selector in the report header restricts every view (matrices, diagrams,
 exposure) to the OPEN flows on that group's ports. Open `admin` ports are always highlighted:
@@ -135,7 +135,7 @@ node colour, and its interfaces are linked by a grey dotted line; single-interfa
 machines stay white, bordered with the zone colour.
 
 ## HTML report (offline)
-`seg_matrix/assets/mermaid.min.js` (shipped in the repo, v10.9.8) is
+`segowl/assets/mermaid.min.js` (shipped in the repo, v10.9.8) is
 inlined into `report.html`: the report is self-contained and renders without network.
 If it is missing, the report loads mermaid from the jsdelivr CDN (network required) and, on
 failure, shows the diagram source instead of a `mermaid is not defined` error.
@@ -145,6 +145,6 @@ failure, shows the diagram source instead of a `mermaid is not defined` error.
 uv run pytest                                        # tests (UPDATE_SNAPSHOTS=1 to accept a view change)
 uv run ruff check . && uv run ruff format --check .  # lint + format
 ```
-Layout: `seg_matrix/` — `inventory.py` (CSV), `nmap.py` (discovery + parsers), `verdict.py`,
+Layout: `segowl/` — `inventory.py` (CSV), `nmap.py` (discovery + parsers), `verdict.py`,
 `analysis.py` (matrices), `render/` (Markdown/CSV, Mermaid, HTML + `assets/`), `cli.py`.
 Domain vocabulary: `GLOSSARY.md`; decisions: `docs/adr/`.

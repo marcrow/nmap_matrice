@@ -7,7 +7,7 @@ import os
 import sys
 from pathlib import Path
 
-from seg_matrix.ports import PortSet, parse_port_set
+from segowl.ports import PortSet, parse_port_set
 
 DEFAULTS = Path(__file__).resolve().parent / "defaults" / "port_groups.csv"
 HIGHLIGHT = "admin"  # flows on this group's ports are highlighted in every view

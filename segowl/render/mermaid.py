@@ -6,12 +6,12 @@ import re
 from collections import defaultdict
 from collections.abc import Callable, Iterable
 
-from seg_matrix.analysis import Matrix, Row, ZoneMatrix
-from seg_matrix.inventory import Inventory, ordered_ips
-from seg_matrix.policy import ALLOW, DENY, UNDECLARED
-from seg_matrix.ports import Port, port_label
-from seg_matrix.render.common import machine_palette, zone_palette
-from seg_matrix.verdict import ALIVE, OPEN, VERDICT_NAME
+from segowl.analysis import Matrix, Row, ZoneMatrix
+from segowl.inventory import Inventory, ordered_ips
+from segowl.policy import ALLOW, DENY, UNDECLARED
+from segowl.ports import Port, port_label
+from segowl.render.common import machine_palette, zone_palette
+from segowl.verdict import ALIVE, OPEN, VERDICT_NAME
 
 # Mermaid init directive (theme, font). 'linear' curve is mandatory: Mermaid puts the label in
 # the middle of the dagre polyline, and 'basis' smooths the path beside it (label off by one link).

@@ -16,9 +16,9 @@ import sys
 from collections import defaultdict
 from dataclasses import dataclass
 
-from seg_matrix.inventory import Host, Inventory
-from seg_matrix.port_groups import PortGroups
-from seg_matrix.ports import Port, PortSet, in_port_set, merge_ranges, parse_port_set
+from segowl.inventory import Host, Inventory
+from segowl.port_groups import PortGroups
+from segowl.ports import Port, PortSet, in_port_set, merge_ranges, parse_port_set
 
 ALLOW, DENY, UNDECLARED = "allow", "deny", "undeclared"
 SEVERITY = {DENY: 2, UNDECLARED: 1, ALLOW: 0}  # to colour an edge carrying several flows

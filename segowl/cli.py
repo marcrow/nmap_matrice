@@ -6,21 +6,21 @@ import argparse
 import os
 import sys
 
-from seg_matrix.analysis import analyze
-from seg_matrix.inventory import load_inventory
-from seg_matrix.nmap import SCAN_EXT_PRIORITY, discover_excluded, discover_scans, parse_scan
-from seg_matrix.policy import load_policy
-from seg_matrix.port_groups import load_port_groups
-from seg_matrix.render.common import write_output
-from seg_matrix.render.exports import write_observed_flows, write_observed_zone_flows
-from seg_matrix.render.html import write_html
-from seg_matrix.render.markdown import (
+from segowl.analysis import analyze
+from segowl.inventory import load_inventory
+from segowl.nmap import SCAN_EXT_PRIORITY, discover_excluded, discover_scans, parse_scan
+from segowl.policy import load_policy
+from segowl.port_groups import load_port_groups
+from segowl.render.common import write_output
+from segowl.render.exports import write_observed_flows, write_observed_zone_flows
+from segowl.render.html import write_html
+from segowl.render.markdown import (
     write_exposure_md,
     write_findings_md,
     write_host_matrix_md,
     write_zone_matrix_md,
 )
-from seg_matrix.render.mermaid import mermaid_hosts, mermaid_source, mermaid_zone
+from segowl.render.mermaid import mermaid_hosts, mermaid_source, mermaid_zone
 
 
 def _parse_args() -> argparse.Namespace:

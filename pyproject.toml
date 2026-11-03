@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "seg-matrix"
+name = "segowl"
 version = "0.2.0"
 description = "Network segmentation testing: nmap scans -> segmentation matrices, Mermaid graphs, offline HTML report"
 readme = "README.md"
@@ -14,13 +14,13 @@ dependencies = []
 dev = ["pytest>=8", "ruff>=0.5"]  # uv installs it by default: `uv run pytest`
 
 [project.scripts]
-seg_matrix = "seg_matrix.cli:main"
+segowl = "segowl.cli:main"
 
 [tool.setuptools]
-packages = ["seg_matrix", "seg_matrix.render"]
+packages = ["segowl", "segowl.render"]
 
 [tool.setuptools.package-data]
-seg_matrix = ["assets/*", "defaults/*"]
+segowl = ["assets/*", "defaults/*"]
 
 [tool.ruff]
 line-length = 110

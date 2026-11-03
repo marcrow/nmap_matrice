@@ -9,7 +9,7 @@ import xml.etree.ElementTree as ET
 from collections import defaultdict
 from dataclasses import dataclass, field
 
-from seg_matrix.ports import Ranges, in_ranges, merge_ranges, parse_ranges
+from segowl.ports import Ranges, in_ranges, merge_ranges, parse_ranges
 
 SCAN_EXT_PRIORITY = (".xml", ".gnmap", ".nmap")
 _PN = re.compile(r'(?:^|[\s"])-Pn(?:[\s"]|$)')
