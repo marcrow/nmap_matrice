@@ -23,7 +23,7 @@ from segowl.render.markdown import (
 from segowl.render.mermaid import mermaid_hosts, mermaid_source, mermaid_zone
 
 
-def _parse_args() -> argparse.Namespace:
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     ap = argparse.ArgumentParser(
         description="Segmentation matrix + Mermaid + HTML report.",
         epilog="Mission folder: inventory.csv, scans/<source_ip>/*.xml, report/ (generated).",
@@ -45,7 +45,14 @@ def _parse_args() -> argparse.Namespace:
         "--pn", action="store_true", help="Force -Pn mode (host-up ignored, verdict from ports only)"
     )
     ap.add_argument("--host-graph", action="store_true", help="Also generate the global host-level Mermaid")
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
+    if not args.mission and not (args.inventory and args.scans):
+        ap.error("give a mission folder, or both -i and -s")
+    return mission_defaults(args)
+
+
+def mission_defaults(args: argparse.Namespace) -> argparse.Namespace:
+    """Fill the paths a mission folder implies, keeping the ones given explicitly."""
     if args.mission:
         args.inventory = args.inventory or os.path.join(args.mission, "inventory.csv")
         args.scans = args.scans or os.path.join(args.mission, "scans")
@@ -54,14 +61,21 @@ def _parse_args() -> argparse.Namespace:
         args.port_groups = args.port_groups or (mission_groups if os.path.isfile(mission_groups) else None)
         mission_policy = os.path.join(args.mission, "flow_policy.csv")
         args.policy = args.policy or (mission_policy if os.path.isfile(mission_policy) else None)
-    elif not (args.inventory and args.scans):
-        ap.error("give a mission folder, or both -i and -s")
     args.out = args.out or "./seg_report"
     return args
 
 
 def main() -> None:
-    args = _parse_args()
+    if sys.argv[1:2] in (["serve"], ["user"]):  # app subcommands; a mission folder is never named so
+        from segowl.app import main as app_main
+
+        app_main(sys.argv[1:])
+        return
+    print("\n".join(run(_parse_args())))
+
+
+def run(args: argparse.Namespace) -> list[str]:
+    """Generate every output; return the summary lines. Fatal input errors raise SystemExit(message)."""
     inv = load_inventory(args.inventory)
     if not os.path.isdir(args.scans):
         sys.exit(f"[!] Scan directory not found: {args.scans}")
@@ -99,22 +113,23 @@ def main() -> None:
     html_path = write_html(a, args.out)
 
     n_scans = sum(len(v) for v in scans.values())
-    print(
+    lines = [
         f"[+] Inventory: {len(inv)} targets | Scans: {n_scans} -> {len(matrix)} source(s) "
         f"(-Pn detected/forced on {a.pn_count} scan(s))"
-    )
+    ]
     if orphan:
-        print(f"[!] {len(orphan)} ignored scan(s), not an inventory source IP: {', '.join(orphan)}")
+        lines.append(f"[!] {len(orphan)} ignored scan(s), not an inventory source IP: {', '.join(orphan)}")
     if excluded:
-        print(f"[+] {sum(map(len, excluded.values()))} excluded scan(s) in sub-folders, not read")
+        lines.append(f"[+] {sum(map(len, excluded.values()))} excluded scan(s) in sub-folders, not read")
     if missing:
-        print(f"[!] {len(missing)} source(s) without scan: {', '.join(missing)}")
+        lines.append(f"[!] {len(missing)} source(s) without scan: {', '.join(missing)}")
     if unknown:
-        print(f"[!] {len(unknown)} host(s) outside inventory: {', '.join(unknown)}")
+        lines.append(f"[!] {len(unknown)} host(s) outside inventory: {', '.join(unknown)}")
     if policy is not None:
-        print(
+        lines.append(
             f"[+] Flow Policy: {len(policy)} rule(s) -> {len(a.findings)} Finding(s), "
             f"{len(a.undeclared)} undeclared"
         )
-    print(f"[+] HTML report: {html_path}")
-    print(f"[+] md/csv/mmd outputs in: {args.out}")
+    lines.append(f"[+] HTML report: {html_path}")
+    lines.append(f"[+] md/csv/mmd outputs in: {args.out}")
+    return lines

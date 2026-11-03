@@ -142,6 +142,16 @@ inlined into `report.html`: the report is self-contained and renders without net
 If it is missing, the report loads mermaid from the jsdelivr CDN (network required) and, on
 failure, shows the diagram source instead of a `mermaid is not defined` error.
 
+## Web app (in progress)
+```bash
+python3 -m segowl serve mission/              # http://127.0.0.1:8000/, folder created if missing
+python3 -m segowl user add alice              # writes ~/.config/segowl/users (scrypt), login then required
+python3 -m segowl serve mission/ --host 0.0.0.0 --cert cert.pem --key key.pem   # shared server, HTTPS
+```
+The app reads and writes the same mission folder (no database, `docs/adr/0003-*`, `docs/adr/0004-*`):
+the report is regenerated whenever a mission file changes, by hand or from the app. Without a users file
+it only listens on loopback. Editors arrive with `.scratch/local-app/` tickets 03-06.
+
 ## Development
 ```bash
 uv run pytest                                        # tests (UPDATE_SNAPSHOTS=1 to accept a view change)
