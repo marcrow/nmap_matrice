@@ -1,0 +1,18 @@
+%%{init: {'theme':'base','themeVariables':{'fontFamily':'ui-sans-serif,-apple-system,Segoe UI,Roboto,sans-serif','fontSize':'13px','lineColor':'#94a3b8'},'flowchart':{'curve':'linear','htmlLabels':true,'nodeSpacing':40,'rankSpacing':60,'padding':8}}}%%
+flowchart LR
+  S{{"auditor · 172.31.250.1<br/><small>audit · source</small>"}}
+  style S fill:#1f2937,stroke:#0f172a,stroke-width:2px,color:#ffffff
+  classDef z_Z_data fill:#ffffff,stroke:#22a565,stroke-width:1.5px,color:#14532d;
+  classDef z_Z_dmz fill:#ffffff,stroke:#f59e0b,stroke-width:1.5px,color:#7c4a03;
+  subgraph Z_data["data"]
+    H_172_31_250_20("db-01 · 172.31.250.20<br/><small>container</small>"):::z_Z_data
+  end
+  style Z_data fill:#eafaf1aa,stroke:#22a565,stroke-width:1px,color:#14532d
+  subgraph Z_dmz["dmz"]
+    H_172_31_250_10("app-01 · 172.31.250.10<br/><small>container</small>"):::z_Z_dmz
+  end
+  style Z_dmz fill:#fff4e6aa,stroke:#f59e0b,stroke-width:1px,color:#7c4a03
+  S ==>|"<b style='color:#b91c1c'>22</b>,<b style='color:#b91c1c'>udp:161</b>,6379,8443"| H_172_31_250_10
+  S ==>|"5432"| H_172_31_250_20
+  linkStyle 0 stroke:#e11d48,stroke-width:2.5px,stroke-linecap:round;
+  linkStyle 1 stroke:#e11d48,stroke-width:2.5px,stroke-linecap:round;

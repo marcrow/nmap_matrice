@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Nmap 7.94SVN scan initiated Fri Oct 23 16:26:27 2026 as: nmap -sT -Pn -n -p 22 -oX after_fix.xml 172.31.250.10 -->
+<nmaprun scanner="nmap" args="nmap -sT -Pn -n -p 22 -oX after_fix.xml 172.31.250.10" start="1792765587" startstr="Fri Oct 23 16:26:27 2026" version="7.94SVN" xmloutputversion="1.05">
+<scaninfo type="connect" protocol="tcp" numservices="1" services="22"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1792765587" endtime="1792765587"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="172.31.250.10" addrtype="ipv4"/>
+<hostnames>
+</hostnames>
+<ports><port protocol="tcp" portid="22"><state state="closed" reason="conn-refused" reason_ttl="0"/><service name="ssh" method="table" conf="3"/></port>
+</ports>
+<times srtt="170" rttvar="5000" to="100000"/>
+</host>
+<runstats><finished time="1792765587" timestr="Fri Oct 23 16:26:27 2026" summary="Nmap done at Fri Oct 23 16:26:27 2026; 1 IP address (1 host up) scanned in 0.03 seconds" elapsed="0.03" exit="success"/><hosts up="1" down="0" total="1"/>
+</runstats>
+</nmaprun>

@@ -1,0 +1,6 @@
+﻿src;dst;ports;action;comment
+audit;data;5432;;1 pair(s), e.g. auditor · 172.31.250.1 -> db-01 · 172.31.250.20
+audit;dmz;22;;1 pair(s), e.g. auditor · 172.31.250.1 -> app-01 · 172.31.250.10
+audit;dmz;udp:161;;1 pair(s), e.g. auditor · 172.31.250.1 -> app-01 · 172.31.250.10
+audit;dmz;6379;;1 pair(s), e.g. auditor · 172.31.250.1 -> app-01 · 172.31.250.10
+audit;dmz;8443;;1 pair(s), e.g. auditor · 172.31.250.1 -> app-01 · 172.31.250.10

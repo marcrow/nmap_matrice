@@ -1,0 +1,6 @@
+﻿src_ip;src_machine;src_zone;src_type;src_owner;src_criticality;dst_ip;dst_machine;dst_zone;dst_type;dst_owner;dst_criticality;proto;port;state;scans
+172.31.250.1;auditor;audit;laptop;;;172.31.250.10;app-01;dmz;container;web-team;high;tcp;22;open;172.31.250.1/broad.xml,172.31.250.1/targeted.xml,172.31.250.1/after_fix.xml,172.31.250.1/udp.xml
+172.31.250.1;auditor;audit;laptop;;;172.31.250.10;app-01;dmz;container;web-team;high;udp;161;open;172.31.250.1/broad.xml,172.31.250.1/targeted.xml,172.31.250.1/after_fix.xml,172.31.250.1/udp.xml
+172.31.250.1;auditor;audit;laptop;;;172.31.250.10;app-01;dmz;container;web-team;high;tcp;6379;open;172.31.250.1/broad.xml,172.31.250.1/targeted.xml,172.31.250.1/after_fix.xml,172.31.250.1/udp.xml
+172.31.250.1;auditor;audit;laptop;;;172.31.250.10;app-01;dmz;container;web-team;high;tcp;8443;open;172.31.250.1/broad.xml,172.31.250.1/targeted.xml,172.31.250.1/after_fix.xml,172.31.250.1/udp.xml
+172.31.250.1;auditor;audit;laptop;;;172.31.250.20;db-01;data;container;dba;critical;tcp;5432;open;172.31.250.1/broad.xml,172.31.250.1/targeted.xml,172.31.250.1/udp.xml

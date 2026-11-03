@@ -1,0 +1,3 @@
+# Flow Policy: undeclared by default, not deny by default
+
+A flow the Flow Policy does not cover is an Undeclared Flow, shown apart and never a Finding; only an explicit `deny` produces a Finding. Classic flow matrices are whitelists (anything not allowed is denied), but real-world Flow Policies are often partial because they are time-consuming to build, and deny-by-default would bury the auditor in noise from pairs nobody has stated an intent about. To express "only 443 from user to dmz", the auditor writes `allow 443` plus `deny *`; rule precedence is src/dst specificity (Machine > Zone > `*`), then port specificity (explicit ports or Port Group > `*`), then `deny` wins.
