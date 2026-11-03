@@ -1,0 +1,420 @@
+# Shipped demo Port Labels (descriptive only: tags help search, they filter nothing).
+# A mission/port_labels.csv adds to these rows.
+# Ports: one token per row | 22 (TCP implied) | ranges 5900-5903 | udp:161 | udp:5405-5412
+# Sources: vendor documentation, IETF RFCs and the IANA registry only (never nmap-services).
+# Tags (fixed vocabulary, comma-separated):
+#   admin          management interface or protocol (SSH, RDP, web console, API)
+#   oob            out-of-band controller (BMC: iLO, iDRAC, IPMI, XCC, CIMC)
+#   backup         backup software and data movers
+#   virtualization hypervisor, VDI, cluster management
+#   directory      AD, LDAP, Kerberos, DNS, authentication (RADIUS, TACACS+)
+#   db             databases and caches
+#   web            HTTP(S) and application servers
+#   monitoring     supervision, logging, telemetry, SIEM
+#   network        network device and routing/infrastructure protocols
+#   security       firewall/VPN/EDR/scanner/secrets management
+#   devops         CI/CD, orchestration, containers, configuration management
+#   messaging      message brokers and queues
+#   file           file transfer, file sharing, storage, printing
+#   remote-access  remote desktop/control tools
+#   mail           mail protocols
+port;product;tags
+20;FTP data (RFC 959);file
+21;FTP control (RFC 959);file
+22;SSH (RFC 4253);admin,remote-access
+23;Telnet (RFC 854);admin,remote-access
+25;SMTP (RFC 5321);mail
+49;TACACS+ (RFC 8907);directory,network,admin
+53;DNS over TCP (RFC 7766);directory,network
+udp:53;DNS (RFC 1035);directory,network
+udp:67;DHCP server (RFC 2131);network
+udp:68;DHCP client (RFC 2131);network
+udp:69;TFTP (RFC 1350);file,network
+80;HTTP (RFC 9110);web
+88;Kerberos (RFC 4120);directory
+udp:88;Kerberos (RFC 4120);directory
+110;POP3 (RFC 1939);mail
+111;ONC RPC portmapper / rpcbind (RFC 1833);file
+udp:111;ONC RPC portmapper / rpcbind (RFC 1833);file
+udp:123;NTP (RFC 5905);network
+135;Microsoft RPC endpoint mapper;admin,directory
+udp:137;NetBIOS name service (RFC 1002);file,directory
+udp:138;NetBIOS datagram service (RFC 1002);file
+139;NetBIOS session service / SMB (RFC 1002);file,admin
+143;IMAP (RFC 9051);mail
+161;SNMP over TCP (RFC 3430);monitoring,network
+udp:161;SNMP agent (RFC 3411);monitoring,network
+udp:162;SNMP trap receiver (RFC 3411);monitoring,network
+179;BGP (RFC 4271);network
+389;LDAP (RFC 4511);directory
+udp:389;CLDAP / AD DC locator (RFC 1798);directory
+443;HTTPS (RFC 9110);web
+udp:443;HTTP/3 over QUIC (RFC 9114);web
+445;SMB / Microsoft-DS;file,admin
+464;Kerberos password change (RFC 3244);directory
+udp:464;Kerberos password change (RFC 3244);directory
+465;SMTP submission over TLS (RFC 8314);mail
+udp:500;IPsec IKE (RFC 7296);security,network
+512;rexec (BSD r-services);admin,remote-access
+513;rlogin (RFC 1282);admin,remote-access
+514;rsh (BSD r-services);admin,remote-access
+udp:514;Syslog (RFC 5426);monitoring
+515;LPD printing (RFC 1179);file
+548;Apple Filing Protocol (AFP);file
+587;SMTP submission (RFC 6409);mail
+593;Microsoft RPC over HTTP endpoint mapper;admin,directory
+udp:623;IPMI RMCP / RMCP+ (IPMI v2.0 spec);oob
+631;IPP printing (RFC 8011);file
+636;LDAPS (RFC 8314);directory
+830;NETCONF over SSH (RFC 6242);network,admin
+853;DNS over TLS (RFC 7858);directory,network
+873;rsync daemon;file,backup
+989;FTPS data (RFC 4217);file
+990;FTPS control (RFC 4217);file
+993;IMAPS (RFC 8314);mail
+995;POP3S (RFC 8314);mail
+1194;OpenVPN;security,remote-access
+udp:1194;OpenVPN;security,remote-access
+1433;Microsoft SQL Server;db
+udp:1434;Microsoft SQL Server Browser;db
+1521;Oracle Database listener;db
+1688;Microsoft KMS activation;admin
+1723;PPTP VPN (RFC 2637);security,remote-access
+udp:1812;RADIUS authentication (RFC 2865);directory,security
+udp:1813;RADIUS accounting (RFC 2866);directory,security
+udp:1900;SSDP / UPnP discovery;network
+2049;NFS (RFC 7530);file
+udp:2049;NFS (RFC 1813);file
+udp:2055;NetFlow export (Cisco default);monitoring,network
+2179;Microsoft Hyper-V VMConnect;virtualization,admin
+2375;Docker Engine API (plain HTTP);devops,admin
+2376;Docker Engine API (TLS);devops,admin
+2377;Docker Swarm cluster management;devops
+2379-2380;etcd client and peer;devops,db
+3260;iSCSI target (RFC 7143);file
+3268;AD Global Catalog;directory
+3269;AD Global Catalog over TLS;directory
+3306;MySQL / MariaDB;db
+3389;Microsoft RDP;remote-access,admin
+udp:3389;Microsoft RDP (UDP transport);remote-access,admin
+udp:3391;Microsoft RD Gateway (UDP transport);remote-access,security
+udp:4500;IPsec NAT traversal (RFC 3948);security,network
+udp:4739;IPFIX (RFC 7011);monitoring,network
+udp:4789;VXLAN (RFC 7348);network,virtualization
+udp:5246;CAPWAP control (RFC 5415);network
+udp:5247;CAPWAP data (RFC 5415);network
+udp:5353;mDNS (RFC 6762);network
+udp:5355;LLMNR (RFC 4795);directory,network
+5432;PostgreSQL;db
+5900-5903;VNC / RFB (RFC 6143);remote-access
+5985;Microsoft WinRM (HTTP);admin
+5986;Microsoft WinRM (HTTPS);admin
+6000-6063;X11 (X Window System);remote-access
+6443;Kubernetes API server;devops,admin
+6513;NETCONF over TLS (RFC 7589);network,admin
+6514;Syslog over TLS (RFC 5425);monitoring
+udp:6343;sFlow;monitoring,network
+8530;Microsoft WSUS (HTTP);admin
+8531;Microsoft WSUS (HTTPS);admin
+9389;Active Directory Web Services;directory,admin
+10000;NDMP (backup of NAS);backup,file
+49152-65535;Microsoft RPC dynamic ports;admin,directory
+udp:51820;WireGuard VPN;security,remote-access
+# --- Out-of-band management ---
+443;HPE iLO web interface / Redfish;oob,admin
+17988;HPE iLO virtual media;oob
+17990;HPE iLO remote console;oob
+3002;HPE iLO raw serial data;oob
+443;Dell iDRAC web interface / Redfish;oob,admin
+5900;Dell iDRAC virtual console (vKVM) and VNC;oob,remote-access
+3668;Dell iDRAC virtual media (older generations);oob
+5120;Supermicro BMC virtual media (CD-ROM);oob
+5123;Supermicro BMC virtual media (floppy);oob
+5900;Supermicro BMC iKVM;oob,remote-access
+3900;Lenovo XClarity Controller remote presence;oob,remote-access
+2068;Cisco IMC (CIMC) KVM;oob,remote-access
+# --- Virtualization ---
+443;VMware ESXi host client / API;virtualization,admin
+902;VMware ESXi NFC and VM console (MKS);virtualization,admin
+udp:902;VMware ESXi heartbeat to vCenter;virtualization
+427;VMware ESXi CIM SLP;virtualization
+udp:427;VMware ESXi CIM SLP;virtualization
+5989;VMware ESXi CIM server (HTTPS);virtualization,monitoring
+8000;VMware ESXi vMotion;virtualization
+8182;VMware vSphere HA (FDM);virtualization
+udp:8182;VMware vSphere HA (FDM);virtualization
+443;VMware vCenter Server (vSphere Client / API);virtualization,admin
+5480;VMware vCenter appliance management (VAMI);virtualization,admin
+9443;VMware vCenter vSphere Web Client (legacy);virtualization,admin
+7444;VMware vCenter Single Sign-On (legacy);virtualization,directory
+6501;VMware vSphere Auto Deploy;virtualization
+6502;VMware vSphere Auto Deploy reverse proxy;virtualization
+6600;Microsoft Hyper-V live migration;virtualization
+8006;Proxmox VE web interface / API;virtualization,admin
+3128;Proxmox VE SPICE proxy;virtualization,remote-access
+5900-5999;Proxmox VE VNC web console;virtualization,remote-access
+udp:5405-5412;Proxmox VE corosync cluster;virtualization
+60000-60050;Proxmox VE live migration;virtualization
+8007;Proxmox Backup Server web interface / API;backup,admin
+9440;Nutanix Prism web console;virtualization,admin
+16509;libvirt daemon (TCP);virtualization,admin
+16514;libvirt daemon (TLS);virtualization,admin
+1494;Citrix ICA (HDX);virtualization,remote-access
+2598;Citrix Common Gateway Protocol (session reliability);virtualization,remote-access
+4172;VMware Horizon PCoIP;virtualization,remote-access
+udp:4172;VMware Horizon PCoIP;virtualization,remote-access
+8443;VMware Horizon Blast Extreme (gateway);virtualization,remote-access
+22443;VMware Horizon Blast Extreme (agent);virtualization,remote-access
+# --- Backup ---
+9392;Veeam B&R console to backup server (v12 and earlier);backup,admin
+9396;Veeam B&R UI service (v12 and earlier);backup
+9401;Veeam B&R remote console file-level recovery (v12);backup
+9419;Veeam B&R REST API (Swagger);backup,admin
+9420;Veeam B&R console update / console connection;backup,admin
+10443;Veeam Software Appliance host management;backup,admin
+6160;Veeam Installer Service;backup
+6161;Veeam vPower NFS Service;backup
+6162;Veeam Data Mover;backup
+2500-3300;Veeam data transmission channels;backup
+6170;Veeam mount service;backup
+9443;Veeam Backup Enterprise Manager web UI;backup,admin
+9394;Veeam Backup Enterprise Manager service;backup
+8400;Commvault CommServe communication (CVD);backup
+8401;Commvault EvMgrS / alternative CVD;backup
+8403;Commvault firewall tunnel;backup
+1556;Veritas NetBackup PBX;backup
+13724;Veritas NetBackup vnetd;backup
+13782;Veritas NetBackup bpcd;backup
+6101;Veritas Backup Exec agent browser;backup
+9101;Bacula / Bareos director;backup
+9102;Bacula / Bareos file daemon;backup
+9103;Bacula / Bareos storage daemon;backup
+1500;IBM Storage Protect (TSM) server;backup
+1581;IBM Storage Protect client acceptor;backup
+9877;Acronis Cyber Protect management server;backup
+11104;NetApp ONTAP SnapMirror intercluster control;backup,file
+11105;NetApp ONTAP SnapMirror data transfer;backup,file
+2051;Dell Data Domain replication;backup
+5000;Synology DSM (HTTP);file,admin
+5001;Synology DSM (HTTPS);file,admin
+8080;QNAP QTS web administration;file,admin
+# --- Network and security appliances ---
+443;Fortinet FortiGate administrative GUI;security,admin
+541;Fortinet FGFM (FortiGate to FortiManager);security,admin
+514;Fortinet OFTP (logs to FortiAnalyzer);security,monitoring
+1000;Fortinet FortiGate firewall authentication (HTTP);security,directory
+1003;Fortinet FortiGate firewall authentication (HTTPS);security,directory
+8013;Fortinet FortiClient EMS telemetry;security
+10443;Fortinet FortiGate SSL VPN (common setting);security,remote-access
+8008;Fortinet FSSO collector agent;security,directory
+443;Palo Alto Networks PAN-OS web interface;security,admin
+4443;Palo Alto Networks PAN-OS alternative HTTPS;security,admin
+3978;Palo Alto Networks Panorama to firewall;security,admin
+28443;Palo Alto Networks Panorama content updates;security
+28769;Palo Alto Networks HA1 control link;security
+28260;Palo Alto Networks HA1 control link;security
+5007;Palo Alto Networks User-ID agent;security,directory
+6080;Palo Alto Networks Authentication Portal (NTLM);security,directory
+6081;Palo Alto Networks Authentication Portal (HTTP);security,directory
+6082;Palo Alto Networks Authentication Portal (TLS);security,directory
+udp:4501;Palo Alto Networks GlobalProtect IPsec;security,remote-access
+4786;Cisco Smart Install;network,admin
+8305;Cisco Secure Firewall management (sftunnel FMC-FTD);security,admin
+8443;Cisco ISE portals;security,directory
+8905;Cisco ISE posture;security
+8910;Cisco ISE pxGrid;security
+udp:1645;Cisco legacy RADIUS authentication;directory,security
+udp:1646;Cisco legacy RADIUS accounting;directory,security
+18190;Check Point SmartConsole (CPMI);security,admin
+18191;Check Point CPD;security,admin
+18192;Check Point AMON;security,monitoring
+18264;Check Point ICA (certificate services);security
+256;Check Point FW-1 management;security,admin
+257;Check Point FW-1 log transfer;security,monitoring
+4444;Sophos Firewall web admin console;security,admin
+8291;MikroTik Winbox;network,admin
+8728;MikroTik RouterOS API;network,admin
+8729;MikroTik RouterOS API (TLS);network,admin
+udp:5678;MikroTik Neighbor Discovery (MNDP);network
+4353;F5 BIG-IP iQuery;network
+udp:1026;F5 BIG-IP network failover;network
+8443;F5 BIG-IP configuration utility (single-NIC);network,admin
+8443;Ubiquiti UniFi Network controller;network,admin
+8080;Ubiquiti UniFi device inform;network
+udp:3478;Ubiquiti UniFi STUN;network
+udp:10001;Ubiquiti UniFi device discovery;network
+4343;HPE Aruba controller web UI;network,admin
+udp:8211;HPE Aruba PAPI;network
+# --- Windows and Microsoft infrastructure ---
+2701;Microsoft Configuration Manager remote control;admin,remote-access
+10123;Microsoft Configuration Manager client notification;admin
+udp:4011;Microsoft WDS / PXE;admin
+49443;Microsoft AD FS certificate authentication;directory
+5022;Microsoft SQL Server Always On endpoint;db
+4022;Microsoft SQL Server Service Broker;db
+# --- Databases and caches ---
+1830;Oracle Connection Manager;db
+2483;Oracle Database (TCP, IANA);db
+2484;Oracle Database (TLS, IANA);db
+33060;MySQL X Protocol;db
+5000;SAP ASE (Sybase) default;db
+50000;IBM Db2 default instance;db
+3050;Firebird;db
+27017;MongoDB;db
+6379;Redis;db
+26379;Redis Sentinel;db
+11211;Memcached;db
+udp:11211;Memcached (UDP);db
+9042;Apache Cassandra CQL;db
+7000;Apache Cassandra inter-node;db
+7001;Apache Cassandra inter-node (TLS);db
+7199;Apache Cassandra JMX;db,admin
+9200;Elasticsearch REST API;db,monitoring
+9300;Elasticsearch transport;db
+5984;Apache CouchDB;db
+8091;Couchbase web console;db,admin
+8086;InfluxDB;db,monitoring
+8123;ClickHouse HTTP;db
+9000;ClickHouse native;db
+7474;Neo4j HTTP;db
+7687;Neo4j Bolt;db
+26257;CockroachDB;db
+3200-3299;SAP NetWeaver dispatcher (32NN);db,web
+3300-3399;SAP NetWeaver gateway (33NN);db
+3600-3699;SAP message server (36NN);db
+30013;SAP HANA SQL system DB (3NN13);db
+30015;SAP HANA SQL tenant DB (3NN15);db
+# --- Web and application servers ---
+8080;Apache Tomcat HTTP connector;web
+8009;Apache Tomcat AJP connector;web
+8005;Apache Tomcat shutdown port;web,admin
+7001;Oracle WebLogic Server;web,admin
+7002;Oracle WebLogic Server (TLS);web,admin
+9060;IBM WebSphere admin console (HTTP);web,admin
+9043;IBM WebSphere admin console (HTTPS);web,admin
+9080;IBM WebSphere HTTP transport;web
+9990;WildFly / JBoss EAP management;web,admin
+4848;Eclipse GlassFish admin;web,admin
+8983;Apache Solr;web,db
+8888;Jupyter Notebook server;web,devops
+# --- Messaging ---
+9092;Apache Kafka broker;messaging
+2181;Apache ZooKeeper client;messaging,devops
+5672;AMQP / RabbitMQ;messaging
+5671;AMQP over TLS / RabbitMQ;messaging
+15672;RabbitMQ management UI;messaging,admin
+4369;Erlang epmd (RabbitMQ clustering);messaging
+25672;RabbitMQ inter-node;messaging
+1883;MQTT;messaging
+8883;MQTT over TLS;messaging
+61616;Apache ActiveMQ OpenWire;messaging
+8161;Apache ActiveMQ web console;messaging,admin
+4222;NATS client;messaging
+6222;NATS cluster;messaging
+8222;NATS monitoring;messaging,monitoring
+# --- DevOps, containers, orchestration ---
+10250;Kubernetes kubelet API;devops,admin
+10256;Kubernetes kube-proxy health;devops
+10257;Kubernetes kube-controller-manager;devops
+10259;Kubernetes kube-scheduler;devops
+30000-32767;Kubernetes NodePort services;devops
+udp:30000-32767;Kubernetes NodePort services;devops
+7946;Docker Swarm node communication;devops
+udp:7946;Docker Swarm node communication;devops
+5000;Docker Registry (distribution);devops
+9443;Portainer web UI (HTTPS);devops,admin
+9000;Portainer web UI (HTTP, legacy);devops,admin
+8000;Portainer Edge agent tunnel;devops
+8080;Jenkins web UI;devops,admin
+50000;Jenkins inbound agents;devops
+8111;JetBrains TeamCity;devops,admin
+8085;Atlassian Bamboo;devops,admin
+7990;Atlassian Bitbucket Data Center (HTTP);devops
+7999;Atlassian Bitbucket Data Center (SSH);devops
+3000;Gitea web;devops
+8081;Sonatype Nexus Repository;devops
+8081;JFrog Artifactory (service);devops
+8082;JFrog Artifactory (router / UI);devops
+9000;SonarQube;devops
+8140;Puppet server;devops,admin
+4505;Salt master publish;devops,admin
+4506;Salt master request;devops,admin
+8200;HashiCorp Vault API;security,devops
+8201;HashiCorp Vault cluster;security,devops
+8500;HashiCorp Consul HTTP API;devops
+8300;HashiCorp Consul server RPC;devops
+8301-8302;HashiCorp Consul Serf LAN/WAN;devops
+udp:8301-8302;HashiCorp Consul Serf LAN/WAN;devops
+4646-4648;HashiCorp Nomad HTTP / RPC / Serf;devops
+9000;MinIO S3 API;file,devops
+9001;MinIO console;file,admin
+6789;Ceph monitor (msgr1);file
+3300;Ceph monitor (msgr2);file
+6800-7300;Ceph OSD / MGR / MDS;file
+24007;GlusterFS daemon;file
+9870;Apache Hadoop HDFS NameNode web UI;devops,file
+8020;Apache Hadoop HDFS NameNode RPC;devops,file
+8088;Apache Hadoop YARN ResourceManager web UI;devops
+7077;Apache Spark standalone master;devops
+# --- Monitoring and logging ---
+10050;Zabbix agent;monitoring
+10051;Zabbix server / proxy trapper;monitoring
+5666;Nagios NRPE;monitoring
+5667;Nagios NSCA;monitoring
+5693;Nagios NCPA;monitoring
+23560;Paessler PRTG probe connection;monitoring
+6556;Checkmk agent;monitoring
+8000;Checkmk agent receiver;monitoring
+5665;Icinga 2 API / cluster;monitoring
+17778;SolarWinds Orion agent;monitoring
+3000;Grafana;monitoring
+9090;Prometheus server;monitoring
+9093;Prometheus Alertmanager;monitoring
+9100;Prometheus node_exporter;monitoring
+19999;Netdata agent;monitoring
+udp:8125;Datadog DogStatsD;monitoring
+5601;Kibana;monitoring
+5044;Elastic Beats to Logstash;monitoring
+9600;Logstash monitoring API;monitoring
+8220;Elastic Fleet Server;monitoring,security
+9000;Graylog web / API;monitoring
+12201;Graylog GELF input;monitoring
+udp:12201;Graylog GELF input;monitoring
+8000;Splunk Web;monitoring
+8089;Splunk management (splunkd);monitoring,admin
+9997;Splunk forwarder receiving;monitoring
+8088;Splunk HTTP Event Collector;monitoring
+1514;Wazuh agent connection;security,monitoring
+1515;Wazuh agent enrollment;security,monitoring
+55000;Wazuh server API;security,admin
+9100;HP JetDirect raw printing;file
+# --- Security tools ---
+8834;Tenable Nessus web UI;security
+3780;Rapid7 InsightVM console;security
+9392;Greenbone GSA web interface;security
+13000;Kaspersky Security Center (agents, TLS);security
+14000;Kaspersky Security Center (agents);security
+13291;Kaspersky Security Center console;security,admin
+2222;ESET PROTECT agent replication;security
+2223;ESET PROTECT agent certificate enrollment;security
+8443;Trellix ePolicy Orchestrator console;security,admin
+8444;Trellix ePO agent-server secure;security
+8081;Trellix agent wake-up;security
+8443;Symantec Endpoint Protection Manager console;security,admin
+8014;Symantec Endpoint Protection Manager client communication;security
+1858;CyberArk Vault;security,admin
+5500;RSA Authentication Manager agent authentication;security,directory
+udp:5500;RSA Authentication Manager agent authentication;security,directory
+7004;RSA Authentication Manager security console;security,admin
+8000;Velociraptor client frontend;security
+8889;Velociraptor GUI;security,admin
+# --- Remote access tools ---
+5938;TeamViewer;remote-access
+udp:5938;TeamViewer;remote-access
+7070;AnyDesk direct connection;remote-access
+21115-21119;RustDesk server;remote-access
+udp:21116;RustDesk server;remote-access
+8040;ConnectWise ScreenConnect web;remote-access,admin
+8041;ConnectWise ScreenConnect relay;remote-access
+4000;NoMachine NX;remote-access
+4822;Apache Guacamole guacd;remote-access

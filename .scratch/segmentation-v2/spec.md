@@ -66,7 +66,7 @@ at the scans root still accepted.
 - Exports: `observed_flows.csv` (one row per Source → Interface → proto/port, with IP, Machine, Zone, free columns on both sides, state, Scans) and `observed_zone_flows.csv` (per Zone pair and port, in Flow Policy format with empty `action`, to bootstrap a policy).
 
 ### Stage 5: local app (deferred)
-Web framework, file-based auth, Docker, scan upload, Flow Policy editor: dedicated grilling session after stage 4. Only fixed constraint: ADR-0003.
+Grilled on 2026-11-03: see `../local-app/spec.md`.
 
 ## Explicitly out for now
 Allowed-but-never-observed flows, multi-hop pivot chains, diff CLI subcommand, generic flow-matrix converter.
