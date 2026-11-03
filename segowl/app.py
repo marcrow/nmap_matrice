@@ -17,6 +17,7 @@ import ipaddress
 import json
 import os
 import secrets
+import shlex
 import ssl
 import sys
 import threading
@@ -27,8 +28,11 @@ from pathlib import Path
 
 from segowl import cli
 from segowl import mission_files as mf
+from segowl import scan_profiles as sp
 from segowl.inventory import load_inventory
+from segowl.nmap import SCAN_EXT_PRIORITY
 from segowl.policy import load_policy
+from segowl.port_groups import DEFAULTS as GROUP_DEFAULTS
 from segowl.port_groups import load_port_groups
 
 ASSETS = Path(__file__).parent / "assets"
@@ -37,6 +41,8 @@ STATIC = {  # served under /static/
     "app.css": "text/css; charset=utf-8",
     "app_inventory.js": "text/javascript; charset=utf-8",
     "app_mission.js": "text/javascript; charset=utf-8",
+    "app_profiles.js": "text/javascript; charset=utf-8",
+    "app_scans.js": "text/javascript; charset=utf-8",
     "tabulator.min.js": "text/javascript; charset=utf-8",
     "tabulator.min.css": "text/css; charset=utf-8",
 }
@@ -221,6 +227,178 @@ class Mission:
             msg = f"Renamed {old} → {new}: {n_inv} Interface(s), {n_pol} Flow Policy field(s) rewritten"
             return {"fp": self.fps(), "message": msg}
 
+    # ---- Scan Profiles
+    def groups(self) -> tuple[dict, dict[str, str]]:
+        """(Port Groups as port sets, as raw specs), shipped defaults overridden by the Mission's."""
+        specs = {}
+        for path in (GROUP_DEFAULTS, self.file("port_groups.csv")):
+            for row in mf._rows(path.read_text(encoding="utf-8-sig") if path.is_file() else ""):
+                if row[0].lower() != "group" and len(row) > 1:
+                    specs[row[0]] = row[1]
+        mission_groups = self.file("port_groups.csv")
+        try:
+            sets = load_port_groups(str(mission_groups) if mission_groups.is_file() else None)
+        except SystemExit:
+            sets = load_port_groups(None)
+        return sets, specs
+
+    def profiles(self) -> dict:
+        return {
+            "fp": fingerprint(self.file("scan_profiles.csv")),
+            "profiles": [vars(p) for p in sp.read_profiles(self.text("scan_profiles.csv"))],
+            "groups": self.groups()[1],
+            "denied": sp.DENIED,
+            "sources": self.source_ips() or [r["ip"] for r in self.rows()[:1]],
+        }
+
+    def save_profiles(self, data: dict) -> str:
+        profiles = [
+            sp.Profile(str(p["name"]).strip(), str(p["ports"]).strip(), str(p["options"]).strip())
+            for p in data.get("profiles", [])
+        ]
+        sets = self.groups()[0]
+        errors = [e for p in profiles for e in sp.validate(p, sets)]
+        names = [p.name for p in profiles]
+        errors += [f"two profiles named {n}" for n in sorted({n for n in names if names.count(n) > 1})]
+        if errors:
+            raise ValueError("; ".join(errors))
+        return save_file(self.file("scan_profiles.csv"), sp.profiles_text(profiles), data.get("fp", ""))
+
+    def preview(self, data: dict) -> dict:
+        p = sp.Profile(
+            str(data.get("name") or "profile"), str(data.get("ports", "")), str(data.get("options", ""))
+        )
+        sets = self.groups()[0]
+        errors = sp.validate(p, sets)
+        src = str(data.get("src") or "")
+        if errors:
+            return {"errors": errors, "commands": [], "counts": {}, "warnings": []}
+        targets = self.targets(src)
+        cmds = sp.commands(p, sets, f"scans/{src or '<source>'}", f"targets/{src or '<source>'}-{p.name}.txt")
+        c = sp.counts(p, sets)
+        warnings = []
+        if "-Pn" not in p.options.split():
+            warnings.append(
+                "Without -Pn, hosts that drop discovery are reported BLOCKED and never port-scanned."
+            )
+        if c["udp"] > 50:
+            warnings.append(
+                f"{c['udp']} UDP ports × {len(targets)} targets: expect hours. Keep UDP to a short list."
+            )
+        return {
+            "errors": [],
+            "commands": [
+                {"label": label, "cmd": " ".join(shlex.quote(a) for a in argv)} for label, _, argv in cmds
+            ],
+            "counts": {**c, "targets": len(targets)},
+            "warnings": warnings,
+        }
+
+    # ---- Sources, targets, Scans
+    def rows(self) -> list[dict]:
+        return [r for r in mf.read_inventory(self.text("inventory.csv"))[1] if r.get("ip")]
+
+    def source_ips(self) -> list[str]:
+        scans = self.file("scans")
+        return sorted(d.name for d in scans.iterdir() if d.is_dir()) if scans.is_dir() else []
+
+    def targets(self, src: str) -> list[str]:
+        """Every inventory Interface minus the Source's own Machine (Self)."""
+        rows = self.rows()
+        machine = next((r.get("name") or r["ip"] for r in rows if r["ip"] == src), src)
+        return [r["ip"] for r in rows if (r.get("name") or r["ip"]) != machine]
+
+    def scans(self) -> dict:
+        rows = {r["ip"]: r for r in self.rows()}
+        sets = self.groups()[0]
+        out = []
+        for ip in self.source_ips():
+            d = self.file("scans") / ip
+            files = [
+                {"name": str(f.relative_to(d)), "excluded": f.parent != d}
+                for f in sorted(d.rglob("*"))
+                if f.is_file() and f.suffix.lower() in SCAN_EXT_PRIORITY
+            ]
+            r = rows.get(ip, {})
+            out.append(
+                {
+                    "ip": ip,
+                    "name": r.get("name", ""),
+                    "zone": r.get("zone", ""),
+                    "known": ip in rows,
+                    "files": files,
+                }
+            )
+        profiles = [
+            {"name": p.name, "expected": sp.expected_files(p, sets)}
+            for p in sp.read_profiles(self.text("scan_profiles.csv"))
+        ]
+        candidates = [
+            {"ip": ip, "name": r.get("name", ""), "zone": r.get("zone", "")}
+            for ip, r in rows.items()
+            if ip not in self.source_ips()
+        ]
+        return {"sources": out, "profiles": profiles, "candidates": candidates}
+
+    def source_dir(self, src: str) -> Path:
+        ipaddress.ip_address(src)  # ValueError on anything else: no path tricks
+        return self.file("scans") / src
+
+    def add_source(self, src: str) -> None:
+        if src not in {r["ip"] for r in self.rows()}:
+            raise ValueError(f"{src} is not an inventory IP")
+        self.source_dir(src).mkdir(parents=True, exist_ok=True)
+
+    def upload(self, src: str, name: str, stream, length: int) -> str:
+        name = Path(name).name
+        if Path(name).suffix.lower() not in SCAN_EXT_PRIORITY or name.startswith("."):
+            raise ValueError(f"{name}: expected an nmap output ({', '.join(SCAN_EXT_PRIORITY)})")
+        d = self.source_dir(src)
+        d.mkdir(parents=True, exist_ok=True)
+        target = d / name
+        if target.exists():
+            raise ValueError(f"{name} already exists for {src}: rename it or exclude the old one first")
+        tmp = d / f".{name}.part"
+        with open(tmp, "wb") as fh:
+            left = length
+            while left > 0:
+                chunk = stream.read(min(left, 1 << 20))
+                if not chunk:
+                    break
+                fh.write(chunk)
+                left -= len(chunk)
+        os.replace(tmp, target)
+        return name
+
+    def move_scan(self, src: str, name: str, exclude: bool) -> None:
+        d = self.source_dir(src)
+        f = (d / name).resolve()
+        if not f.is_relative_to(d.resolve()) or not f.is_file():
+            raise ValueError(f"no such Scan {name}")
+        dest = d / "excluded" / f.name if exclude else d / f.name
+        if dest.exists():
+            raise ValueError(f"{dest.relative_to(d)} already exists")
+        dest.parent.mkdir(exist_ok=True)
+        os.replace(f, dest)
+
+    def script(self, src: str, profile: str) -> str:
+        p = next((p for p in sp.read_profiles(self.text("scan_profiles.csv")) if p.name == profile), None)
+        if p is None:
+            raise ValueError(f"no Scan Profile {profile}")
+        self.source_dir(src)
+        r = next((r for r in self.rows() if r["ip"] == src), {})
+        label = f"{src} ({r['name']})" if r.get("name") else src
+        return sp.script(p, self.groups()[0], self.path.name, src, label, self.targets(src))
+
+    def scripts_zip(self, profile: str) -> bytes:
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            for src in self.source_ips():
+                info = zipfile.ZipInfo(f"segowl-{src}-{profile}.sh")
+                info.external_attr = 0o755 << 16
+                zf.writestr(info, self.script(src, profile))
+        return buf.getvalue()
+
     # ---- client exchange
     def client_zip(self) -> bytes:
         return _zip({n: self.file(n) for n in ("inventory.csv", "flow_policy.csv") if self.file(n).is_file()})
@@ -298,7 +476,11 @@ NAV = [
     ("kits", "Kits"),
     ("report", "Report"),
 ]
-READY = {"mission", "inventory", "report"}  # the other pages arrive with tickets 04-06
+READY = {"mission", "inventory", "profiles", "scans", "report"}  # the other pages arrive with tickets 05-06
+
+
+def asset(name: str) -> str:
+    return (ASSETS / name).read_text(encoding="utf-8")
 
 
 def page(title: str, body: str, *, mission: Path | None = None, user="", active="", head="") -> bytes:
@@ -420,6 +602,12 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                     sessions.pop(c[COOKIE].value, None)
                 return self._redirect("/login", [("Set-Cookie", f"{COOKIE}=; Max-Age=0; Path=/")])
             tabulator = '<link rel="stylesheet" href="/static/tabulator.min.css">'
+            q = urllib.parse.parse_qs(url.query)
+
+            def search(text):
+                _, specs = mission.groups()
+                return sp.search_ports(text, specs, sp.load_labels(mission.file("port_labels.csv")))
+
             routes = {
                 "/api/inventory": lambda: self._json(mission.inventory()),
                 "/api/export/client.zip": lambda: self._download("client.zip", mission.client_zip()),
@@ -429,6 +617,19 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                 "/api/file/inventory.csv": lambda: self._download(
                     "inventory.csv", mission.text("inventory.csv").encode(), "text/csv; charset=utf-8"
                 ),
+                "/api/profiles": lambda: self._json(mission.profiles()),
+                "/api/ports": lambda: self._json(search(q.get("q", [""])[0])),
+                "/api/scans": lambda: self._json(mission.scans()),
+                "/api/script": lambda: self._download(
+                    f"segowl-{q.get('src', [''])[0]}-{q.get('profile', [''])[0]}.sh",
+                    mission.script(q.get("src", [""])[0], q.get("profile", [""])[0]).encode(),
+                    "text/x-shellscript; charset=utf-8",
+                ),
+                "/api/scripts.zip": lambda: self._download(
+                    f"segowl-{q.get('profile', [''])[0]}.zip", mission.scripts_zip(q.get("profile", [""])[0])
+                ),
+                "/profiles": lambda: self._page("Scan Profiles", asset("profiles.html"), "profiles"),
+                "/scans": lambda: self._page("Scans", asset("scans.html"), "scans"),
                 "/inventory": lambda: self._page(
                     "Inventory",
                     (ASSETS / "inventory.html").read_text(encoding="utf-8"),
@@ -437,7 +638,10 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                 ),
             }
             if url.path in routes:
-                return routes[url.path]()
+                try:
+                    return routes[url.path]()
+                except ValueError as e:
+                    return self._json({"error": str(e)}, 400)
             mission.refresh()
             if url.path in ("/", "/report"):
                 body = '<iframe src="/report/report.html" title="Report"></iframe>'
@@ -468,6 +672,8 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                 return self._send(421, b"unexpected Host header", "text/plain")
             url = urllib.parse.urlsplit(self.path)
             n = int(self.headers.get("Content-Length") or 0)
+            if url.path == "/api/scans/upload":
+                return self._upload(url, n)
             if n > MAX_BODY:
                 return self._json({"error": "Upload too large"}, 413)
             body = self.rfile.read(n)
@@ -488,6 +694,17 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                 if url.path == "/api/parse/inventory":
                     free, rows = mf.read_inventory(body.decode("utf-8-sig", errors="replace"))
                     return self._json({"columns": free, "rows": rows})
+                if url.path == "/api/profiles":
+                    return self._json({"fp": mission.save_profiles(json.loads(body))})
+                if url.path == "/api/profiles/preview":
+                    return self._json(mission.preview(json.loads(body)))
+                if url.path == "/api/scans/source":
+                    mission.add_source(json.loads(body).get("ip", ""))
+                    return self._json(mission.scans())
+                if url.path == "/api/scans/move":
+                    d = json.loads(body)
+                    mission.move_scan(d.get("src", ""), d.get("name", ""), bool(d.get("exclude")))
+                    return self._json(mission.scans())
                 if url.path == "/api/import/client":
                     return self._json(mission.import_client(body, apply="dry=1" not in url.query))
             except Conflict as e:
@@ -495,6 +712,20 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
             except (ValueError, KeyError, TypeError, AttributeError) as e:
                 return self._json({"error": str(e)}, 400)
             self._json({"error": "Not found"}, 404)
+
+        def _upload(self, url, n: int):
+            if self._user() is None:
+                return self._json({"error": "Signed out: sign in again"}, 401)
+            if self.headers.get("X-SegOWL") != "1":
+                return self._json({"error": "Missing X-SegOWL header"}, 403)
+            q = urllib.parse.parse_qs(url.query)
+            try:
+                with LOCK:
+                    name = mission.upload(q.get("src", [""])[0], q.get("name", [""])[0], self.rfile, n)
+                return self._json({"saved": name, **mission.scans()})
+            except ValueError as e:
+                self.close_connection = True  # the unread body must not be parsed as a next request
+                return self._json({"error": str(e)}, 400)
 
         def _login(self, body: bytes):
             form = urllib.parse.parse_qs(body[:10_000].decode(errors="replace"))

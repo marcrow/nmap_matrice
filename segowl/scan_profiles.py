@@ -1,0 +1,249 @@
+"""Scan Profiles: reusable nmap recipes (ports + options) that never carry targets (GLOSSARY).
+
+scan_profiles.csv: name;ports;options
+  ports   : the Flow Policy port syntax (22,8000-8100,udp:161,@<Port Group>) plus top:<N> (nmap --top-ports)
+  options : any nmap options except DENIED ones (targets, client data, output handled by SegOWL, --open)
+
+nmap intersects --top-ports with -p instead of adding them (checked on nmap 7.94), so a profile
+that mixes both is exported as two Scans, <name>-top<N> and <name>-ports, merged later into the
+Source View like any other pair of Scans.
+"""
+
+from __future__ import annotations
+
+import csv
+import io
+import re
+import shlex
+from dataclasses import dataclass
+from pathlib import Path
+
+from segowl.port_groups import PortGroups
+from segowl.ports import PortSet, count_ports, format_ranges, merge_ranges, parse_port_set
+
+DEFAULTS = Path(__file__).resolve().parent / "defaults"
+NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")  # used in file names and shell scripts
+DENIED = {
+    "-iL": "carries a target list (targets always come from the inventory)",
+    "-iR": "scans random Internet hosts",
+    "--exclude": "carries client IPs",
+    "--excludefile": "carries client IPs",
+    "-S": "carries a spoofed source IP",
+    "-D": "carries decoy IPs",
+    "--proxies": "carries proxy addresses",
+    "--dns-servers": "carries client DNS IPs",
+    "--script-args": "may carry hosts or credentials",
+    "--script-args-file": "may carry hosts or credentials",
+    "--resume": "output is managed by SegOWL",
+    "--open": "hides closed ports, so REACHABLE disappears",
+}
+_OUTPUT = re.compile(r"^-o[ANXGS]")  # -oA, -oX, -oN, -oG, -oS: SegOWL writes the outputs
+NMAP_PREFIX = {"tcp": "T", "udp": "U", "sctp": "S"}
+
+
+@dataclass
+class Profile:
+    name: str
+    ports: str
+    options: str
+
+
+def read_profiles(text: str) -> list[Profile]:
+    out = []
+    for row in csv.reader(io.StringIO(text.lstrip("﻿")), delimiter=";"):
+        row = [c.strip() for c in row]
+        if row and row[0] and not row[0].startswith("#") and row[0].lower() != "name":
+            out.append(Profile(row[0], row[1] if len(row) > 1 else "", row[2] if len(row) > 2 else ""))
+    return out
+
+
+def profiles_text(profiles: list[Profile]) -> str:
+    buf = io.StringIO()
+    w = csv.writer(buf, delimiter=";", lineterminator="\n")
+    w.writerow(["name", "ports", "options"])
+    w.writerows([p.name, p.ports, p.options] for p in profiles)
+    return buf.getvalue()
+
+
+def denied_reason(token: str) -> str | None:
+    flag = token.split("=", 1)[0]
+    if flag in DENIED:
+        return DENIED[flag]
+    return "output is managed by SegOWL" if _OUTPUT.match(token) else None
+
+
+def split_ports(p: Profile, groups: PortGroups) -> tuple[int, PortSet]:
+    """(top-ports N or 0, explicit ports with Port Groups expanded). Raises ValueError."""
+    top, raw = 0, {}
+    for token in (t.strip() for t in p.ports.split(",")):
+        if not token:
+            continue
+        if token.startswith("top:"):
+            n = token[4:]
+            if not n.isdigit() or not 1 <= int(n) <= 65535:
+                raise ValueError(f"invalid top ports {token!r}")
+            top = max(top, int(n))
+            continue
+        if token.startswith("@"):
+            if token[1:] not in groups:
+                raise ValueError(f"unknown Port Group {token!r}")
+            part = groups[token[1:]]
+        else:
+            part = parse_port_set(token)
+        for proto, ranges in part.items():
+            raw[proto] = merge_ranges(raw.get(proto, []) + ranges)
+    return top, raw
+
+
+def validate(p: Profile, groups: PortGroups) -> list[str]:
+    errors = []
+    if not NAME_RE.match(p.name):
+        errors.append(f"name {p.name!r}: letters, digits, . _ - only")
+    try:
+        top, explicit = split_ports(p, groups)
+        if not top and not explicit:
+            errors.append(f"{p.name}: no port")
+    except ValueError as e:
+        errors.append(f"{p.name}: {e}")
+    try:
+        tokens = shlex.split(p.options)
+    except ValueError as e:
+        return [*errors, f"{p.name}: options: {e}"]
+    errors += [f"{p.name}: {t} refused: {why}" for t in tokens if (why := denied_reason(t))]
+    return errors
+
+
+def commands(p: Profile, groups: PortGroups, out_dir: str, targets: str) -> list[tuple[str, str, list[str]]]:
+    """[(label, output base name, nmap argv)]: one Scan, or two when top ports meet explicit ports."""
+    top, explicit = split_ports(p, groups)
+    opts = shlex.split(p.options)
+    spec = ",".join(f"{NMAP_PREFIX[proto]}:{format_ranges(r)}" for proto, r in sorted(explicit.items()) if r)
+    with_udp = opts + (["-sU"] if "udp" in explicit and "-sU" not in opts else [])
+    tcp_only = [o for o in opts if o != "-sU"]
+
+    def cmd(base, options, ports):
+        return ["nmap", *options, *ports, "-iL", targets, "-oA", f"{out_dir}/{base}"]
+
+    if top and spec:
+        return [
+            (
+                f"nmap top {top} ports",
+                f"{p.name}-top{top}",
+                cmd(f"{p.name}-top{top}", tcp_only, ["--top-ports", str(top)]),
+            ),
+            ("explicit ports", f"{p.name}-ports", cmd(f"{p.name}-ports", with_udp, ["-p", spec])),
+        ]
+    if top:
+        return [(f"nmap top {top} ports", p.name, cmd(p.name, opts, ["--top-ports", str(top)]))]
+    return [("explicit ports", p.name, cmd(p.name, with_udp, ["-p", spec]))]
+
+
+def expected_files(p: Profile, groups: PortGroups) -> list[str]:
+    try:
+        return [base for _, base, _ in commands(p, groups, ".", "targets")]
+    except ValueError:
+        return []
+
+
+def counts(p: Profile, groups: PortGroups) -> dict[str, int]:
+    top, explicit = split_ports(p, groups)
+    return {"top": top, **{proto: count_ports(explicit.get(proto, [])) for proto in ("tcp", "udp")}}
+
+
+def script(p: Profile, groups: PortGroups, mission: str, src: str, src_label: str, targets: list[str]) -> str:
+    """A self-contained shell script to run on the Source; its outputs go in scans/<src>/."""
+    out, tfile = f"scans/{src}", f"targets/{src}-{p.name}.txt"
+    lines = [
+        "#!/bin/sh",
+        f"# SegOWL — Mission {mission} · Source {src_label} · Scan Profile {p.name}",
+        f"# {len(targets)} targets: the inventory minus this Source's own Interfaces (Self).",
+        "# Run it on the Source, from any folder, then copy the scans/ folder back into the Mission.",
+        "set -e",
+        'cd "$(dirname "$0")"',
+        f"mkdir -p {out} targets",
+        f"cat > {tfile} <<'SEGOWL_TARGETS'",
+        *targets,
+        "SEGOWL_TARGETS",
+    ]
+    for label, _, argv in commands(p, groups, out, tfile):
+        lines += [f"# {label}", shlex.join(argv)]
+    return "\n".join(lines) + "\n"
+
+
+# ---------------------------------------------------------------- port search
+def _csv_rows(path: Path) -> list[list[str]]:
+    if not path.is_file():
+        return []
+    with open(path, newline="", encoding="utf-8-sig") as fh:
+        return [
+            [c.strip() for c in r]
+            for r in csv.reader(fh, delimiter=";")
+            if r and r[0] and not r[0].startswith("#")
+        ]
+
+
+def load_labels(mission_file: Path | None = None) -> list[tuple[str, str, str]]:
+    """Port Labels (port, product, tags): the shipped ones, then the Mission's additions."""
+    rows = _csv_rows(DEFAULTS / "port_labels.csv")[1:]
+    if mission_file:
+        rows += [r for r in _csv_rows(mission_file) if r[0].lower() != "port"]
+    return [(r[0], r[1] if len(r) > 1 else "", r[2] if len(r) > 2 else "") for r in rows]
+
+
+_IANA: list[tuple[str, str, str, str]] = []
+
+
+def iana() -> list[tuple[str, str, str, str]]:
+    if not _IANA:
+        _IANA.extend((r + ["", "", "", ""])[:4] for r in _csv_rows(DEFAULTS / "iana_ports.csv")[1:])
+    return _IANA
+
+
+def search_ports(q: str, groups: dict[str, str], labels: list[tuple[str, str, str]], limit=60) -> list[dict]:
+    """Port Groups, then Port Labels (tags, exact product first), then IANA; a typed port or top N first."""
+    q = q.strip().lower()
+    if not q:
+        return []
+    out: list[dict] = []
+    if m := re.fullmatch(r"top[: ]?(\d*)", q):
+        out += [
+            {"key": f"top:{n}", "label": f"nmap's {n} most common ports", "src": "top ports"}
+            for n in ([m[1]] if m[1] else ["100", "1000", "5000"])
+        ]
+    if re.fullmatch(r"((udp|tcp|sctp):)?\d+(-\d+)?", q):
+        out.append({"key": q.removeprefix("tcp:"), "label": "this port as typed", "src": "typed"})
+    out += [
+        {"key": f"@{g}", "label": f"Port Group · {spec}", "src": "Port Group"}
+        for g, spec in groups.items()
+        if q in g.lower() or q in spec.split(",")
+    ]
+    tagged = sorted({p for p, _, tags in labels if q in tags.split(",")})
+    if len(tagged) > 1:
+        out.append(
+            {
+                "key": ",".join(tagged),
+                "label": f"all {len(tagged)} ports tagged {q!r}",
+                "src": "tag",
+                "many": tagged,
+            }
+        )
+    hits = [
+        lab
+        for lab in labels
+        if q == lab[0].removeprefix("udp:") or q in lab[1].lower() or q in lab[2].split(",")
+    ]
+    hits.sort(
+        key=lambda lab: (
+            not (lab[1].lower() == q or (lab[1].lower().startswith(q + " ") and "alternate" not in lab[1]))
+        )
+    )
+    out += [{"key": p, "label": prod, "tags": tags, "src": "Port Label"} for p, prod, tags in hits]
+    seen = {o["key"] for o in out}
+    for name, port, proto, desc in iana():
+        key = port if proto == "tcp" else f"{proto}:{port}"
+        if key not in seen and (q == port or q in name.lower() or q in desc.lower()):
+            out.append({"key": key, "label": f"{name} — {desc}", "src": "IANA"})
+            seen.add(key)
+        if len(out) >= limit:
+            break
+    return out[:limit]

@@ -46,6 +46,8 @@ Zones = those of `inventory.csv` ∪ `zones.csv`.
 
 ## Scans
 
+- A Source is a folder `scans/<ip>/` (an inventory IP); "Add Source" creates it empty (decided in ticket 04).
+
 - Export per Source: one `.sh` script per Source and Scan Profile, plus the raw command to copy. Targets = all inventory Interfaces minus Self; output `-oA scans/<src_ip>/<profile>`.
 - Progress grid Source × Scan Profile, ✓ when `scans/<src_ip>/<profile>.xml` exists (file presence only).
 - Drag-and-drop XML files onto a Source row → stored in `scans/<src_ip>/`. Exclude / re-include = move to/from `excluded/`. No deletion.

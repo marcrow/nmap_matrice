@@ -1,0 +1,16 @@
+<!-- SegOWL — Scans page body (ticket 04), wrapped by app.page(). -->
+<main>
+<h2>Scans</h2>
+<p class="sub">One row per Source (a folder <code>scans/&lt;ip&gt;/</code>), one column per Scan Profile. A cell turns ✓ when
+the Scan it expects is in the folder. Click a cell to download the script to run on that Source. <b>Drop nmap files
+(.xml, .gnmap, .nmap) on a row</b> to store them for that Source. Excluding a Scan moves it to
+<code>excluded/</code>: it is kept, not read.</p>
+<div class="toolbar">
+  <select id="cand" style="min-width:260px"></select><button class="btn pri" id="adds">+ Add Source</button>
+  <span class="sep"></span>
+  <select id="zp"></select><a class="btn" id="zip">Download scripts for all Sources (.zip)</a>
+</div>
+<div id="msg"></div>
+<div class="card" style="padding:0;overflow:auto"><table class="grid" id="grid"></table></div>
+</main>
+<script src="/static/app_scans.js"></script>
