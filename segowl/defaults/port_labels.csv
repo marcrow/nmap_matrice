@@ -2,6 +2,7 @@
 # A mission/port_labels.csv adds to these rows.
 # Ports: one token per row | 22 (TCP implied) | ranges 5900-5903 | udp:161 | udp:5405-5412
 # Sources: vendor documentation, IETF RFCs and the IANA registry only (never nmap-services).
+# Rows named "<Service> — common alternate port" are convention, not vendor-documented.
 # Tags (fixed vocabulary, comma-separated):
 #   admin          management interface or protocol (SSH, RDP, web console, API)
 #   oob            out-of-band controller (BMC: iLO, iDRAC, IPMI, XCC, CIMC)
@@ -58,7 +59,7 @@ udp:500;IPsec IKE (RFC 7296);security,network
 512;rexec (BSD r-services);admin,remote-access
 513;rlogin (RFC 1282);admin,remote-access
 514;rsh (BSD r-services);admin,remote-access
-udp:514;Syslog (RFC 5426);monitoring
+udp:514;Syslog (RFC 5426);monitoring,network
 515;LPD printing (RFC 1179);file
 548;Apple Filing Protocol (AFP);file
 587;SMTP submission (RFC 6409);mail
@@ -80,12 +81,12 @@ udp:1434;Microsoft SQL Server Browser;db
 1521;Oracle Database listener;db
 1688;Microsoft KMS activation;admin
 1723;PPTP VPN (RFC 2637);security,remote-access
-udp:1812;RADIUS authentication (RFC 2865);directory,security
-udp:1813;RADIUS accounting (RFC 2866);directory,security
+udp:1812;RADIUS authentication (RFC 2865);directory,security,network
+udp:1813;RADIUS accounting (RFC 2866);directory,security,network
 udp:1900;SSDP / UPnP discovery;network
 2049;NFS (RFC 7530);file
 udp:2049;NFS (RFC 1813);file
-udp:2055;NetFlow export (Cisco default);monitoring,network
+udp:2055;NetFlow export — common collector port;monitoring,network
 2179;Microsoft Hyper-V VMConnect;virtualization,admin
 2375;Docker Engine API (plain HTTP);devops,admin
 2376;Docker Engine API (TLS);devops,admin
@@ -112,7 +113,8 @@ udp:5355;LLMNR (RFC 4795);directory,network
 6000-6063;X11 (X Window System);remote-access
 6443;Kubernetes API server;devops,admin
 6513;NETCONF over TLS (RFC 7589);network,admin
-6514;Syslog over TLS (RFC 5425);monitoring
+6514;Syslog over TLS (RFC 5425);monitoring,network
+udp:6514;Syslog over DTLS (RFC 6012);monitoring,network
 udp:6343;sFlow;monitoring,network
 8530;Microsoft WSUS (HTTP);admin
 8531;Microsoft WSUS (HTTPS);admin
@@ -120,16 +122,55 @@ udp:6343;sFlow;monitoring,network
 10000;NDMP (backup of NAS);backup,file
 49152-65535;Microsoft RPC dynamic ports;admin,directory
 udp:51820;WireGuard VPN;security,remote-access
+# --- Network infrastructure and device management ---
+udp:520;RIP (RFC 2453);network
+udp:521;RIPng (RFC 2080);network
+646;LDP (RFC 5036);network
+udp:646;LDP discovery (RFC 5036);network
+udp:3784;BFD single-hop (RFC 5881);network
+udp:4784;BFD multihop (RFC 5883);network
+udp:1985;Cisco HSRP;network
+udp:3799;RADIUS dynamic authorization / CoA (RFC 5176);directory,security,network
+2083;RADIUS over TLS (RadSec, RFC 6614);directory,security,network
+601;Syslog reliable delivery (RFC 3195);monitoring,network
+10161;SNMP over TLS (RFC 6353);monitoring,network
+udp:10161;SNMP over DTLS (RFC 6353);monitoring,network
+udp:10162;SNMP trap over DTLS (RFC 6353);monitoring,network
+443;RESTCONF over HTTPS (RFC 8040);network,admin
+6653;OpenFlow controller;network,admin
+udp:6081;Geneve (RFC 8926);network,virtualization
+udp:1701;L2TP (RFC 2661);security,network
+3220;Juniper Junos XML protocol over SSL (xnm-ssl);network,admin
+3221;Juniper Junos XML protocol clear text (xnm-clear-text);network,admin
+2001-2016;Cisco IOS reverse Telnet to console lines (2000 + line number);network,admin,remote-access
+# --- Common alternate ports (convention, not vendor-documented) ---
+2222;SSH — common alternate port;admin,remote-access
+2200;SSH — common alternate port;admin,remote-access
+22222;SSH — common alternate port;admin,remote-access
+8022;SSH — common alternate port;admin,remote-access
+2323;Telnet — common alternate port;admin,remote-access
+3388;Microsoft RDP — common alternate port;remote-access,admin
+3390;Microsoft RDP — common alternate port;remote-access,admin
+33890;Microsoft RDP — common alternate port;remote-access,admin
+8000;HTTP — common alternate port;web
+8008;HTTP — common alternate port;web
+8080;HTTP — common alternate port;web
+8888;HTTP — common alternate port;web
+8443;HTTPS — common alternate port;web
+4443;HTTPS — common alternate port;web
+9443;HTTPS — common alternate port;web
+10443;HTTPS — common alternate port (often SSL VPN portals);web,security
+2121;FTP — common alternate port;file
+3307;MySQL / MariaDB — common alternate port;db
+5433;PostgreSQL — common alternate port;db
 # --- Out-of-band management ---
 443;HPE iLO web interface / Redfish;oob,admin
 17988;HPE iLO virtual media;oob
 17990;HPE iLO remote console;oob
-3002;HPE iLO raw serial data;oob
 443;Dell iDRAC web interface / Redfish;oob,admin
-5900;Dell iDRAC virtual console (vKVM) and VNC;oob,remote-access
-3668;Dell iDRAC virtual media (older generations);oob
-5120;Supermicro BMC virtual media (CD-ROM);oob
-5123;Supermicro BMC virtual media (floppy);oob
+5900;Dell iDRAC virtual console, virtual media and remote file share;oob,remote-access
+5901;Dell iDRAC VNC server (when enabled);oob,remote-access
+623;Supermicro BMC virtual media (TCP);oob
 5900;Supermicro BMC iKVM;oob,remote-access
 3900;Lenovo XClarity Controller remote presence;oob,remote-access
 2068;Cisco IMC (CIMC) KVM;oob,remote-access
@@ -138,15 +179,15 @@ udp:51820;WireGuard VPN;security,remote-access
 902;VMware ESXi NFC and VM console (MKS);virtualization,admin
 udp:902;VMware ESXi heartbeat to vCenter;virtualization
 427;VMware ESXi CIM SLP;virtualization
-udp:427;VMware ESXi CIM SLP;virtualization
-5989;VMware ESXi CIM server (HTTPS);virtualization,monitoring
+5988;VMware ESXi CIM server;virtualization,monitoring
+2233;VMware vSAN transport;virtualization,file
 8000;VMware ESXi vMotion;virtualization
 8182;VMware vSphere HA (FDM);virtualization
 udp:8182;VMware vSphere HA (FDM);virtualization
 443;VMware vCenter Server (vSphere Client / API);virtualization,admin
 5480;VMware vCenter appliance management (VAMI);virtualization,admin
-9443;VMware vCenter vSphere Web Client (legacy);virtualization,admin
-7444;VMware vCenter Single Sign-On (legacy);virtualization,directory
+9443;VMware vCenter vSphere Web Client (vSphere 6.x and earlier);virtualization,admin
+7444;VMware vCenter Secure Token Service (vSphere 6.x and earlier);virtualization,directory
 6501;VMware vSphere Auto Deploy;virtualization
 6502;VMware vSphere Auto Deploy reverse proxy;virtualization
 6600;Microsoft Hyper-V live migration;virtualization
@@ -161,10 +202,10 @@ udp:5405-5412;Proxmox VE corosync cluster;virtualization
 16514;libvirt daemon (TLS);virtualization,admin
 1494;Citrix ICA (HDX);virtualization,remote-access
 2598;Citrix Common Gateway Protocol (session reliability);virtualization,remote-access
-4172;VMware Horizon PCoIP;virtualization,remote-access
-udp:4172;VMware Horizon PCoIP;virtualization,remote-access
-8443;VMware Horizon Blast Extreme (gateway);virtualization,remote-access
-22443;VMware Horizon Blast Extreme (agent);virtualization,remote-access
+4172;Omnissa (VMware) Horizon PCoIP;virtualization,remote-access
+udp:4172;Omnissa (VMware) Horizon PCoIP;virtualization,remote-access
+8443;Omnissa (VMware) Horizon Blast Extreme (gateway);virtualization,remote-access
+22443;Omnissa (VMware) Horizon Blast Extreme (agent);virtualization,remote-access
 # --- Backup ---
 9392;Veeam B&R console to backup server (v12 and earlier);backup,admin
 9396;Veeam B&R UI service (v12 and earlier);backup
@@ -177,11 +218,11 @@ udp:4172;VMware Horizon PCoIP;virtualization,remote-access
 6162;Veeam Data Mover;backup
 2500-3300;Veeam data transmission channels;backup
 6170;Veeam mount service;backup
-9443;Veeam Backup Enterprise Manager web UI;backup,admin
+9443;Veeam Backup Enterprise Manager web UI (IIS-based releases);backup,admin
 9394;Veeam Backup Enterprise Manager service;backup
-8400;Commvault CommServe communication (CVD);backup
-8401;Commvault EvMgrS / alternative CVD;backup
-8403;Commvault firewall tunnel;backup
+8400;Commvault Communications Service (GxCVD);backup
+8401;Commvault Event Manager (GxEvMgrS, CommServe);backup
+8403;Commvault firewall tunnel (GxFWD);backup
 1556;Veritas NetBackup PBX;backup
 13724;Veritas NetBackup vnetd;backup
 13782;Veritas NetBackup bpcd;backup
@@ -191,10 +232,11 @@ udp:4172;VMware Horizon PCoIP;virtualization,remote-access
 9103;Bacula / Bareos storage daemon;backup
 1500;IBM Storage Protect (TSM) server;backup
 1581;IBM Storage Protect client acceptor;backup
-9877;Acronis Cyber Protect management server;backup
+9877;Acronis Cyber Protect management server (web UI / REST API);backup,admin
+7780;Acronis Cyber Protect management server (agent messages);backup
 11104;NetApp ONTAP SnapMirror intercluster control;backup,file
 11105;NetApp ONTAP SnapMirror data transfer;backup,file
-2051;Dell Data Domain replication;backup
+3009;Dell Data Domain replication peer certificate exchange;backup
 5000;Synology DSM (HTTP);file,admin
 5001;Synology DSM (HTTPS);file,admin
 8080;QNAP QTS web administration;file,admin
@@ -204,15 +246,19 @@ udp:4172;VMware Horizon PCoIP;virtualization,remote-access
 514;Fortinet OFTP (logs to FortiAnalyzer);security,monitoring
 1000;Fortinet FortiGate firewall authentication (HTTP);security,directory
 1003;Fortinet FortiGate firewall authentication (HTTPS);security,directory
-8013;Fortinet FortiClient EMS telemetry;security
-10443;Fortinet FortiGate SSL VPN (common setting);security,remote-access
-8008;Fortinet FSSO collector agent;security,directory
+8013;Fortinet FortiClient EMS telemetry / endpoint management;security
+8014;Fortinet FortiClient EMS log and diagnostics upload;security
+10443;Fortinet FortiClient EMS deployment package download;security
+8008;Fortinet FortiGate policy override authentication;security,directory
+8010;Fortinet FortiGate policy override authentication;security,directory
+703;Fortinet FortiGate HA synchronization;security
+udp:703;Fortinet FortiGate HA synchronization;security
 443;Palo Alto Networks PAN-OS web interface;security,admin
 4443;Palo Alto Networks PAN-OS alternative HTTPS;security,admin
 3978;Palo Alto Networks Panorama to firewall;security,admin
 28443;Palo Alto Networks Panorama content updates;security
-28769;Palo Alto Networks HA1 control link;security
-28260;Palo Alto Networks HA1 control link;security
+28769;Palo Alto Networks HA1 control link (firewall and Panorama HA);security
+28260;Palo Alto Networks HA1 control link (firewall and Panorama HA);security
 5007;Palo Alto Networks User-ID agent;security,directory
 6080;Palo Alto Networks Authentication Portal (NTLM);security,directory
 6081;Palo Alto Networks Authentication Portal (HTTP);security,directory
@@ -223,8 +269,8 @@ udp:4501;Palo Alto Networks GlobalProtect IPsec;security,remote-access
 8443;Cisco ISE portals;security,directory
 8905;Cisco ISE posture;security
 8910;Cisco ISE pxGrid;security
-udp:1645;Cisco legacy RADIUS authentication;directory,security
-udp:1646;Cisco legacy RADIUS accounting;directory,security
+udp:1645;Legacy RADIUS authentication (Cisco, Microsoft NPS);directory,security,network
+udp:1646;Legacy RADIUS accounting (Cisco, Microsoft NPS);directory,security,network
 18190;Check Point SmartConsole (CPMI);security,admin
 18191;Check Point CPD;security,admin
 18192;Check Point AMON;security,monitoring
@@ -243,28 +289,29 @@ udp:1026;F5 BIG-IP network failover;network
 8080;Ubiquiti UniFi device inform;network
 udp:3478;Ubiquiti UniFi STUN;network
 udp:10001;Ubiquiti UniFi device discovery;network
-4343;HPE Aruba controller web UI;network,admin
+4343;HPE Aruba controller web UI / bootstrap;network,admin
 udp:8211;HPE Aruba PAPI;network
 # --- Windows and Microsoft infrastructure ---
 2701;Microsoft Configuration Manager remote control;admin,remote-access
 10123;Microsoft Configuration Manager client notification;admin
 udp:4011;Microsoft WDS / PXE;admin
+udp:63000-64000;Microsoft Configuration Manager multicast (PXE / OSD);admin
 49443;Microsoft AD FS certificate authentication;directory
-5022;Microsoft SQL Server Always On endpoint;db
-4022;Microsoft SQL Server Service Broker;db
+5022;Microsoft SQL Server mirroring / Always On endpoint (conventional);db
+4022;Microsoft SQL Server Service Broker (conventional);db
 # --- Databases and caches ---
-1830;Oracle Connection Manager;db
+1630;Oracle Connection Manager (client connections);db
+1830;Oracle Connection Manager (administration);db
 2483;Oracle Database (TCP, IANA);db
 2484;Oracle Database (TLS, IANA);db
 33060;MySQL X Protocol;db
-5000;SAP ASE (Sybase) default;db
 50000;IBM Db2 default instance;db
 3050;Firebird;db
 27017;MongoDB;db
 6379;Redis;db
 26379;Redis Sentinel;db
 11211;Memcached;db
-udp:11211;Memcached (UDP);db
+udp:11211;Memcached (UDP, off by default since 1.5.6);db
 9042;Apache Cassandra CQL;db
 7000;Apache Cassandra inter-node;db
 7001;Apache Cassandra inter-node (TLS);db
@@ -323,7 +370,7 @@ udp:30000-32767;Kubernetes NodePort services;devops
 udp:7946;Docker Swarm node communication;devops
 5000;Docker Registry (distribution);devops
 9443;Portainer web UI (HTTPS);devops,admin
-9000;Portainer web UI (HTTP, legacy);devops,admin
+9001;Portainer agent;devops,admin
 8000;Portainer Edge agent tunnel;devops
 8080;Jenkins web UI;devops,admin
 50000;Jenkins inbound agents;devops
@@ -342,15 +389,17 @@ udp:7946;Docker Swarm node communication;devops
 8200;HashiCorp Vault API;security,devops
 8201;HashiCorp Vault cluster;security,devops
 8500;HashiCorp Consul HTTP API;devops
+8600;HashiCorp Consul DNS;devops,directory
+udp:8600;HashiCorp Consul DNS;devops,directory
 8300;HashiCorp Consul server RPC;devops
 8301-8302;HashiCorp Consul Serf LAN/WAN;devops
 udp:8301-8302;HashiCorp Consul Serf LAN/WAN;devops
 4646-4648;HashiCorp Nomad HTTP / RPC / Serf;devops
 9000;MinIO S3 API;file,devops
-9001;MinIO console;file,admin
+9001;MinIO console (when pinned with --console-address);file,admin
 6789;Ceph monitor (msgr1);file
 3300;Ceph monitor (msgr2);file
-6800-7300;Ceph OSD / MGR / MDS;file
+6800-7568;Ceph OSD / MGR / MDS;file
 24007;GlusterFS daemon;file
 9870;Apache Hadoop HDFS NameNode web UI;devops,file
 8020;Apache Hadoop HDFS NameNode RPC;devops,file
@@ -386,6 +435,7 @@ udp:12201;Graylog GELF input;monitoring
 8088;Splunk HTTP Event Collector;monitoring
 1514;Wazuh agent connection;security,monitoring
 1515;Wazuh agent enrollment;security,monitoring
+1516;Wazuh server cluster daemon;security,monitoring
 55000;Wazuh server API;security,admin
 9100;HP JetDirect raw printing;file
 # --- Security tools ---
@@ -395,8 +445,11 @@ udp:12201;Graylog GELF input;monitoring
 13000;Kaspersky Security Center (agents, TLS);security
 14000;Kaspersky Security Center (agents);security
 13291;Kaspersky Security Center console;security,admin
+13299;Kaspersky Security Center Web Console to server;security,admin
+8080;Kaspersky Security Center Web Console;security,admin
+udp:15000;Kaspersky Security Center agent wake-up signals;security
 2222;ESET PROTECT agent replication;security
-2223;ESET PROTECT agent certificate enrollment;security
+2223;ESET PROTECT Web Console to server;security,admin
 8443;Trellix ePolicy Orchestrator console;security,admin
 8444;Trellix ePO agent-server secure;security
 8081;Trellix agent wake-up;security
@@ -412,7 +465,7 @@ udp:5500;RSA Authentication Manager agent authentication;security,directory
 5938;TeamViewer;remote-access
 udp:5938;TeamViewer;remote-access
 7070;AnyDesk direct connection;remote-access
-21115-21119;RustDesk server;remote-access
+21114-21119;RustDesk server;remote-access
 udp:21116;RustDesk server;remote-access
 8040;ConnectWise ScreenConnect web;remote-access,admin
 8041;ConnectWise ScreenConnect relay;remote-access
