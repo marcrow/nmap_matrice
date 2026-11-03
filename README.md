@@ -1,3 +1,5 @@
+<p align="center"><img src="segowl/assets/logo.svg" width="96" alt="SegOWL logo"></p>
+
 # SegOWL — segmentation matrix + Mermaid + HTML report
 
 ## Workflow

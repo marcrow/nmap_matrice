@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import html
 import json
 import re
@@ -20,6 +21,8 @@ from segowl.verdict import ALIVE, STATE_RANK, VCLASS, VERDICT_NAME, Cell, cell_t
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
 HTML_CSS = (ASSETS / "report.css").read_text(encoding="utf-8")
 HTML_JS = (ASSETS / "report.js").read_text(encoding="utf-8")
+LOGO_SVG = (ASSETS / "logo.svg").read_text(encoding="utf-8")
+FAVICON = "data:image/svg+xml;base64," + base64.b64encode(LOGO_SVG.encode()).decode()
 MERMAID_JS = ASSETS / "mermaid.min.js"  # bundled -> inlined in report.html (offline)
 MERMAID_CDN = "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"
 
@@ -629,11 +632,13 @@ def write_html(a: Analysis, out_dir: str) -> str:
     )
     doc = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="{FAVICON}">
 <title>SegOWL segmentation report</title>
 {_mermaid_script()}
 <style>{HTML_CSS}</style></head><body>
-<header><h1>Network segmentation report</h1>
-<div class="meta">{meta}</div>{_group_filter(a)}</header>
+<header><div><h1>Network segmentation report</h1>
+<div class="meta">{meta}</div>{_group_filter(a)}</div>
+<div class="brand">{LOGO_SVG}<span>Seg<b>OWL</b></span></div></header>
 <div class="tabs">{buttons}</div>
 {panes}
 <script>{HTML_JS}</script></body></html>"""
