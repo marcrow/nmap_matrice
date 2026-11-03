@@ -65,16 +65,17 @@ async function refilter(cb){
   if(HAS_MM && el.dataset.done) await draw(el);
 }
 // Port Group filter: keeps only the OPEN flows on the group's ports, in tables (data-p) and diagrams.
-function inGroup(label, set){
+// Port label ('22' = tcp, 'udp:161') inside proto -> [[lo,hi]] ranges; mirrors ports.port_label/in_port_set.
+function inRanges(label, byProto){
   const [proto, port]=label.includes(':')?label.split(':'):['tcp', label];
-  return (set[proto]||[]).some(([lo,hi])=>+port>=lo && +port<=hi);
+  return (byProto[proto]||[]).some(([lo,hi])=>+port>=lo && +port<=hi);
 }
 function setGroup(g){
   GROUP=g;
   const set=g===''?null:JSON.parse(document.getElementById('port-groups').textContent)[+g];
   document.querySelectorAll('[data-p]').forEach(el=>{
     if(el.dataset.orig===undefined){el.dataset.orig=el.innerHTML; el.dataset.cls=el.className;}
-    const keep=set?el.dataset.p.split(',').filter(x=>x && inGroup(x, set)):null;
+    const keep=set?el.dataset.p.split(',').filter(x=>x && inRanges(x, set)):null;
     if(el.tagName==='LI'){
       el.style.display=!set||keep.length?'':'none';
       const pl=el.querySelector('.pl'); if(pl) pl.textContent=set?keep.join(','):el.dataset.p;
@@ -131,8 +132,7 @@ function esc(s){ return String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;'
 function testedOn(cell, label){
   if(!cell) return false;            // target absent from that side's output
   if(cell.tested===null) return null; // non-XML Scan: unknown
-  const [proto, port]=label.includes(':')?label.split(':'):['tcp', label];
-  return (cell.tested[proto]||[]).some(([lo,hi])=>+port>=lo && +port<=hi);
+  return inRanges(label, cell.tested);
 }
 function sideState(cell, label){
   if(cell && cell.open.includes(label)) return 'open';

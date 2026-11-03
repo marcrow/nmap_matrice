@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import ipaddress
 import sys
 from dataclasses import dataclass, field
 
@@ -48,6 +49,10 @@ def load_inventory(path: str) -> Inventory:
                     f"add a first line such as {';'.join(BASE_COLUMNS)};owner;criticality"
                 )
             ip = row[0]
+            try:
+                ipaddress.ip_address(ip)
+            except ValueError:
+                sys.exit(f"[!] {path}:{line_no}: not an IP address: {ip!r}")
             if ip in hosts:
                 sys.exit(
                     f"[!] Duplicate IP in {path}: {ip} ({hosts[ip].zone}/{hosts[ip].name} "

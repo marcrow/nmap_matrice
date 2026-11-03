@@ -12,7 +12,7 @@ from seg_matrix.nmap import HostRecord, Scan
 from seg_matrix.policy import DENY, UNDECLARED, Rule, decide, worst
 from seg_matrix.port_groups import HIGHLIGHT, PortGroups
 from seg_matrix.ports import Port, in_port_set, merge_ranges, overlaps
-from seg_matrix.verdict import ALIVE, BLOCK, OPEN, REACH, Cell, classify
+from seg_matrix.verdict import ALIVE, BLOCK, NODATA, OPEN, REACH, Cell, classify
 
 Row = dict[str, Cell]  # target ip -> verdict cell
 Matrix = dict[str, Row]  # source ip -> row
@@ -68,15 +68,11 @@ def build_matrix(
     for src in inv:
         if src not in scans:
             continue
-        src_scans = sorted(scans[src], key=lambda sc: (sc.start_ts, sc.name))
+        src_scans = scans[src]  # oldest first (analyze sorts them)
         self_ips = {ip for ip, h in inv.items() if h.machine == inv[src].machine}
         for sc in src_scans:
             for dip, rec in sc.hosts.items():
-                if (
-                    dip not in self_ips
-                    and dip not in inv
-                    and classify(rec, force_pn or sc.pn).verdict >= ALIVE
-                ):
+                if dip not in inv and classify(rec, force_pn or sc.pn).verdict >= ALIVE:
                     unknown.add(dip)
         matrix[src] = {
             dst: source_view_cell([(sc, sc.hosts[dst]) for sc in src_scans if dst in sc.hosts], force_pn)
@@ -90,9 +86,9 @@ def build_matrix(
 
 @dataclass
 class ZoneAgg:
-    verdict: int = BLOCK
+    verdict: int = NODATA  # the most permissive verdict of the pairs
     open_ports: set[Port] = field(default_factory=set)
-    reach_pairs: int = 0
+    pass_pairs: int = 0  # pairs at that verdict
     total_pairs: int = 0
 
 
@@ -106,10 +102,11 @@ def aggregate_zones(matrix: Matrix, inv: Inventory) -> ZoneMatrix:
         for d, c in row.items():
             a = agg[(zs, inv[d].zone)]
             a.total_pairs += 1
-            if c.verdict >= REACH:
-                a.reach_pairs += 1
-                a.verdict = max(a.verdict, c.verdict)
-                a.open_ports.update(c.open_ports)
+            if c.verdict > a.verdict:
+                a.verdict, a.pass_pairs = c.verdict, 0
+            if c.verdict == a.verdict:
+                a.pass_pairs += 1
+            a.open_ports.update(c.open_ports)
     return agg
 
 
@@ -233,12 +230,12 @@ class Analysis:
         rule = self.decisions[(s, d, port)]
         return UNDECLARED if rule is None else rule.action
 
-    @property
+    @cached_property
     def findings(self) -> list[tuple[str, str, Port, Rule]]:
         """Observed flows the Flow Policy explicitly denies."""
         return [(s, d, p, r) for (s, d, p), r in self.decisions.items() if r is not None and r.action == DENY]
 
-    @property
+    @cached_property
     def undeclared(self) -> list[tuple[str, str, Port]]:
         return [(s, d, p) for (s, d, p), r in self.decisions.items() if r is None]
 

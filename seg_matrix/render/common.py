@@ -9,7 +9,7 @@ from pathlib import Path
 from seg_matrix.analysis import ZoneAgg
 from seg_matrix.inventory import Inventory
 from seg_matrix.ports import ports_text
-from seg_matrix.verdict import OPEN, VCLASS
+from seg_matrix.verdict import NODATA, OPEN, REACH, SYM, VCLASS
 
 # Zone palette (fill, stroke, text) — modern, cyclic
 ZONE_COLORS = [
@@ -52,9 +52,7 @@ def machine_palette(inv: Inventory) -> dict[str, tuple[str, str, str]]:
 
 def zone_cell(a: ZoneAgg | None) -> tuple[str, str]:
     """(css class, text) of a zone -> zone cell, without the pair counter."""
-    if not a:
-        return "v-none", "."
-    if a.reach_pairs == 0:
-        return "v-block", "x"
+    if not a or a.verdict < REACH:
+        return VCLASS[a.verdict if a else NODATA], SYM[a.verdict if a else NODATA]
     ports = ports_text(sorted(a.open_ports)[:6])
     return VCLASS[a.verdict], f"{'OPEN' if a.verdict == OPEN else 'o'} {ports}".strip()

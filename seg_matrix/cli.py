@@ -50,7 +50,8 @@ def _parse_args() -> argparse.Namespace:
         args.inventory = args.inventory or os.path.join(args.mission, "inventory.csv")
         args.scans = args.scans or os.path.join(args.mission, "scans")
         args.out = args.out or os.path.join(args.mission, "report")
-        args.port_groups = args.port_groups or os.path.join(args.mission, "port_groups.csv")
+        mission_groups = os.path.join(args.mission, "port_groups.csv")
+        args.port_groups = args.port_groups or (mission_groups if os.path.isfile(mission_groups) else None)
         mission_policy = os.path.join(args.mission, "flow_policy.csv")
         args.policy = args.policy or (mission_policy if os.path.isfile(mission_policy) else None)
     elif not (args.inventory and args.scans):
@@ -71,7 +72,7 @@ def main() -> None:
         sys.exit(f"[!] No scan of an inventory source found in {args.scans} ({', '.join(SCAN_EXT_PRIORITY)})")
 
     os.makedirs(os.path.join(args.out, "mermaid"), exist_ok=True)
-    if args.port_groups and not args.mission and not os.path.isfile(args.port_groups):
+    if args.port_groups and not os.path.isfile(args.port_groups):
         sys.exit(f"[!] Port Groups file not found: {args.port_groups}")
     if args.policy and not os.path.isfile(args.policy):
         sys.exit(f"[!] Flow Policy file not found: {args.policy}")

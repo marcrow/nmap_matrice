@@ -45,24 +45,22 @@ def classify(rec: HostRecord | None, pn: bool) -> Cell:
         return Cell()
     # open|filtered = no reply (UDP, -sF/-sN/-sX): proves nothing got through, counts as filtered
     open_ports = sorted({(pid, proto) for (pid, proto, s) in rec.ports if s == "open"})
-    closed = sum(1 for (_, _, s) in rec.ports if s == "closed")
-    filtered = sum(1 for (_, _, s) in rec.ports if s in ("filtered", "open|filtered"))
-    for s, c in rec.ignored:
-        if s == "closed":
-            closed += c
-        elif s in ("filtered", "open|filtered"):
-            filtered += c
-    up = rec.state == "up"
+    # closed (RST) and unfiltered (-sA: the ACK got an RST) both prove the L4 flow crosses
+    passed = any(s in ("closed", "unfiltered") for (_, _, s) in rec.ports) or any(
+        s in ("closed", "unfiltered") and c for s, c in rec.ignored
+    )
+    filtered = any(s in ("filtered", "open|filtered") for (_, _, s) in rec.ports) or any(
+        s in ("filtered", "open|filtered") and c for s, c in rec.ignored
+    )
     if open_ports:
         v = OPEN
-    elif closed > 0:
+    elif passed:
         v = REACH
-    elif filtered > 0:
-        v = BLOCK
     elif not pn:
-        v = ALIVE if up else BLOCK  # answers at L3/L2 (ping/ARP) with no port getting through
+        # answered host discovery (ping/ARP) but no port got through: a lead to scan deeper
+        v = ALIVE if rec.state == "up" else BLOCK
     else:
-        v = NODATA  # -Pn: 'host up' carries no information, no usable port data
+        v = BLOCK if filtered else NODATA  # -Pn: 'host up' carries no information
     return Cell(v, open_ports)
 
 

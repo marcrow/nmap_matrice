@@ -11,7 +11,7 @@ from seg_matrix.inventory import Inventory, ordered_ips
 from seg_matrix.policy import ALLOW, DENY, UNDECLARED
 from seg_matrix.ports import Port, port_label
 from seg_matrix.render.common import machine_palette, zone_palette
-from seg_matrix.verdict import OPEN, REACH
+from seg_matrix.verdict import ALIVE, OPEN, VERDICT_NAME
 
 # Mermaid init directive (theme, font). 'linear' curve is mandatory: Mermaid puts the label in
 # the middle of the dagre polyline, and 'basis' smooths the path beside it (label off by one link).
@@ -42,7 +42,7 @@ def _label(ports: Iterable[Port], highlight: Callable[[Port], bool], cap: int = 
 
 
 def zid(z: str) -> str:
-    return "Z_" + re.sub(r"[^A-Za-z0-9]", "_", z)
+    return "Z_" + re.sub(r"[^A-Za-z0-9]", lambda m: f"_{ord(m.group()):x}_", z)
 
 
 def hid(ip: str) -> str:
@@ -136,9 +136,12 @@ def mermaid_zone(
         L.append(f"  style {zid(z)} fill:{f},stroke:{s},stroke-width:2px,color:{t}")
     styles = []
     for (zs, zd), a in sorted(agg.items()):
-        if a.reach_pairs == 0:
+        if a.verdict < ALIVE:
             continue
-        label = _label(a.open_ports, highlight) if a.open_ports else f"{a.reach_pairs} host(s)"
+        if a.open_ports:
+            label = _label(a.open_ports, highlight)
+        else:
+            label = f"{a.pass_pairs} host(s)" + (" alive" if a.verdict == ALIVE else "")
         st = (status or {}).get((zs, zd))
         line, style = _edge(zid(zs), zid(zd), a.verdict, zs != zd, label, len(styles), status=st)
         L.append(line)
@@ -157,7 +160,7 @@ def mermaid_source(
 
     status = Flow Policy status per (source, target).
     """
-    reach = {d: c for d, c in row.items() if c.verdict >= REACH}
+    reach = {d: c for d, c in row.items() if c.verdict >= ALIVE}
     if not reach:
         return (
             MERMAID_INIT + "\nflowchart LR\n"
@@ -178,7 +181,7 @@ def mermaid_source(
     )
     styles = []
     for d, c in reach.items():
-        label = _label(c.open_ports, highlight) if c.verdict == OPEN else "reachable"
+        label = _label(c.open_ports, highlight) if c.verdict == OPEN else VERDICT_NAME[c.verdict].lower()
         st = (status or {}).get((src, d))
         line, style = _edge(
             "S", hid(d), c.verdict, inv[src].zone != inv[d].zone, label, len(styles), status=st

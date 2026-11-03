@@ -27,9 +27,9 @@ A duplicate IP in the inventory is an error.
 SEGMENTATION SEMANTICS
 ----------------------
   OPEN       : >=1 "open" port        -> service reachable (effective access)
-  REACHABLE  : no open but closed     -> RST received, the L4 flow crosses the segmentation
-  ALIVE      : no port, host up       -> answers at L3/L2 (ping/ARP); never with -Pn
-  BLOCKED    : "filtered" only        -> flow blocked (isolation OK) / host down
+  REACHABLE  : no open but closed     -> RST received (or "unfiltered" in -sA), the L4 flow crosses
+  ALIVE      : host up, no port gets through -> answers discovery (ping/ARP): scan deeper or conclude
+  BLOCKED    : host down, or "filtered" only with -Pn -> flow blocked (isolation OK) / host down
   UNSEEN     : target absent from the scan output
 
 USAGE

@@ -125,8 +125,8 @@ Benefit: blocked targets show up as `filtered` (-> blocked) instead of being abs
 ## Verdicts
 - `OPEN`  : >=1 open port -> service reachable
 - `o`     : closed ports (RST) -> L4 flow admitted up to the host (permeable segmentation, no service)
-- `~`     : alive (ping/ARP), no port getting through -> outside `-Pn` only
-- `x`     : filtered / down -> blocked
+- `~`     : alive (answers ping/ARP), no port getting through -> scan it deeper; outside `-Pn` only
+- `x`     : down, or filtered only under `-Pn` -> blocked
 - `.`     : target absent from the scan output (unseen)
 
 ## Graphs

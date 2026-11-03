@@ -9,7 +9,7 @@ from seg_matrix.analysis import Analysis, Exposure, Matrix, ZoneMatrix
 from seg_matrix.inventory import Inventory, ordered_ips
 from seg_matrix.ports import port_label, ports_text
 from seg_matrix.render.common import write_output, zone_cell, zone_palette
-from seg_matrix.verdict import VERDICT_NAME, Cell, cell_text
+from seg_matrix.verdict import ALIVE, VERDICT_NAME, Cell, cell_text
 
 
 def write_host_matrix_md(matrix: Matrix, inv: Inventory, out_dir: str) -> None:
@@ -66,7 +66,7 @@ def write_zone_matrix_md(agg: ZoneMatrix, inv: Inventory, out_dir: str) -> None:
         for zd in zones:
             a = agg.get((zs, zd))
             _, txt = zone_cell(a)
-            cells.append(txt + (f" ({a.reach_pairs}/{a.total_pairs})" if a and a.reach_pairs else ""))
+            cells.append(txt + (f" ({a.pass_pairs}/{a.total_pairs})" if a and a.verdict >= ALIVE else ""))
         md.append(f"| **{zs}** | " + " | ".join(cells) + " |")
     write_output(out_dir, "matrix_zones.md", "\n".join(md))
 

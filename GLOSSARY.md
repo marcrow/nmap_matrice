@@ -57,14 +57,14 @@ Verdict of a Source → Interface pair, from most permissive to most closed:
 At least one open port: a service is reachable.
 
 **REACHABLE**:
-No open port but at least one closed port (RST received): the L4 flow crosses the segmentation.
+No open port but at least one closed port (RST received), or unfiltered in an ACK Scan (-sA): the L4 flow crosses the segmentation.
 
 **ALIVE**:
-The Interface answers at L3/L2 (ping, ARP) without any port getting through. Does not exist in a -Pn Scan.
-_Avoid_: host up, joinable
+The Interface answers host discovery (ping, ARP) but no port gets through, whether filtered or not tested. A lead: scan its ports deeper, or conclude none is open. Counts as passing in the zone matrix (`~`), never as BLOCKED. Does not exist in a -Pn Scan.
+_Avoid_: host up, joinable, ICMP reachable (nmap discovery also uses ARP and TCP probes)
 
 **BLOCKED**:
-Only filtered ports. In -Pn, this does not distinguish filtering from a powered-off or nonexistent Interface.
+The Interface did not answer host discovery, or, in -Pn, only filtered ports. In -Pn, this does not distinguish filtering from a powered-off or nonexistent Interface.
 
 **UNSEEN**:
 The Interface is absent from the Scan output.

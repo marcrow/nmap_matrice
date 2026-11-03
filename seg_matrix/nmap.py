@@ -54,7 +54,10 @@ class Scan:
 
     @property
     def name(self) -> str:
-        return f"{self.source}/{os.path.basename(self.path)}"
+        """Path under the scans directory: `<source>/<file>`, or `<source>.<ext>` for a legacy file."""
+        base = os.path.basename(self.path)
+        in_folder = os.path.basename(os.path.dirname(self.path)) == self.source
+        return f"{self.source}/{base}" if in_folder else base
 
 
 def _best_formats(paths: list[str]) -> list[str]:
@@ -91,7 +94,7 @@ def discover_excluded(scan_dir: str) -> dict[str, list[str]]:
         if not os.path.isdir(src_dir):
             continue
         files = [
-            os.path.join(root, f)
+            os.path.relpath(os.path.join(root, f), src_dir)
             for root, _, names in os.walk(src_dir)
             if root != src_dir
             for f in names

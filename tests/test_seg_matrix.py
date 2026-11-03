@@ -4,15 +4,18 @@ from pathlib import Path
 
 import pytest
 
-from seg_matrix.analysis import analyze, build_matrix, restrict
-from seg_matrix.inventory import load_inventory
-from seg_matrix.nmap import HostRecord, discover_excluded, discover_scans, parse_scan
+from seg_matrix.analysis import aggregate_zones, analyze, build_matrix, restrict
+from seg_matrix.cli import main
+from seg_matrix.inventory import Host, load_inventory
+from seg_matrix.nmap import HostRecord, Scan, discover_excluded, discover_scans, parse_scan
 from seg_matrix.policy import load_policy
 from seg_matrix.port_groups import load_port_groups
 from seg_matrix.ports import in_port_set
+from seg_matrix.render.common import zone_cell
 from seg_matrix.render.exports import write_observed_zone_flows
 from seg_matrix.render.html import write_html
-from seg_matrix.verdict import ALIVE, BLOCK, NODATA, OPEN, REACH, classify
+from seg_matrix.render.mermaid import mermaid_zone, zid
+from seg_matrix.verdict import ALIVE, BLOCK, NODATA, OPEN, REACH, Cell, classify
 
 MISSION = Path(__file__).parent / "fixtures" / "mission"
 SRC = "172.31.250.1"  # the fixtures' Source (see fixtures/generate.sh)
@@ -30,6 +33,9 @@ def rec(state="up", ports=()):
         (rec(ports=[(22, "tcp", "closed")]), False, REACH),
         (rec(state="down"), False, BLOCK),
         (rec(ports=[(161, "udp", "open|filtered")]), True, BLOCK),  # no reply is not an open port
+        (rec(ports=[(22, "tcp", "filtered")]), False, ALIVE),  # answers discovery, every port filtered
+        (rec(ports=[(22, "tcp", "filtered")]), True, BLOCK),
+        (HostRecord(state="up", ignored=[("unfiltered", 1000)]), True, REACH),  # -sA: the flow passes
     ],
 )
 def test_classify(record, pn, verdict):
@@ -233,3 +239,42 @@ def test_excluding_a_scan_removes_its_conflict(tmp_path):
     inv = load_inventory(str(MISSION / "inventory.csv"))
     a = analyze(inv, {SRC: [parse_scan(p, SRC) for p in files[SRC]]}, [])
     assert a.matrix[SRC]["172.31.250.10"].conflicts == {}
+
+
+def test_zone_matrix_keeps_alive_and_unseen_apart():
+    inv = {ip: Host(ip, z, "vm", "") for ip, z in [("10.0.0.1", "A"), ("10.0.1.1", "B"), ("10.0.2.1", "C")]}
+    matrix = {"10.0.0.1": {"10.0.1.1": Cell(ALIVE), "10.0.2.1": Cell()}}
+    agg = aggregate_zones(matrix, inv)
+    assert zone_cell(agg[("A", "B")])[1].startswith("~")
+    assert zone_cell(agg[("A", "C")])[1] == "."
+    assert "Z_A" in mermaid_zone(agg, inv).split("flowchart", 1)[1].split("Z_B")[0]  # an edge A -> B
+
+
+def test_mermaid_ids_do_not_collide():
+    assert len({zid("DMZ-1"), zid("DMZ 1"), zid("DMZ_1"), zid("DMZ.1")}) == 4
+
+
+def test_inventory_rejects_a_non_ip(tmp_path):
+    path = tmp_path / "inv.csv"
+    path.write_text("<img src=x>;prod;vm;app\n")
+    with pytest.raises(SystemExit):
+        load_inventory(str(path))
+
+
+def test_legacy_and_folder_scans_of_a_source_have_distinct_names(tmp_path):
+    names = {Scan(str(p), SRC).name for p in (tmp_path / f"{SRC}.xml", tmp_path / SRC / f"{SRC}.xml")}
+    assert len(names) == 2
+
+
+def test_excluded_paths_are_relative_to_the_source_folder(tmp_path):
+    for sub in ("archive/old", "excluded"):
+        (tmp_path / SRC / sub).mkdir(parents=True)
+        (tmp_path / SRC / sub / "a.xml").write_text("")
+    assert discover_excluded(str(tmp_path))[SRC] == ["archive/old/a.xml", "excluded/a.xml"]
+
+
+def test_missing_port_groups_file_is_an_error_with_a_mission(tmp_path, monkeypatch):
+    argv = ["seg_matrix", str(MISSION), "-o", str(tmp_path), "--port-groups", str(tmp_path / "typo.csv")]
+    monkeypatch.setattr("sys.argv", argv)
+    with pytest.raises(SystemExit, match="Port Groups file not found"):
+        main()

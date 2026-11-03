@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import html
 import json
-import os
 import re
 import sys
 from collections import Counter, defaultdict
@@ -16,7 +15,7 @@ from seg_matrix.inventory import Host, Inventory, extra_columns, ordered_ips
 from seg_matrix.ports import Port, count_ports, format_ranges, port_label, ports_text
 from seg_matrix.render.common import machine_palette, write_output, zone_cell, zone_palette
 from seg_matrix.render.mermaid import EdgeStatus, hid, mermaid_source, mermaid_zone, zid
-from seg_matrix.verdict import REACH, STATE_RANK, VCLASS, VERDICT_NAME, Cell, cell_text
+from seg_matrix.verdict import ALIVE, STATE_RANK, VCLASS, VERDICT_NAME, Cell, cell_text
 
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
 HTML_CSS = (ASSETS / "report.css").read_text(encoding="utf-8")
@@ -103,7 +102,7 @@ def _zone_matrix_html(
         for zd in zones:
             a = agg.get((zs, zd))
             cls, txt = zone_cell(a)
-            pairs = f"<br><small>{a.reach_pairs}/{a.total_pairs}</small>" if a and a.reach_pairs else ""
+            pairs = f"<br><small>{a.pass_pairs}/{a.total_pairs}</small>" if a and a.verdict >= ALIVE else ""
             attr, hl = _ports_attr(a.open_ports if a else [], highlight)
             st = (status or {}).get((zs, zd))
             cls += f" p-{st}" if st else ""
@@ -151,7 +150,7 @@ def _source_table_html(src: str, row: Row, inv: Inventory, highlight: Highlight 
             f'<td class="{VCLASS[c.verdict]}">{VERDICT_NAME[c.verdict]}</td>'
             f'<td class="{hl.strip()}"{attr}>{html.escape(ports_text(c.open_ports))}</td>'
             f"<td>{_tested_html(c)}</td>"
-            f"<td>{html.escape(', '.join(sc.split('/', 1)[1] for sc in c.scans))}</td>"
+            f"<td>{html.escape(', '.join(c.scans))}</td>"
             + "".join(f"<td>{html.escape(inv[d].extra.get(k, ''))}</td>" for k in extras)
             + "</tr>"
         )
@@ -302,7 +301,7 @@ def _persource_tab(a: Analysis) -> str:
     panes = []
     for i, s in enumerate(a.sources):
         disp = "block" if i == 0 else "none"
-        zs = sorted({inv[d].zone for d, c in matrix[s].items() if c.verdict >= REACH})
+        zs = sorted({inv[d].zone for d, c in matrix[s].items() if c.verdict >= ALIVE})
         boxes = "".join(
             f'<label><input type="checkbox" checked value="{zid(z)}" onchange="refilter(this)"> '
             f"{html.escape(z)}</label>"
@@ -316,7 +315,8 @@ def _persource_tab(a: Analysis) -> str:
         panes.append(
             f'<div class="srcpane" id="src_{hid(s)}" style="display:{disp}">'
             f"<h2>{html.escape(inv[s].short)} "
-            f'<span class="tag">{html.escape(inv[s].zone)} · {html.escape(inv[s].htype)} · {s}</span>'
+            f'<span class="tag">{html.escape(inv[s].zone)} · {html.escape(inv[s].htype)} · '
+            f"{html.escape(s)}</span>"
             f'<span class="tag">{len(a.scans[s])} scan(s)</span></h2>'
             + bar
             + _diagram(
@@ -351,7 +351,7 @@ def _scans_tab(a: Analysis) -> str:
                 )
             rows.append(
                 f"<tr><th>{html.escape(h.short)}</th><td>{html.escape(h.zone)}</td>"
-                f"<td>{html.escape(sc.name.split('/', 1)[1])}</td><td>{html.escape(sc.started)}</td>"
+                f"<td>{html.escape(sc.name)}</td><td>{html.escape(sc.started)}</td>"
                 f"<td>{cov}</td><td>{len(sc.hosts)}</td>"
                 f'<td class="{"warn" if conflicts[sc.name] else ""}">{conflicts[sc.name] or ""}</td>'
                 f'<td class="cmd"><code>{html.escape(sc.command)}</code></td></tr>'
@@ -370,10 +370,9 @@ def _scans_tab(a: Analysis) -> str:
             for port, states in c.conflicts.items():
                 kept = max(states.values(), key=lambda st: STATE_RANK.get(st, 0))
                 seen = "<br>".join(
-                    f"{html.escape(st)} <small>{html.escape(sc.split('/', 1)[1])}</small>"
-                    for sc, st in states.items()
+                    f"{html.escape(st)} <small>{html.escape(sc)}</small>" for sc, st in states.items()
                 )
-                from_ = ", ".join(sc.split("/", 1)[1] for sc, st in states.items() if st == kept)
+                from_ = ", ".join(sc for sc, st in states.items() if st == kept)
                 conf_rows.append(
                     f"<tr><th>{html.escape(a.inv[src].short)}</th><th>{html.escape(a.inv[d].short)}</th>"
                     f"<td>{html.escape(a.inv[d].zone)}</td><td>{port_label(port)}</td><td>{seen}</td>"
@@ -387,8 +386,7 @@ def _scans_tab(a: Analysis) -> str:
         else "<p>None: the Scans of each Source agree on every port listed.</p>"
     )
     excluded = "".join(
-        f"<li>{html.escape(a.inv[src].short if src in a.inv else src)}: "
-        f"<code>{html.escape(os.path.relpath(p, os.path.dirname(os.path.dirname(paths[0]))))}</code></li>"
+        f"<li>{html.escape(a.inv[src].short if src in a.inv else src)}: <code>{html.escape(p)}</code></li>"
         for src, paths in a.excluded.items()
         for p in paths
     )
@@ -444,10 +442,11 @@ def _scans_tab(a: Analysis) -> str:
 def _anomalies_tab(a: Analysis) -> str:
     inv = a.inv
     missing = "".join(
-        f'<li>{ip} — {html.escape(inv[ip].short)} <span class="tag">{html.escape(inv[ip].zone)}</span></li>'
+        f"<li>{html.escape(ip)} — {html.escape(inv[ip].short)} "
+        f'<span class="tag">{html.escape(inv[ip].zone)}</span></li>'
         for ip in a.missing
     )
-    unknown = "".join(f'<li class="warn">{ip}</li>' for ip in a.unknown)
+    unknown = "".join(f'<li class="warn">{html.escape(ip)}</li>' for ip in a.unknown)
     orphan = "".join(f'<li class="warn">{html.escape(ip)}</li>' for ip in a.orphan)
     return (
         f"<h2>Sources without scan</h2><ul>{missing or '<li>None</li>'}</ul>"
@@ -504,7 +503,7 @@ def _diff_tab(a: Analysis) -> str:
     for src in a.sources:
         h, group = a.inv[src], []
         for label, row in [(f"Source View ({len(a.scans[src])} scans)", a.matrix[src])] + [
-            (f"{sc.name.split('/', 1)[1]} · {sc.started}", a.scan_row(sc)) for sc in a.scans[src]
+            (f"{sc.name} · {sc.started}", a.scan_row(sc)) for sc in a.scans[src]
         ]:
             group.append(f'<option value="{len(sets)}">{html.escape(label)}</option>')
             sets.append({"label": f"{h.short} — {label}", "cells": _diff_cells(row)})
@@ -564,7 +563,7 @@ def _policy_tab(a: Analysis) -> str:
     findings = [flow(s, d, p) + [e(str(r)), e(r.comment)] for s, d, p, r in sorted(a.findings, key=zkey)]
     undeclared = [flow(s, d, p) for s, d, p in sorted(a.undeclared, key=zkey)]
     rules = [
-        [str(r.line), e(r.src), e(r.dst), e(r.ports_spec), r.action, e(r.comment), str(hits[r.line]) or "0"]
+        [str(r.line), e(r.src), e(r.dst), e(r.ports_spec), r.action, e(r.comment), str(hits[r.line])]
         + ([] if hits[r.line] else ['<span class="warn">never matched</span>'])
         for r in a.policy or []
     ]
