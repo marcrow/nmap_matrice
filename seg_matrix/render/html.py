@@ -513,7 +513,7 @@ def _diff_tab(a: Analysis) -> str:
     if len(sets) < 2:
         return "<h2>Scan Diff</h2><p>Needs at least two Scans.</p>"
     targets = {ip: {"name": h.short, "zone": h.zone} for ip, h in a.inv.items()}
-    data = json.dumps({"sets": sets, "targets": targets}).replace("</", "<\\/")
+    data = json.dumps({"sets": sets, "targets": targets}).replace("<", "\\u003c")
     select = "".join(options)
     return (
         "<h2>Scan Diff</h2>"
@@ -602,7 +602,7 @@ def _group_filter(a: Analysis) -> str:
     if not a.port_groups:
         return ""
     options = "".join(f'<option value="{i}">{html.escape(g)}</option>' for i, g in enumerate(a.port_groups))
-    data = json.dumps(list(a.port_groups.values())).replace("</", "<\\/")
+    data = json.dumps(list(a.port_groups.values())).replace("<", "\\u003c")
     return (
         '<label class="groupsel">Port group: <select onchange="setGroup(this.value)">'
         f'<option value="">all ports</option>{options}</select></label>'

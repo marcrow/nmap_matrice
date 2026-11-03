@@ -1,0 +1,5 @@
+source;destination;src_zone;dst_zone;verdict;open_ports
+172.31.250.1;172.31.250.10;audit;dmz;OPEN;22,udp:161,6379,8443
+172.31.250.1;172.31.250.20;audit;data;OPEN;5432
+172.31.250.1;172.31.250.30;audit;data;BLOCKED;
+172.31.250.1;172.31.251.40;audit;lab;UNSEEN;

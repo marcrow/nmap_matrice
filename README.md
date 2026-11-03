@@ -142,8 +142,8 @@ failure, shows the diagram source instead of a `mermaid is not defined` error.
 
 ## Development
 ```bash
-uv run --no-project --with pytest python -m pytest   # tests
-uvx ruff check . && uvx ruff format --check .        # lint + format
+uv run pytest                                        # tests (UPDATE_SNAPSHOTS=1 to accept a view change)
+uv run ruff check . && uv run ruff format --check .  # lint + format
 ```
 Layout: `seg_matrix/` — `inventory.py` (CSV), `nmap.py` (discovery + parsers), `verdict.py`,
 `analysis.py` (matrices), `render/` (Markdown/CSV, Mermaid, HTML + `assets/`), `cli.py`.

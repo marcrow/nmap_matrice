@@ -10,8 +10,8 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []
 
-[project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.5"]
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.5"]  # uv installs it by default: `uv run pytest`
 
 [project.scripts]
 seg_matrix = "seg_matrix.cli:main"
