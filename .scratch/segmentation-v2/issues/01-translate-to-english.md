@@ -9,6 +9,6 @@ Translate code identifiers, comments, CLI messages, README and HTML report to En
 
 ## Acceptance
 
-- `python3 test_segowl.py` passes
+- `python3 test_seg_matrix.py` passes
 - no French left in code, README or report output
 - report on the same inputs is identical apart from wording
