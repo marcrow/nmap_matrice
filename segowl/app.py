@@ -20,6 +20,7 @@ import secrets
 import shlex
 import ssl
 import sys
+import tempfile
 import threading
 import urllib.parse
 import zipfile
@@ -31,6 +32,8 @@ from segowl import mission_files as mf
 from segowl import scan_profiles as sp
 from segowl.inventory import load_inventory
 from segowl.nmap import SCAN_EXT_PRIORITY
+from segowl.policy import _kind as policy_kind
+from segowl.policy import _ports as policy_ports
 from segowl.policy import load_policy
 from segowl.port_groups import DEFAULTS as GROUP_DEFAULTS
 from segowl.port_groups import load_port_groups
@@ -41,6 +44,7 @@ STATIC = {  # served under /static/
     "app.css": "text/css; charset=utf-8",
     "app_inventory.js": "text/javascript; charset=utf-8",
     "app_mission.js": "text/javascript; charset=utf-8",
+    "app_policy.js": "text/javascript; charset=utf-8",
     "app_profiles.js": "text/javascript; charset=utf-8",
     "app_scans.js": "text/javascript; charset=utf-8",
     "tabulator.min.js": "text/javascript; charset=utf-8",
@@ -147,6 +151,7 @@ class Mission:
         self.state: tuple | None = None
         self.lines: list[str] = []
         self.error = ""
+        self.fallback: tuple[tuple | None, str] = (None, "")  # (state, observed flows) when the report fails
 
     def file(self, name: str) -> Path:
         return self.path / name
@@ -293,6 +298,89 @@ class Mission:
             "counts": {**c, "targets": len(targets)},
             "warnings": warnings,
         }
+
+    # ---- Flow Policy
+    def policy(self) -> dict:
+        rules = mf.read_policy(self.text("flow_policy.csv"))
+        inv = self.rows()
+        zones = list(dict.fromkeys([r["zone"] for r in inv if r.get("zone")]))
+        zones += [z["name"] for z in mf.read_zones(self.text("zones.csv")) if z["name"] not in zones]
+        return {
+            "fp": fingerprint(self.file("flow_policy.csv")),
+            "rules": rules,
+            "errors": self.rule_errors(rules),
+            "zones": zones,
+            "machines": sorted({r.get("name") or r["ip"] for r in inv}),
+            "groups": sorted(self.groups()[1]),
+            "observed": self.observed(),
+        }
+
+    def rule_errors(self, rules: list[dict]) -> list[str]:
+        """The CLI's message for each rule ('' when it loads), so the editor flags rules inline.
+
+        Stricter than the CLI on one point: an undecided rule (no action) is checked too, so a draft
+        never turns into a refused rule the day someone picks its action.
+        """
+        try:
+            inv = load_inventory(str(self.file("inventory.csv")))
+        except SystemExit:
+            inv = {}
+        sets = self.groups()[0]
+        empty = {z["name"] for z in mf.read_zones(self.text("zones.csv"))} - {h.zone for h in inv.values()}
+        out = []
+        for r in rules:
+            try:
+                action = r["action"].lower()
+                if action not in ("", "allow", "deny"):
+                    raise SystemExit(f"[!] x: action must be allow or deny, not {r['action']!r}")
+                for end in (r["src"], r["dst"]):
+                    if end in empty:
+                        raise SystemExit(f"[!] x: Zone {end!r} has no Interface yet: the CLI would refuse it")
+                    policy_kind(end, inv, "x")
+                policy_ports(r["ports"], sets, "x")
+                out.append("")
+            except SystemExit as e:
+                out.append(str(e.code).removeprefix("[!] x: "))
+        return out
+
+    def save_policy(self, data: dict) -> dict:
+        """Write flow_policy.csv if every rule loads; else return the per-rule errors, nothing written."""
+        rules = [{k: str(r.get(k) or "").strip() for k in mf.POLICY_COLUMNS} for r in data.get("rules", [])]
+        errors = self.rule_errors(rules)
+        if any(errors):
+            return {"fp": data.get("fp", ""), "errors": errors}
+        text = mf.policy_text(rules, self.text("flow_policy.csv"))
+        return {"fp": save_file(self.file("flow_policy.csv"), text, data.get("fp", "")), "errors": errors}
+
+    def observed(self) -> dict[str, str]:
+        """Ports observed open per Zone pair ('src;dst' -> '22,443'), from observed_zone_flows.csv."""
+        self.refresh()
+        text = self.text("report/observed_zone_flows.csv")
+        if self.error and self.fallback[0] == self.state:
+            text = self.fallback[1]
+        elif self.error:  # e.g. a rule the CLI refuses: the flows are still wanted to fix the policy
+            groups = self.file("port_groups.csv")
+            with tempfile.TemporaryDirectory() as tmp:
+                args = argparse.Namespace(
+                    inventory=str(self.file("inventory.csv")),
+                    scans=str(self.file("scans")),
+                    port_groups=str(groups) if groups.is_file() else None,
+                    policy=None,
+                    out=tmp,
+                    pn=False,
+                    host_graph=False,
+                )
+                try:
+                    cli.run(args)
+                    text = Path(tmp, "observed_zone_flows.csv").read_text(encoding="utf-8-sig")
+                except (SystemExit, Exception):  # broken inventory or Port Groups: nothing to show
+                    text = ""
+            self.fallback = (self.state, text)
+        out: dict[str, list[str]] = {}
+        for row in mf._rows(text):
+            if row[0].lower() != "src" and len(row) > 2:
+                out.setdefault(f"{row[0]};{row[1]}", []).append(row[2])
+        return {k: ",".join(v) for k, v in out.items()}
 
     # ---- Sources, targets, Scans
     def rows(self) -> list[dict]:
@@ -476,7 +564,7 @@ NAV = [
     ("kits", "Kits"),
     ("report", "Report"),
 ]
-READY = {"mission", "inventory", "profiles", "scans", "report"}  # the other pages arrive with tickets 05-06
+READY = {"mission", "inventory", "policy", "profiles", "scans", "report"}  # Kits arrives with ticket 06
 
 
 def asset(name: str) -> str:
@@ -617,6 +705,8 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                 "/api/file/inventory.csv": lambda: self._download(
                     "inventory.csv", mission.text("inventory.csv").encode(), "text/csv; charset=utf-8"
                 ),
+                "/api/policy": lambda: self._json(mission.policy()),
+                "/policy": lambda: self._page("Flow Policy", asset("policy.html"), "policy"),
                 "/api/profiles": lambda: self._json(mission.profiles()),
                 "/api/ports": lambda: self._json(search(q.get("q", [""])[0])),
                 "/api/scans": lambda: self._json(mission.scans()),
@@ -694,6 +784,8 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                 if url.path == "/api/parse/inventory":
                     free, rows = mf.read_inventory(body.decode("utf-8-sig", errors="replace"))
                     return self._json({"columns": free, "rows": rows})
+                if url.path == "/api/policy":
+                    return self._json(mission.save_policy(json.loads(body)))
                 if url.path == "/api/profiles":
                     return self._json({"fp": mission.save_profiles(json.loads(body))})
                 if url.path == "/api/profiles/preview":

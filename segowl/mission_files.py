@@ -80,6 +80,29 @@ def zones_text(zones: list[dict], used: set[str]) -> str | None:
     )
 
 
+# ---------------------------------------------------------------- Flow Policy
+POLICY_COLUMNS = ("src", "dst", "ports", "action", "comment")
+
+
+def read_policy(text: str) -> list[dict[str, str]]:
+    rules = [
+        dict(zip(POLICY_COLUMNS, row + [""] * len(POLICY_COLUMNS), strict=False))
+        for row in _rows(text)
+        if row[0].lower() != "src"
+    ]
+    for r in rules:
+        r["action"] = r["action"].lower()  # the CLI accepts Allow / DENY
+    return rules
+
+
+def policy_text(rules: list[dict], old: str = "") -> str:
+    """flow_policy.csv content; the old file's # comment lines are kept, on top."""
+    # ponytail: comment lines move to the top, keep their position if anyone cares
+    notes = "".join(line + "\n" for line in old.splitlines() if line.lstrip().startswith("#"))
+    rows = [[r.get(c, "") for c in POLICY_COLUMNS] for r in rules]
+    return _write([list(POLICY_COLUMNS)]) + notes + _write(r for r in rows if any(r))
+
+
 # ---------------------------------------------------------------- Flow Policy references
 def policy_refs(text: str) -> Counter:
     """How many rule ends (src or dst) name each Zone / Machine."""

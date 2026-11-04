@@ -1,0 +1,31 @@
+<!-- SegOWL — Flow Policy page body (ticket 05, prototype variant B), wrapped by app.page(). -->
+<main>
+<h2>Flow Policy</h2>
+<p class="sub">Rows = from, columns = to. Click a cell (or <span class="kbd">Enter</span>, arrows to move) to decide what may
+cross. <b>●</b> = ports observed open in the Scans, so you decide on facts. Empty = undeclared: shown apart in the report,
+never a Finding. The most specific rule wins (Machine &gt; Zone &gt; *), deny wins ties. Changes save automatically.</p>
+<div class="toolbar">
+  <button class="btn" id="boot">Bootstrap from observed flows</button>
+  <span class="small muted" id="bootn"></span>
+  <span style="margin-left:auto"></span><span class="status" id="st">Loading…</span>
+</div>
+<div id="banner"></div>
+<div class="layout" style="grid-template-columns:minmax(0,auto) minmax(320px,1fr);align-items:start">
+  <div class="card" style="overflow:auto;max-height:75vh;padding:8px"><table class="pm" id="pm"></table>
+    <div class="small muted" style="margin-top:6px">✓ allow · ✕ deny · ? undecided (skipped by the report until you choose) ·
+    red outline = a rule the report would refuse</div></div>
+  <div class="card"><b>Exceptions &amp; wildcards</b>
+    <div class="small muted">Rules on a Machine (they beat Zone rules), on <code>*</code>, or on a name the inventory no longer has.</div>
+    <div id="ex" style="margin-top:6px"></div>
+    <div style="margin-top:8px;border-top:1px solid var(--line);padding-top:8px">
+      <div class="rule"><select id="xs"></select>→<select id="xd"></select></div>
+      <div class="rule"><input type="text" id="xp" list="pl" value="*" placeholder="ports" style="width:120px">
+        <div class="seg" id="xa"><button data-a="allow" class="on">allow</button><button data-a="deny">deny</button></div>
+        <input type="text" id="xc" placeholder="comment" style="flex:1;min-width:0"></div>
+      <button class="btn sm pri" id="addx">+ Add rule</button>
+    </div>
+  </div>
+</div>
+<datalist id="pl"></datalist>
+</main>
+<script src="/static/app_policy.js"></script>

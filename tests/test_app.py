@@ -9,6 +9,9 @@ from pathlib import Path
 import pytest
 
 from segowl.app import Conflict, Mission, add_user, fingerprint, make_server, save_file
+from segowl.inventory import load_inventory
+from segowl.policy import load_policy
+from segowl.port_groups import load_port_groups
 
 MISSION = Path(__file__).parent / "fixtures" / "mission"
 
@@ -164,3 +167,46 @@ def test_uploaded_scan_completes_its_profile_and_feeds_the_report(mission, tmp_p
     assert "1 source(s)" in mission.lines[0]
     with pytest.raises(ValueError):
         mission.upload("../etc", "x.xml", io.BytesIO(b""), 0)
+
+
+# ---------------------------------------------------------------- ticket 05: Flow Policy editor
+def test_rule_on_an_unknown_zone_is_flagged_and_not_saved(mission):
+    d = mission.policy()
+    bad = {"src": "nowhere", "dst": "dmz", "ports": "@nope", "action": "allow", "comment": ""}
+    rules = d["rules"] + [bad]
+    r = mission.save_policy({"fp": d["fp"], "rules": rules})
+    assert r["errors"][:2] == ["", ""]
+    assert "nowhere" in r["errors"][2] and "neither a Zone nor a Machine" in r["errors"][2]
+    assert mission.text("flow_policy.csv").count("\n") == 4  # unchanged
+
+
+def test_bootstrap_from_observed_flows_then_save_loads_in_the_cli(mission):
+    d = mission.policy()
+    assert d["observed"]["audit;dmz"]  # the fixture Source sees open ports in dmz
+    drafts = [  # what the editor's bootstrap adds: one undecided rule per observed Zone pair
+        {"src": k.split(";")[0], "dst": k.split(";")[1], "ports": v, "action": "", "comment": "observed"}
+        for k, v in d["observed"].items()
+    ]
+    r = mission.save_policy({"fp": d["fp"], "rules": d["rules"] + drafts})
+    assert not any(r["errors"])
+    assert "# keep me" in mission.text("flow_policy.csv")
+    inv = load_inventory(str(mission.file("inventory.csv")))
+    rules = load_policy(str(mission.file("flow_policy.csv")), inv, load_port_groups(None))
+    assert len(rules) == 2  # undecided drafts are skipped by the CLI, not refused
+    mission.refresh()
+    assert not mission.error
+
+
+def test_observed_flows_survive_a_policy_the_cli_refuses(mission):
+    mission.file("flow_policy.csv").write_text("src;dst;ports;action;comment\nghost;dmz;22;allow;\n")
+    d = mission.policy()
+    assert d["errors"] == ["'ghost' is neither a Zone nor a Machine of the inventory"]
+    assert d["observed"]["audit;data"] == "5432"
+
+
+def test_policy_page_loads_with_a_broken_inventory_and_mixed_case_actions(mission):
+    mission.file("flow_policy.csv").write_text("src;dst;ports;action;comment\ndmz;data;5432;DENY;\n")
+    assert mission.policy()["rules"][0]["action"] == "deny"
+    mission.file("inventory.csv").write_text("ip;zone;type;name\nnot-an-ip;dmz;vm;x\n")
+    d = mission.policy()
+    assert d["observed"] == {} and d["errors"][0]
