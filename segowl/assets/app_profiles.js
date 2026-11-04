@@ -163,6 +163,12 @@ const showRes = debounce(async () => {
   const q = $("#q").value; items = q.trim() ? await api("/api/ports?q=" + encodeURIComponent(q)) : []; hl = 0;
   $("#res").innerHTML = items.map((it, i) => `<div class="res ${i === hl ? "hl" : ""}" data-i="${i}"><span class="p">${esc(it.many ? "#" + q : it.key)}</span><span>${esc(it.label)}${it.tags ? " " + it.tags.split(",").map(t => `<span class="pill">${esc(t)}</span>`).join("") : ""}</span><span class="src">${esc(it.src)}</span></div>`).join("") || `<div class="res muted">No match. Type a port number to add it as is.</div>`;
   $("#res").querySelectorAll(".res[data-i]").forEach(r => r.onclick = () => set(() => addPort(items[+r.dataset.i])));
+  // a typed port nobody labelled yet: offer to label it, in this Mission (same form as Auditor Kit › Port Labels)
+  const typed = q.trim().toLowerCase().replace(/^tcp:/, "");
+  if (Ports.tokOk(typed) && !items.some(it => it.src === "Port Label" && it.key === typed)) {
+    $("#res").insertAdjacentHTML("beforeend", `<div class="res" id="lbl1"><span class="p">${esc(typed)}</span><span><b>+ label this port</b> <span class="muted">no Port Label yet: say what runs on it</span></span></div>`);
+    $("#lbl1").onclick = () => Ports.labelForm($("#lfbox"), {port: typed, onAdded: L => { const r = L.mission.at(-1); toast(`Port Label ${r[0]} · ${r[1]} added to this Mission`); showRes(); }});
+  }
 }, 120);
 function dropList(inp, drop, list, pick) {
   inp.oninput = () => {

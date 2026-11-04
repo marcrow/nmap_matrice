@@ -20,7 +20,7 @@ are computed for the Source you pick. Changes save automatically.</p>
       <input type="number" id="topc" placeholder="other" style="width:80px" min="1" max="65535"></div>
       <div class="h">nmap's own list of the most common ports, picked on the Source.</div></div>
     <input type="search" id="q" placeholder="Search ports: veeam, oob, ldap, ssh, 3389, udp:161, network…" style="width:100%;margin-top:6px">
-    <div class="results" id="res"><div class="res muted">Port Labels (alternate ports included, e.g. ssh → 2222) and
+    <div id="lfbox"></div><div class="results" id="res"><div class="res muted">Port Labels (alternate ports included, e.g. ssh → 2222) and
       the IANA registry. <span class="kbd">↑↓</span> <span class="kbd">Enter</span> to add.</div></div>
     <div style="margin-top:10px"><b class="small">Selected</b> <span class="small muted" id="cnt"></span><div id="chips" style="margin-top:4px"></div></div>
   </div>
@@ -49,4 +49,4 @@ are computed for the Source you pick. Changes save automatically.</p>
   </div>
 </div>
 </main>
-<script src="/static/app_profiles.js"></script>
+<script src="/static/app_ports.js"></script><script src="/static/app_profiles.js"></script>

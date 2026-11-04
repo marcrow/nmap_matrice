@@ -432,3 +432,38 @@ def test_port_search_completes_a_partly_typed_port():
     assert "3389" in keys and keys[0] == "338"  # as typed first, then the ports it starts
     assert "udp:161" in [h["key"] for h in sp.search_ports("udp:16", {}, labels)]
     assert "161" not in [h["key"] for h in sp.search_ports("udp:16", {}, labels)]
+
+
+def test_a_mission_label_completes_the_shipped_one_instead_of_duplicating_it(mission):
+    from segowl import scan_profiles as sp
+
+    shipped = next(r for r in mission.labels()["shipped"] if r[0] == "3389")
+    row = [shipped[0], shipped[1], "admin,My Tag", "Microsoft", "no"]
+    mission.save_labels({"fp": mission.labels()["fp"], "labels": [row]})
+    hits = [h for h in sp.search_ports("3389", {}, sp.load_labels(mission.file("port_labels.csv")))]
+    same = [h for h in hits if h["key"] == "3389" and h["label"].startswith(shipped[1])]
+    assert len(same) == 1 and same[0]["tags"] == "admin,my-tag"  # tags normalised on save
+    with pytest.raises(ValueError, match="already ships: use Complete"):
+        mission.add_label(["udp:161", next(r for r in mission.labels()["shipped"] if r[0] == "udp:161")[1]])
+
+
+def test_two_products_on_one_port_stay_two_labels(mission):
+    mission.add_label(["8443", "Acme console", "admin", "", "yes"])
+    mission.add_label(["8443", "Other thing", "", "", ""])
+    assert [r[1] for r in mission.labels()["mission"]] == ["Acme console", "Other thing"]
+    with pytest.raises(ValueError, match="already in this Mission"):
+        mission.add_label(["8443", "acme console"])
+    with pytest.raises(ValueError, match="port"):
+        mission.add_label(["99999", "Nope"])
+
+
+def test_a_hand_written_three_column_label_file_is_rewritten_without_loss(mission):
+    (mission.path / "port_labels.csv").write_text(
+        "# my notes\nport;product;tags\n9392;Veeam console;backup\n"
+    )
+    data = mission.labels()
+    assert data["mission"] == [["9392", "Veeam console", "backup", "", ""]]
+    mission.save_labels({"fp": data["fp"], "labels": data["mission"]})
+    assert mission.text("port_labels.csv") == (
+        "port;product;tags;vendor;cleartext\n# my notes\n9392;Veeam console;backup;;\n"
+    )

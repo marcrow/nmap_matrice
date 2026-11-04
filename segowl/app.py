@@ -16,6 +16,7 @@ import io
 import ipaddress
 import json
 import os
+import re
 import secrets
 import shlex
 import ssl
@@ -48,6 +49,8 @@ STATIC = {  # served under /static/
     "app_mission.js": "text/javascript; charset=utf-8",
     "app_kits.js": "text/javascript; charset=utf-8",
     "app_groups.js": "text/javascript; charset=utf-8",
+    "app_labels.js": "text/javascript; charset=utf-8",
+    "app_ports.js": "text/javascript; charset=utf-8",
     "app_policy.js": "text/javascript; charset=utf-8",
     "app_profiles.js": "text/javascript; charset=utf-8",
     "app_scans.js": "text/javascript; charset=utf-8",
@@ -306,6 +309,38 @@ class Mission:
                 write_file(self.file("scan_profiles.csv"), prof)
         msg = f"Renamed @{old} → @{new}: {n_pol} Flow Policy rule(s) and {n_prof} Scan Profile(s) rewritten"
         return {"fp": {n: fingerprint(self.file(n)) for n in GROUP_FILES}, "message": msg}
+
+    # ---- Port Labels
+    def labels(self) -> dict:
+        return {
+            "fp": fingerprint(self.file("port_labels.csv")),
+            "shipped": [list(r) for r in sp.read_labels(sp.DEFAULTS / "port_labels.csv")],
+            "mission": [list(r) for r in sp.read_labels(self.file("port_labels.csv"))],
+        }
+
+    def save_labels(self, data: dict) -> str:
+        rows = [_label(r) for r in data.get("labels", [])]
+        keys = [sp.label_key(r) for r in rows]
+        twice = sorted({f"{r[0]} · {r[1]}" for r, k in zip(rows, keys, strict=True) if keys.count(k) > 1})
+        if twice:
+            raise ValueError(f"Twice in this Mission: {', '.join(twice)}")
+        notes = "".join(
+            f"{x}\n" for x in self.text("port_labels.csv").splitlines() if x.lstrip().startswith("#")
+        )
+        text = mf._write([LABEL_COLUMNS]) + notes + mf._write(rows)
+        return save_file(self.file("port_labels.csv"), text, data.get("fp", ""))
+
+    def add_label(self, row: list) -> dict:
+        """Append one new label to the Mission (the "+ New label" form, also from the port search)."""
+        new = _label(row)
+        with LOCK:
+            data = self.labels()
+            if sp.label_key(new) in {sp.label_key(r) for r in data["mission"]}:
+                raise ValueError(f"{new[0]} · {new[1]} is already in this Mission")
+            if sp.label_key(new) in {sp.label_key(r) for r in data["shipped"]}:
+                raise ValueError(f"{new[0]} · {new[1]} already ships: use Complete on it")
+            self.save_labels({"fp": data["fp"], "labels": [*data["mission"], new]})
+        return {**self.labels(), "message": f"Port Label {new[0]} · {new[1]} added to this Mission"}
 
     # ---- Scan Profiles
     def groups(self) -> tuple[dict, dict[str, str]]:
@@ -689,6 +724,24 @@ class Mission:
                 tmp_pol.unlink(missing_ok=True)
 
 
+LABEL_COLUMNS = ["port", "product", "tags", "vendor", "cleartext"]
+
+
+def _label(row: list) -> list[str]:
+    """A Port Label row checked and normalised: one port token, a product, tags lower-case-with-dashes."""
+    port, product, tags, vendor, clear = ([str(c).strip() for c in row] + [""] * 5)[:5]
+    port = port.lower().removeprefix("tcp:")
+    m = re.fullmatch(r"(?:(?:udp|sctp):)?(\d+)(?:-(\d+))?", port)
+    if not m or not 1 <= int(m[1]) <= int(m[2] or m[1]) <= 65535:
+        raise ValueError(f"{port or 'empty'}: not a port (22, 8000-8100, udp:161)")
+    if not product:
+        raise ValueError(f"{port}: the product is required")
+    if clear not in ("yes", "no", ""):
+        raise ValueError(f"{port} · {product}: cleartext is yes, no or empty")
+    tags = ",".join(dict.fromkeys("-".join(t.lower().split()) for t in tags.split(",") if t.strip()))
+    return [port, product, tags, vendor, clear]
+
+
 def _zip(files: dict[str, Path]) -> bytes:
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -767,11 +820,6 @@ def kit_body(m: Mission, sub: str, body: str) -> str:
         f'<a href="/kit/kits">Save as a kit…</a></span></div><div class="bigtabs">{tabs}</div></div>'
     )
     return body.replace("<main>", "<main>" + head, 1)
-
-
-HAND_EDITED = """<main><div class="card"><b>{t}</b><p class="small muted">Edited by hand in the Mission's
-<code>{f}</code> for now (shipped defaults apply while it is absent); its editor is on its way.</p>
-</div></main>"""
 
 
 def mission_body(m: Mission) -> str:
@@ -890,6 +938,7 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                 "/policy": lambda: self._page("Flow Policy", asset("policy.html"), "policy"),
                 "/api/profiles": lambda: self._json(mission.profiles()),
                 "/api/groups": lambda: self._json(mission.port_groups()),
+                "/api/labels": lambda: self._json(mission.labels()),
                 "/api/ports": lambda: self._json(search(q.get("q", [""])[0])),
                 "/api/scans": lambda: self._json(mission.scans()),
                 "/api/script": lambda: self._download(
@@ -902,9 +951,7 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                 ),
                 "/kit/profiles": lambda: self._kit("profiles", asset("profiles.html")),
                 "/kit/groups": lambda: self._kit("groups", asset("groups.html"), tabulator),
-                "/kit/labels": lambda: self._kit(
-                    "labels", HAND_EDITED.format(t="Port Labels", f="port_labels.csv")
-                ),
+                "/kit/labels": lambda: self._kit("labels", asset("labels.html"), tabulator),
                 "/kit/kits": lambda: self._kit("kits", asset("kits.html")),
                 "/scans": lambda: self._page("Scans", asset("scans.html"), "scans"),
                 "/api/kits": lambda: self._json(mission.kits()),
@@ -984,6 +1031,10 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                     return self._json({"fp": mission.save_profiles(json.loads(body))})
                 if url.path == "/api/groups":
                     return self._json({"fp": mission.save_groups(json.loads(body))})
+                if url.path == "/api/labels":
+                    return self._json({"fp": mission.save_labels(json.loads(body))})
+                if url.path == "/api/labels/add":
+                    return self._json(mission.add_label(json.loads(body).get("label", [])))
                 if url.path == "/api/groups/rename":
                     d = json.loads(body)
                     return self._json(

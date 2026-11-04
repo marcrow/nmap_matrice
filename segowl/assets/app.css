@@ -138,3 +138,10 @@ nav{position:relative;align-items:stretch}.dd{position:relative;display:flex}
 .tagdrop{position:fixed;z-index:300;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(11,31,51,.18);min-width:220px;max-height:260px;overflow:auto;font-size:12.5px}
 .tagdrop div{padding:5px 10px;cursor:pointer;display:flex;gap:8px}.tagdrop div.hl,.tagdrop div:hover{background:#eefbff}
 .tagdrop .c{margin-left:auto;color:var(--slate);font-size:11px}.tagdrop .new{color:#7a4a00;cursor:default;background:#fff8e6}
+.pill.newtag{background:#fff;border:1px dashed var(--amber);color:#7a4a00}
+.pill.clear{background:#fde8e8;color:#8a1a1a}.pill.enc{background:#e6f7ec;color:#14532d}
+.tabulator .tabulator-cell[tabulator-field="tags"],.tabulator .tabulator-cell[tabulator-field="product"]{white-space:normal}
+.tagdrop .sug{color:#004f66}
+.addlbl{background:#f6fbff;border:1px solid #bfe9f7;border-radius:8px;padding:8px 10px;margin:4px 0 8px;display:grid;grid-template-columns:90px 1fr;gap:6px 10px;align-items:center;font-size:12.5px}
+.addlbl input{width:100%}.addlbl .row{grid-column:1/-1;display:flex;gap:6px;justify-content:flex-end;align-items:center}
+#lfbox .addlbl{margin-bottom:10px;max-width:760px}

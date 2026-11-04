@@ -182,13 +182,22 @@ def _csv_rows(path: Path) -> list[list[str]]:
         ]
 
 
+def label_key(row) -> tuple[str, str]:
+    """What names a Port Label: port + product (case aside); several products may share a port."""
+    return row[0].lower(), row[1].lower()
+
+
+def read_labels(path: Path) -> list[tuple[str, str, str, str, str]]:
+    """The rows of one port_labels.csv; vendor and cleartext are optional trailing columns."""
+    return [tuple((r + [""] * 5)[:5]) for r in _csv_rows(path) if r[0].lower() != "port"]
+
+
 def load_labels(mission_file: Path | None = None) -> list[tuple[str, str, str, str, str]]:
-    """Port Labels (port, product, tags, vendor, cleartext): the shipped ones, then the Mission's
-    additions. vendor and cleartext are optional trailing columns, so 3-column files still load."""
-    rows = _csv_rows(DEFAULTS / "port_labels.csv")[1:]
-    if mission_file:
-        rows += [r for r in _csv_rows(mission_file) if r[0].lower() != "port"]
-    return [tuple((r + [""] * 5)[:5]) for r in rows]
+    """Port Labels (port, product, tags, vendor, cleartext): the shipped ones, a Mission row replacing
+    the shipped label of the same port + product, then the Mission's new labels."""
+    rows = {label_key(r): r for r in read_labels(DEFAULTS / "port_labels.csv")}
+    rows.update({label_key(r): r for r in read_labels(mission_file)} if mission_file else {})
+    return list(rows.values())
 
 
 _IANA: list[tuple[str, str, str, str]] = []
