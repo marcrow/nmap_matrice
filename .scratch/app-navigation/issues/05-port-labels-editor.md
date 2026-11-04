@@ -6,7 +6,7 @@ Spec: ../spec.md
 
 ## What
 
-Auditor Kit › Port Labels: grid `port;product;tags;vendor;cleartext`, shipped rows greyed and read-only, Mission rows editable; several services per port; completing a shipped label creates a Mission row with the same port + product that replaces it (`load_labels` merges by port + product instead of appending); tags from the fixed vocabulary, cleartext yes / no / empty, port syntax validated inline; filters. "+ label this port" in the Scan Profiles port search opens a pre-filled row.
+Auditor Kit › Port Labels: grid `port;product;tags;vendor;cleartext`, shipped rows greyed and read-only, Mission rows editable; several services per port; completing a shipped label creates a Mission row with the same port + product that replaces it (`load_labels` merges by port + product instead of appending); tags with autocomplete from the tags in use, new tags accepted and flagged, near-duplicates suggested, normalised on save (spec, "Tag vocabulary"), cleartext yes / no / empty, port syntax validated inline; filters. "+ label this port" in the Scan Profiles port search opens a pre-filled row.
 
 ## Acceptance
 

@@ -26,29 +26,35 @@ UX is a requirement, as in `local-app`: screens are prototyped and validated bef
 - One line per step, in menu order, with a status (✓ done, ◐ in progress, ○ not started, ⚠ problem) and a link to the next action. Examples:
   - Inventory: N Interfaces, M Zones; ⚠ Interfaces without Zone, duplicate IP (what the inventory editor flags).
   - Auditor Kit: N Scan Profiles, N Port Groups / Port Labels added by the Mission; "same as kit X" when the Mission's files match a known kit byte for byte (computed, nothing stored: ADR-0003).
-  - Scans: Sources with every Scan Profile done / Sources; "3 to go → download scripts".
+  - Scans: Sources with at least one Scan imported / Sources; "3 to go → download scripts".
   - Flow Policy: N rules, N undecided, N refused by the report.
   - Report: N Findings, N undeclared flows, or the generation error.
 - Client exchange block (moved from the Mission page).
-- Presentation / tutorial: what SegOWL measures, then the work process step by step (prepare the inventory, possibly from the client's zip → pick a kit → add Sources and download their scripts → run them on each Source → drop the results → decide the Flow Policy from observed flows → read and share the report), with links to each screen. Collapsible; folded state remembered per browser (localStorage, a per-viewer convenience).
+- Presentation / tutorial, always shown below the step states and the client exchange (an experienced auditor never needs to scroll to it): what SegOWL measures, then the work process step by step (prepare the inventory, possibly from the client's zip → pick a kit → add Sources and download their scripts → run them on each Source → drop the results → decide the Flow Policy from observed flows → read and share the report), with links to each screen.
 
 ### Auditor Kit tab
 
 - Sub-navigation always visible; a line under it recalls that the tab edits this Mission's copies, and which known kit they match, if any.
 - **Scan Profiles**: today's editor, plus "+ label this port" in the port search.
 - **Port Groups**: grid `group;ports`. Shipped groups shown greyed; editing one creates the Mission's group of the same name, which overrides it (today's semantics of `load_port_groups`); "reset to shipped" deletes the override. Port syntax validated inline (same rules as the Flow Policy). Rename rewrites `flow_policy.csv` and `scan_profiles.csv` at once (like Zone rename); delete only when unused ("used by 3 rules, 2 Scan Profiles"). Shows each group's port count.
-- **Port Labels**: grid `port;product;tags;vendor;cleartext` (format of the shipped file; vendor and cleartext optional). Shipped labels greyed and read-only; several services may share a port (a row is keyed by port + product). Completing a shipped label creates a Mission row with the same port + product that **replaces** it instead of adding a duplicate (`load_labels` merges by port + product). Tags picked from the fixed vocabulary; cleartext `yes` / `no` / empty; port syntax validated inline. Filter by text, tag, vendor, "Mission rows only".
+- **Port Labels**: grid `port;product;tags;vendor;cleartext` (format of the shipped file; vendor and cleartext optional). Shipped labels greyed and read-only; several services may share a port (a row is keyed by port + product). Completing a shipped label creates a Mission row with the same port + product that **replaces** it instead of adding a duplicate (`load_labels` merges by port + product). Tags with autocomplete (see "Tag vocabulary"); cleartext `yes` / `no` / empty; port syntax validated inline. Filter by text, tag, vendor, "Mission rows only".
 - **Kits**: today's page.
+
+### Tag vocabulary (decided 2026-11-04)
+
+No vocabulary file and no generated list: the vocabulary is **derived from the data**. The editor suggests the union of the tags in use (shipped labels + the Mission's rows), computed on load. A new tag is accepted as typed; the editor marks it "new tag" and, when it is close to an existing one (case, plural, small edit distance), suggests that one. On save, tags are normalised (lower case, trimmed, inner spaces → `-`). The comment block of the shipped file stays human documentation, maintained in the repo; the tool does not read it. A kit stays self-contained: its `port_labels.csv` carries its own tags.
+
+Rejected: a central vocabulary file (overhead, blocks adding a tag from the UI, a dependency between two files in kits and exports); a script listing the tags in use into comments (generated text in a hand-maintained file).
 
 ## Non-goals
 
 Editing a kit folder in place (edit the Mission, then save as kit); a Port Labels editor for the shipped file (it is maintained in the repo, ticket 07 of `local-app`); roles, permissions; mobile layout.
 
-## Open questions (for the prototype)
+## Answered questions (2026-11-04)
 
-- Where the tag vocabulary lives so the editor and the shipped file share one source (today: a comment block in `segowl/defaults/port_labels.csv`).
-- Overview: does a Source count as done when every Scan Profile has its Scan, or when it has at least one Scan?
-- Does the tutorial stay on the Overview once the Mission is under way, or move behind a "How it works" link?
+- Tag vocabulary: derived from the data, see above.
+- A Source counts as done as soon as one or more Scans are imported for it.
+- The tutorial stays on the Overview, below the step states: it is never in the way, so no folding.
 
 ## Plan
 

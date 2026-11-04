@@ -14,7 +14,7 @@ Throwaway clickable HTML mockup, offline, validated palette and logo, vendored T
 - Port Labels grid with vendor and cleartext, two services on one port, completing a shipped label, tag picker, filters;
 - Scan Profiles port search with "+ label this port".
 
-Where a choice is open (spec, "Open questions"), offer two variants with the switcher.
+The spec's questions are answered (tag vocabulary derived from the data, Source done at one Scan, tutorial always below the Overview's states); where a layout choice is still open, offer two variants with the switcher.
 
 ## Acceptance
 
