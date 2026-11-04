@@ -127,3 +127,14 @@ nav{position:relative;align-items:stretch}.dd{position:relative;display:flex}
 .bigtabs a{flex:1 1 160px;display:flex;flex-direction:column;gap:2px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 12px;color:var(--ink);text-decoration:none;border-bottom:3px solid transparent}
 .bigtabs a:hover{border-color:var(--cyan2)}.bigtabs a.on{border-color:var(--cyan);border-bottom-color:var(--cyan);background:#f0fbff;box-shadow:0 2px 8px rgba(0,200,255,.15)}
 .bigtabs a b{font-size:13.5px}.bigtabs a span{font-size:11.5px;color:var(--slate)}.bigtabs .n{margin-left:6px;font-weight:400;color:var(--slate)}
+/* Auditor Kit grids: shipped vs Mission rows, port chips, autocomplete */
+.badge{display:inline-block;border-radius:4px;padding:0 6px;font-size:11px;line-height:17px;white-space:nowrap}
+.badge.shipped{background:#eef2f6;color:#6B7C93}.badge.b-mission{background:#d8f6ff;color:#004f66;font-weight:600}.badge.override{background:#fff3d6;color:#7a4a00;font-weight:600}
+.tabulator-row.shipped .tabulator-cell{color:#6B7C93}
+.tabulator .btn.sm{padding:1px 7px;font-size:11.5px}
+.tabulator .tabulator-cell[tabulator-field="ports"]{white-space:normal}
+.pill.more{background:#fff;border:1px solid var(--cyan2);color:#004f66;cursor:pointer}.pill.badtok{background:#fde8e8;color:#8a1a1a}
+.uses{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.tagdrop{position:fixed;z-index:300;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(11,31,51,.18);min-width:220px;max-height:260px;overflow:auto;font-size:12.5px}
+.tagdrop div{padding:5px 10px;cursor:pointer;display:flex;gap:8px}.tagdrop div.hl,.tagdrop div:hover{background:#eefbff}
+.tagdrop .c{margin-left:auto;color:var(--slate);font-size:11px}.tagdrop .new{color:#7a4a00;cursor:default;background:#fff8e6}

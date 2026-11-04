@@ -37,6 +37,8 @@ from segowl.policy import _ports as policy_ports
 from segowl.policy import load_policy
 from segowl.port_groups import DEFAULTS as GROUP_DEFAULTS
 from segowl.port_groups import load_port_groups
+from segowl.ports import parse_port_set
+from segowl.scan_profiles import NAME_RE
 
 ASSETS = Path(__file__).parent / "assets"
 STATIC = {  # served under /static/
@@ -45,6 +47,7 @@ STATIC = {  # served under /static/
     "app_inventory.js": "text/javascript; charset=utf-8",
     "app_mission.js": "text/javascript; charset=utf-8",
     "app_kits.js": "text/javascript; charset=utf-8",
+    "app_groups.js": "text/javascript; charset=utf-8",
     "app_policy.js": "text/javascript; charset=utf-8",
     "app_profiles.js": "text/javascript; charset=utf-8",
     "app_scans.js": "text/javascript; charset=utf-8",
@@ -233,6 +236,76 @@ class Mission:
                 write_file(self.file("zones.csv"), mf.rename_in_zones(self.text("zones.csv"), old, new))
             msg = f"Renamed {old} → {new}: {n_inv} Interface(s), {n_pol} Flow Policy field(s) rewritten"
             return {"fp": self.fps(), "message": msg}
+
+    # ---- Port Groups
+    def port_groups(self) -> dict:
+        """Shipped and Mission groups as specs, and who uses each group (rules, profiles)."""
+
+        def specs(text: str) -> dict[str, str]:
+            return {r[0]: r[1] for r in mf._rows(text) if r[0].lower() != "group" and len(r) > 1}
+
+        used: dict[str, dict] = {}
+        for r in mf.read_policy(self.text("flow_policy.csv")):
+            for g in {t.strip()[1:] for t in r["ports"].split(",") if t.strip().startswith("@")}:
+                rule = f"{r['src']} → {r['dst']}  {r['ports']}  {r['action']}"
+                used.setdefault(g, {"rules": [], "profiles": []})["rules"].append(rule)
+        for p in sp.read_profiles(self.text("scan_profiles.csv")):
+            for g in {t.strip()[1:] for t in p.ports.split(",") if t.strip().startswith("@")}:
+                used.setdefault(g, {"rules": [], "profiles": []})["profiles"].append(p.name)
+        return {
+            "fp": {n: fingerprint(self.file(n)) for n in GROUP_FILES},
+            "shipped": specs(GROUP_DEFAULTS.read_text(encoding="utf-8-sig")),
+            "mission": specs(self.text("port_groups.csv")),
+            "used": used,
+        }
+
+    def save_groups(self, data: dict) -> str:
+        """Write the Mission's groups; refused if a rule or a profile would lose a group it names."""
+        rows = [(str(g["name"]).strip(), str(g["ports"]).replace(" ", "")) for g in data.get("groups", [])]
+        errors = []
+        for name, ports in rows:
+            if not NAME_RE.match(name):
+                errors.append(f"@{name}: invalid name (letters, digits, . _ -)")
+            try:
+                if not parse_port_set(ports):
+                    errors.append(f"@{name}: no port")
+            except ValueError as e:
+                errors.append(f"@{name}: {e}")
+        names = [n for n, _ in rows]
+        errors += [f"two groups named @{n}" for n in sorted({n for n in names if names.count(n) > 1})]
+        g = self.port_groups()
+        for name, u in g["used"].items():
+            if name not in g["shipped"] and name not in names:
+                by = [f"{len(u['rules'])} Flow Policy rule(s)"] * bool(u["rules"])
+                by += [f"Scan Profile {p}" for p in u["profiles"]]
+                errors.append(f"@{name} is used by {', '.join(by)}")
+        if errors:
+            raise ValueError("; ".join(errors))
+        return save_file(
+            self.file("port_groups.csv"), mf._write([["group", "ports"], *rows]), data.get("fp", "")
+        )
+
+    def rename_group(self, old: str, new: str, fp: dict) -> dict:
+        """Rename a Mission group in the groups, the Flow Policy and the Scan Profiles, all or nothing."""
+        g = self.port_groups()
+        if old in g["shipped"] or old not in g["mission"]:
+            raise ValueError(f"@{old}: only the Mission's own groups can be renamed, not a shipped one")
+        if not NAME_RE.match(new) or new in g["shipped"] or new in g["mission"]:
+            raise ValueError(f"@{new}: name taken or invalid (letters, digits, . _ -)")
+        with LOCK:
+            check_fingerprints({self.file(n): fp.get(n, "") for n in GROUP_FILES})
+            groups = mf._write(
+                [["group", "ports"], *([new if k == old else k, v] for k, v in g["mission"].items())]
+            )
+            pol, n_pol = mf.rename_group(self.text("flow_policy.csv"), 2, old, new)
+            prof, n_prof = mf.rename_group(self.text("scan_profiles.csv"), 1, old, new)
+            write_file(self.file("port_groups.csv"), groups)
+            if n_pol:
+                write_file(self.file("flow_policy.csv"), pol)
+            if n_prof:
+                write_file(self.file("scan_profiles.csv"), prof)
+        msg = f"Renamed @{old} → @{new}: {n_pol} Flow Policy rule(s) and {n_prof} Scan Profile(s) rewritten"
+        return {"fp": {n: fingerprint(self.file(n)) for n in GROUP_FILES}, "message": msg}
 
     # ---- Scan Profiles
     def groups(self) -> tuple[dict, dict[str, str]]:
@@ -639,6 +712,7 @@ KIT_TABS = [  # the Auditor Kit tab's screens, under /kit/
     ("labels", "Port Labels", "what runs on a port"),
     ("kits", "Kits", "apply, save, share your kits"),
 ]
+GROUP_FILES = ("port_groups.csv", "flow_policy.csv", "scan_profiles.csv")  # a group rename touches all three
 TITLES = {
     "scan_profiles.csv": "Scan Profiles",
     "port_groups.csv": "Port Groups",
@@ -774,9 +848,9 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
         def _page(self, title, body, active, head=""):
             self._send(200, page(title, body, mission=mission.path, user=self.user, active=active, head=head))
 
-        def _kit(self, sub: str, body: str):
+        def _kit(self, sub: str, body: str, head=""):
             title = next(t for k, t, _ in KIT_TABS if k == sub)
-            self._page(title, kit_body(mission, sub, body), "kit")
+            self._page(title, kit_body(mission, sub, body), "kit", head)
 
         def do_GET(self):
             if not self._host_ok():
@@ -815,6 +889,7 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                 "/api/policy": lambda: self._json(mission.policy()),
                 "/policy": lambda: self._page("Flow Policy", asset("policy.html"), "policy"),
                 "/api/profiles": lambda: self._json(mission.profiles()),
+                "/api/groups": lambda: self._json(mission.port_groups()),
                 "/api/ports": lambda: self._json(search(q.get("q", [""])[0])),
                 "/api/scans": lambda: self._json(mission.scans()),
                 "/api/script": lambda: self._download(
@@ -826,9 +901,7 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                     f"segowl-{q.get('profile', [''])[0]}.zip", mission.scripts_zip(q.get("profile", [""])[0])
                 ),
                 "/kit/profiles": lambda: self._kit("profiles", asset("profiles.html")),
-                "/kit/groups": lambda: self._kit(
-                    "groups", HAND_EDITED.format(t="Port Groups", f="port_groups.csv")
-                ),
+                "/kit/groups": lambda: self._kit("groups", asset("groups.html"), tabulator),
                 "/kit/labels": lambda: self._kit(
                     "labels", HAND_EDITED.format(t="Port Labels", f="port_labels.csv")
                 ),
@@ -909,6 +982,13 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                     return self._json(mission.save_policy(json.loads(body)))
                 if url.path == "/api/profiles":
                     return self._json({"fp": mission.save_profiles(json.loads(body))})
+                if url.path == "/api/groups":
+                    return self._json({"fp": mission.save_groups(json.loads(body))})
+                if url.path == "/api/groups/rename":
+                    d = json.loads(body)
+                    return self._json(
+                        mission.rename_group(d.get("old", ""), d.get("new", ""), d.get("fp", {}))
+                    )
                 if url.path == "/api/profiles/preview":
                     return self._json(mission.preview(json.loads(body)))
                 if url.path == "/api/scans/source":

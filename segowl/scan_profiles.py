@@ -222,6 +222,14 @@ def search_ports(q: str, groups: dict[str, str], labels: list[tuple[str, ...]], 
     labels = [
         (p, prod, ",".join(filter(None, [t, "cleartext" * (c == "yes")])), v) for p, prod, t, v, c in labels
     ]
+    # a partly typed port (338, udp:16) also finds the ports it starts, after the exact matches
+    m = re.fullmatch(r"(?:(udp|tcp):)?(\d+)", q)
+
+    def starts(key: str) -> bool:
+        return (
+            bool(m) and key.removeprefix("udp:").startswith(m[2]) and (m[1] != "udp") ^ key.startswith("udp:")
+        )
+
     tagged = sorted({lab[0] for lab in labels if q in lab[2].split(",")})
     if len(tagged) > 1:
         out.append(
@@ -236,13 +244,15 @@ def search_ports(q: str, groups: dict[str, str], labels: list[tuple[str, ...]], 
         lab
         for lab in labels
         if q == lab[0].removeprefix("udp:")
+        or starts(lab[0])
         or q in lab[1].lower()
         or q in lab[2].split(",")
         or q in lab[3].lower()
     ]
     hits.sort(
         key=lambda lab: (
-            not (lab[1].lower() == q or (lab[1].lower().startswith(q + " ") and "alternate" not in lab[1]))
+            not (lab[1].lower() == q or (lab[1].lower().startswith(q + " ") and "alternate" not in lab[1])),
+            starts(lab[0]) and lab[0].removeprefix("udp:") != m[2],
         )
     )
     out += [
@@ -257,7 +267,7 @@ def search_ports(q: str, groups: dict[str, str], labels: list[tuple[str, ...]], 
     seen = {o["key"] for o in out}
     for name, port, proto, desc in iana():
         key = port if proto == "tcp" else f"{proto}:{port}"
-        if key not in seen and (q == port or q in name.lower() or q in desc.lower()):
+        if key not in seen and (q == port or starts(key) or q in name.lower() or q in desc.lower()):
             out.append({"key": key, "label": f"{name} — {desc}", "src": "IANA"})
             seen.add(key)
         if len(out) >= limit:

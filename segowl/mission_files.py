@@ -129,6 +129,21 @@ def rename_in_policy(text: str, old: str, new: str) -> tuple[str, int]:
     return "".join(out), n
 
 
+def rename_group(text: str, col: int, old: str, new: str) -> tuple[str, int]:
+    """Rewrite the Port Group reference @old into @new in column `col` (ports); rows naming it are counted."""
+    out, n = [], 0
+    for line in text.splitlines(keepends=True):
+        row = next(csv.reader([line], delimiter=";"), [])
+        toks = [t.strip() for t in row[col].split(",")] if len(row) > col else []
+        if line.lstrip().startswith("#") or f"@{old}" not in toks:
+            out.append(line)
+            continue
+        row[col] = ",".join(f"@{new}" if t == f"@{old}" else t for t in toks)
+        n += 1
+        out.append(_write([row]))
+    return "".join(out), n
+
+
 def rename_in_inventory(text: str, field: str, old: str, new: str) -> tuple[str, int]:
     free, rows = read_inventory(text)
     n = 0

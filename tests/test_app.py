@@ -385,3 +385,50 @@ def test_kit_tab_says_which_known_kit_the_mission_copies(mission, tmp_path):
     with open(mission.path / "scan_profiles.csv", "a") as f:
         f.write("extra;22;\n")
     assert mission.kit_match() == "matches no known kit"
+
+
+def test_mission_group_replaces_the_shipped_one_until_reset(mission):
+    g = mission.port_groups()
+    assert "22" in g["shipped"]["admin"] and g["mission"] == {}
+    mission.save_groups({"fp": g["fp"]["port_groups.csv"], "groups": [{"name": "admin", "ports": "2222"}]})
+    assert mission.preview({"ports": "@admin"})["commands"][0]["cmd"].count("-p T:2222")
+    load_port_groups(str(mission.path / "port_groups.csv"))  # the CLI reads it
+    fp = mission.port_groups()["fp"]["port_groups.csv"]
+    mission.save_groups({"fp": fp, "groups": []})  # Reset to shipped
+    assert "-p T:2222" not in mission.preview({"ports": "@admin"})["commands"][0]["cmd"]
+
+
+def test_group_files_never_hold_a_group_reference(mission):
+    fp = mission.port_groups()["fp"]["port_groups.csv"]
+    with pytest.raises(ValueError, match="@web"):
+        mission.save_groups({"fp": fp, "groups": [{"name": "mine", "ports": "22,@web"}]})
+
+
+def test_renaming_a_group_rewrites_rules_and_profiles(mission):
+    (mission.path / "port_groups.csv").write_text("group;ports\nops;22,8443\n")
+    (mission.path / "scan_profiles.csv").write_text("name;ports;options\nq;@ops,@web;-Pn\nr;443;\n")
+    (mission.path / "flow_policy.csv").write_text("src;dst;ports;action;comment\n*;app-01;@ops,80;allow;x\n")
+    g = mission.port_groups()
+    assert g["used"]["ops"] == {"rules": ["* → app-01  @ops,80  allow"], "profiles": ["q"]}
+    with pytest.raises(ValueError, match="shipped"):
+        mission.rename_group("web", "www", g["fp"])
+    out = mission.rename_group("ops", "mgmt", g["fp"])
+    assert "1 Flow Policy rule(s) and 1 Scan Profile(s)" in out["message"]
+    assert mission.text("flow_policy.csv") == "src;dst;ports;action;comment\n*;app-01;@mgmt,80;allow;x\n"
+    assert mission.text("scan_profiles.csv") == "name;ports;options\nq;@mgmt,@web;-Pn\nr;443;\n"
+    groups = load_port_groups(str(mission.path / "port_groups.csv"))
+    load_policy(
+        str(mission.path / "flow_policy.csv"), load_inventory(str(mission.path / "inventory.csv")), groups
+    )
+    with pytest.raises(ValueError, match=r"@mgmt is used by 1 Flow Policy rule\(s\), Scan Profile q"):
+        mission.save_groups({"fp": out["fp"]["port_groups.csv"], "groups": []})
+
+
+def test_port_search_completes_a_partly_typed_port():
+    from segowl import scan_profiles as sp
+
+    labels = sp.load_labels()
+    keys = [h["key"] for h in sp.search_ports("338", {}, labels)]
+    assert "3389" in keys and keys[0] == "338"  # as typed first, then the ports it starts
+    assert "udp:161" in [h["key"] for h in sp.search_ports("udp:16", {}, labels)]
+    assert "161" not in [h["key"] for h in sp.search_ports("udp:16", {}, labels)]

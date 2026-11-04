@@ -1,0 +1,12 @@
+<!-- SegOWL — Port Groups page body (app-navigation ticket 04), wrapped by app.page(). -->
+<main>
+<p class="sub">Grey rows ship with SegOWL. Edit a shipped group's ports to <b>replace it in this Mission</b>;
+<b>Reset</b> brings the shipped one back. Rename or delete only the Mission's own groups: a rename rewrites the Flow
+Policy and the Scan Profiles at once; a group still in use cannot be deleted. In the ports cell, type a port, a product
+(<i>winbox</i>), <code>udp:</code>… or <code>@group</code> to insert a copy of that group's ports. Changes save
+automatically.</p>
+<div class="toolbar"><input type="search" id="gq" placeholder="Filter: name or port" style="width:200px">
+  <button class="btn" id="gadd">+ Group</button><span style="margin-left:auto"></span><span class="status" id="st">Loading…</span></div>
+<div id="grid"></div>
+</main>
+<script src="/static/tabulator.min.js"></script><script src="/static/app_groups.js"></script>

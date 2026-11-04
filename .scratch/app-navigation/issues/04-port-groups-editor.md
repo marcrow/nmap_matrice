@@ -1,6 +1,6 @@
 # Port Groups editor
 
-Status: ready-for-agent
+Status: done
 Blocked by: 02
 Spec: ../spec.md
 
@@ -14,3 +14,7 @@ Auditor Kit › Port Groups as in the prototype: shipped (grey) and Mission grou
 - renaming a group used by rules and profiles rewrites both files; the CLI loads them without error
 - a group still referenced cannot be deleted; the UI says by what
 - `@web` typed in a ports cell inserts web's ports; the file never contains a group reference
+
+## Comments
+
+2026-11-04 done: `/kit/groups` (`groups.html`, `app_groups.js`), `GET/POST /api/groups`, `POST /api/groups/rename`. The server refuses a save that would drop a group a rule or a profile still names ("@x is used by …") and any `@` in `port_groups.csv` (the client expands `@group` into a copy before saving). Rename goes through the server only when the group is used; it rewrites the three files under one fingerprint check. The port search now also completes a partly typed port (`338` → 3389, `udp:16` → udp:161) after the exact matches, which the Scan Profiles search gets too. Saving rewrites `port_groups.csv` without its `#` comment lines (same as the Scan Profiles editor).
