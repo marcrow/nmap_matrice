@@ -1,6 +1,6 @@
 # Prototype: menu, Overview, Auditor Kit tab, Port Groups and Port Labels grids
 
-Status: needs-info
+Status: done
 Blocked by: –
 Spec: ../spec.md
 
@@ -78,3 +78,5 @@ Awaiting the user's verdict per screen (Overview A/B, Kit nav A/B, the three edi
 - Benefits: drop "paste the inventory" (an internal convenience); keep the nmap command (essential), nothing forgotten, same method (+ customise and improve it), step back over the data; the report card should say the diagrams go straight into a pentest or audit report.
 
 Round 4 (tutorial only): hero for pentesters ("Rigour in the scans. Visibility on the flows. Quality in the report.", three pillars) with the report's **two views drawn as the report draws them** (Zone view: pastel Zone pills, edges coloured by Flow Policy status, admin ports in bold red, dashed "reachable"; Source view: dark hexagon Source, targets grouped in tinted Zone frames, multi-Interface Machine highlighted), switchable; the 6-step process (optional steps dashed) followed at once by the step-by-step; then "Why SegOWL": grep vs matrix, several Sources, retest, seven benefit cards.
+
+2026-11-04 closed: "on est pas mal du tout". Last remark: Machine names are optional in the inventory (could later be filled from the Scans' DNS resolution); the tutorial says so. Groups inside groups: no answer to the question, the copy insertion of round 2 stays (no format change, reversible). The prototype is the reference for tickets 02-07; the spec records every decision.
