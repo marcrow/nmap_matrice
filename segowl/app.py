@@ -253,13 +253,15 @@ class Mission:
 
     def _step_inventory(self) -> dict:
         rows, problems = self.rows(), []
-        try:
-            if rows:
-                load_inventory(str(self.file("inventory.csv")))  # the CLI's own loader
-        except SystemExit as e:
-            problems.append(str(e.code))
         if err := mf.check_inventory(self.text("inventory.csv")):
             problems.append(err)
+        elif rows:
+            try:
+                load_inventory(
+                    str(self.file("inventory.csv"))
+                )  # the CLI's own loader, for what the editor misses
+            except SystemExit as e:
+                problems.append(str(e.code).replace(f"{self.path}/", ""))
         if n := sum(1 for r in rows if not r.get("zone")):
             problems.append(f"{n} Interface(s) without Zone")
         zones = {r["zone"] for r in rows if r.get("zone")}
@@ -360,9 +362,8 @@ class Mission:
                 errors.append(f"@{name} is used by {', '.join(by)}")
         if errors:
             raise ValueError("; ".join(errors))
-        return save_file(
-            self.file("port_groups.csv"), mf._write([["group", "ports"], *rows]), data.get("fp", "")
-        )
+        text = with_notes(mf._write([["group", "ports"], *rows]), self.text("port_groups.csv"))
+        return save_file(self.file("port_groups.csv"), text, data.get("fp", ""))
 
     def rename_group(self, old: str, new: str, fp: dict) -> dict:
         """Rename a Mission group in the groups, the Flow Policy and the Scan Profiles, all or nothing."""
@@ -400,10 +401,7 @@ class Mission:
         twice = sorted({f"{r[0]} · {r[1]}" for r, k in zip(rows, keys, strict=True) if keys.count(k) > 1})
         if twice:
             raise ValueError(f"Twice in this Mission: {', '.join(twice)}")
-        notes = "".join(
-            f"{x}\n" for x in self.text("port_labels.csv").splitlines() if x.lstrip().startswith("#")
-        )
-        text = mf._write([LABEL_COLUMNS]) + notes + mf._write(rows)
+        text = with_notes(mf._write([LABEL_COLUMNS, *rows]), self.text("port_labels.csv"))
         return save_file(self.file("port_labels.csv"), text, data.get("fp", ""))
 
     def add_label(self, row: list) -> dict:
@@ -453,11 +451,7 @@ class Mission:
             return 0
         scans = self.file("scans")
         return sum(
-            any(
-                f.is_file() and f.suffix.lower() in SCAN_EXT_PRIORITY and f.stem in bases
-                for f in (scans / ip).iterdir()
-            )
-            for ip in self.source_ips()
+            any(_is_scan(f) and f.stem in bases for f in (scans / ip).iterdir()) for ip in self.source_ips()
         )
 
     def save_profiles(self, data: dict) -> str:
@@ -471,7 +465,8 @@ class Mission:
         errors += [f"two profiles named {n}" for n in sorted({n for n in names if names.count(n) > 1})]
         if errors:
             raise ValueError("; ".join(errors))
-        return save_file(self.file("scan_profiles.csv"), sp.profiles_text(profiles), data.get("fp", ""))
+        text = with_notes(sp.profiles_text(profiles), self.text("scan_profiles.csv"))
+        return save_file(self.file("scan_profiles.csv"), text, data.get("fp", ""))
 
     def preview(self, data: dict) -> dict:
         p = sp.Profile(
@@ -841,6 +836,13 @@ def _step(key: str, state: str, summary: str, problems: list[str], href: str, ac
     }
 
 
+def with_notes(new: str, old: str) -> str:
+    """`new` with the `#` lines of `old` kept, right under the header (editors rewrite whole files)."""
+    head, _, rows = new.partition("\n")
+    notes = "".join(f"{x}\n" for x in old.splitlines() if x.lstrip().startswith("#"))
+    return f"{head}\n{notes}{rows}"
+
+
 def _is_scan(f: Path) -> bool:
     return f.is_file() and f.suffix.lower() in SCAN_EXT_PRIORITY
 
@@ -852,9 +854,11 @@ def _label(row: list) -> list[str]:
     """A Port Label row checked and normalised: one port token, a product, tags lower-case-with-dashes."""
     port, product, tags, vendor, clear = ([str(c).strip() for c in row] + [""] * 5)[:5]
     port = port.lower().removeprefix("tcp:")
-    m = re.fullmatch(r"(?:(?:udp|sctp):)?(\d+)(?:-(\d+))?", port)
-    if not m or not 1 <= int(m[1]) <= int(m[2] or m[1]) <= 65535:
-        raise ValueError(f"{port or 'empty'}: not a port (22, 8000-8100, udp:161)")
+    try:
+        if "," in port or not parse_port_set(port):
+            raise ValueError
+    except ValueError:
+        raise ValueError(f"{port or 'empty'}: not a port (22, 8000-8100, udp:161)") from None
     if not product:
         raise ValueError(f"{port}: the product is required")
     if clear not in ("yes", "no", ""):
@@ -973,7 +977,8 @@ nothing else is stored.</p>
 {asset("overview.html")}</main><script src="/static/app_mission.js"></script>"""
 
 
-def mission_body(m: Mission) -> str:
+def report_error_body(m: Mission) -> str:
+    """The Report page when the report cannot be generated: the CLI's message and the Mission's files."""
     gen = (
         f'<p class="err">{html.escape(m.error)}</p>'
         if m.error
@@ -983,8 +988,7 @@ def mission_body(m: Mission) -> str:
     return f"""<main>
 <div class="card"><b>Report generation</b>{gen}</div>
 <div class="card"><b>Files</b><p class="small">{html.escape(files or "none")}</p></div>
-{CLIENT_EXCHANGE}
-</main><script src="/static/app_mission.js"></script>"""
+</main>"""
 
 
 LOGIN_FORM = (
@@ -1128,7 +1132,7 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                 return self._page("Overview", overview_body(mission), "")
             if url.path == "/report":
                 body = '<iframe src="/report/report.html" title="Report"></iframe>'
-                return self._page("Report", mission_body(mission) if mission.error else body, "report")
+                return self._page("Report", report_error_body(mission) if mission.error else body, "report")
             if url.path.startswith("/report/"):
                 return self._static(mission.file("report"), urllib.parse.unquote(url.path[len("/report/") :]))
             self._send(404, page("Not found", "<main><p>Not found.</p></main>"))

@@ -61,9 +61,9 @@ def read_profiles(text: str) -> list[Profile]:
 def profiles_text(profiles: list[Profile]) -> str:
     buf = io.StringIO()
     w = csv.writer(buf, delimiter=";", lineterminator="\n")
-    n = 4 if any(p.description for p in profiles) else 3  # no description typed: the 3-column format stays
-    w.writerow(["name", "ports", "options", "description"][:n])
-    w.writerows([p.name, p.ports, p.options, p.description][:n] for p in profiles)
+    # no description typed: the 3-column format stays; a row without one keeps its 3 cells
+    w.writerow(["name", "ports", "options"] + ["description"] * any(p.description for p in profiles))
+    w.writerows([p.name, p.ports, p.options] + [p.description] * bool(p.description) for p in profiles)
     return buf.getvalue()
 
 

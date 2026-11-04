@@ -13,6 +13,13 @@ const Ports = (() => {
   }
   const tokOk = t => { const m = String(t).trim().match(/^(?:(udp|tcp|sctp):)?(\d+)(?:-(\d+))?$/i); if (!m) return false; const a = +m[2], b = m[3] ? +m[3] : a; return a >= 1 && b <= 65535 && a <= b; };
   const toks = s => String(s ?? "").split(",").map(x => x.trim()).filter(Boolean);
+  // ports as chips, folded beyond 10; `open` holds the ids the user expanded ("+N more")
+  function portChips(v, id, open) {
+    const t = toks(v); if (!t.length) return `<span style="color:#8a1a1a">— empty —</span>`;
+    const long = t.length > 10, show = long && !open.has(id) ? t.slice(0, 8) : t;
+    return show.map(x => `<span class="pill ${x.startsWith("@") ? "grp" : ""} ${x.startsWith("udp:") ? "udp" : ""} ${x.startsWith("@") || x.startsWith("top:") || tokOk(x) ? "" : "badtok"}">${esc(x)}</span>`).join("")
+      + (long ? `<span class="pill more" data-more="${esc(id)}">${open.has(id) ? "show less ▴" : `+${t.length - 8} more ▾`}</span>` : "");
+  }
   const normTags = s => [...new Set(toks(s).map(t => t.toLowerCase().replace(/\s+/g, "-")))].join(",");
 
   function dropdown(input, minWidth) {
@@ -145,5 +152,5 @@ const Ports = (() => {
     });
     $(port ? "#lf-prod" : "#lf-port", box).focus();
   }
-  return {esc, api, tokOk, toks, normTags, near, attachPorts, attachTags, labelForm, vocabOf, vendorsOf, setLabels: L => { LABELS = L; }};
+  return {esc, api, tokOk, toks, portChips, normTags, near, attachPorts, attachTags, labelForm, vocabOf, vendorsOf, setLabels: L => { LABELS = L; }};
 })();

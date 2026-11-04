@@ -13,14 +13,8 @@ function status(text, cls = "") { const s = $("#st"); s.textContent = text; s.cl
 
 let D = null, descEdit = null, delRow = null;
 const EXP = new Set();
-const toks = s => String(s).split(",").map(x => x.trim()).filter(Boolean);
 const uniq = base => { let n = base, k = 2; while (D.profiles.some(p => p.name === n)) n = `${base}-${k++}`; return n; };
-function portChips(v, id) {
-  const t = toks(v); if (!t.length) return `<span class="muted">none</span>`;
-  const long = t.length > 10, show = long && !EXP.has(id) ? t.slice(0, 8) : t;
-  return show.map(x => `<span class="pill ${x.startsWith("@") ? "grp" : ""} ${x.startsWith("udp:") ? "udp" : ""}">${esc(x)}</span>`).join("")
-    + (long ? `<span class="pill more" data-more="${esc(id)}">${EXP.has(id) ? "show less ▴" : `+${t.length - 8} more ▾`}</span>` : "");
-}
+const portChips = (v, id) => Ports.portChips(v, id, EXP);
 async function save(list, msg) {
   status("Saving…");
   try { await api("/api/profiles", {fp: D.fp, profiles: list}); D = await api("/api/profiles"); status("Saved ✓", "ok"); toast(msg); }

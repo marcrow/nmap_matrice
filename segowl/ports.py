@@ -24,7 +24,10 @@ def parse_ranges(spec: str) -> Ranges:
         part = part.strip().split(":")[-1]  # tolerate "T:22" style prefixes
         if part:
             lo, _, hi = part.partition("-")
-            ranges.append((int(lo), int(hi or lo)))
+            lo, hi = int(lo), int(hi or lo)
+            if not 0 <= lo <= hi <= 65535:
+                raise ValueError(f"port out of range 0-65535: {part}")
+            ranges.append((lo, hi))
     return merge_ranges(ranges)
 
 

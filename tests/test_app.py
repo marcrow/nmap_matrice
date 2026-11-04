@@ -391,7 +391,10 @@ def test_kit_tab_says_which_known_kit_the_mission_copies(mission, tmp_path):
 def test_mission_group_replaces_the_shipped_one_until_reset(mission):
     g = mission.port_groups()
     assert "22" in g["shipped"]["admin"] and g["mission"] == {}
+    (mission.path / "port_groups.csv").write_text("group;ports\n# why we override admin\n")
+    g = mission.port_groups()
     mission.save_groups({"fp": g["fp"]["port_groups.csv"], "groups": [{"name": "admin", "ports": "2222"}]})
+    assert mission.text("port_groups.csv") == "group;ports\n# why we override admin\nadmin;2222\n"
     assert mission.preview({"ports": "@admin"})["commands"][0]["cmd"].count("-p T:2222")
     load_port_groups(str(mission.path / "port_groups.csv"))  # the CLI reads it
     fp = mission.port_groups()["fp"]["port_groups.csv"]
@@ -471,7 +474,7 @@ def test_a_hand_written_three_column_label_file_is_rewritten_without_loss(missio
 
 
 def test_profile_descriptions_are_optional_and_never_invented(mission):
-    three = "name;ports;options\nbroad;22;-Pn\nr;443;\n"
+    three = "name;ports;options\n# my notes\nbroad;22;-Pn\nr;443;\n"
     (mission.path / "scan_profiles.csv").write_text(three)
     d = mission.profiles()
     assert [(p["name"], p["description"], p["imported"]) for p in d["profiles"]] == [
@@ -483,7 +486,7 @@ def test_profile_descriptions_are_optional_and_never_invented(mission):
     d["profiles"][0]["description"] = "First pass; from every Source"
     mission.save_profiles({"fp": fp, "profiles": d["profiles"]})
     assert mission.text("scan_profiles.csv") == (
-        'name;ports;options;description\nbroad;22;-Pn;"First pass; from every Source"\nr;443;;\n'
+        'name;ports;options;description\n# my notes\nbroad;22;-Pn;"First pass; from every Source"\nr;443;\n'
     )
     assert mission.profiles()["profiles"][0]["description"] == "First pass; from every Source"
 
@@ -535,7 +538,10 @@ def test_a_broken_input_file_is_the_next_step_with_the_clis_message(served):
     (path / "inventory.csv").write_text("ip;zone;type;name\n10.0.0.1;a;;\n10.0.0.1;b;;\n")
     ov = Mission(path, path.parent / "cfg").overview()
     inv = ov["steps"][0]
-    assert inv["state"] == "warn" and "10.0.0.1" in inv["problem"] and ov["next"] == "inventory"
+    assert (
+        inv["state"] == "warn" and inv["problem"].count("10.0.0.1") == 1 and str(path) not in inv["problem"]
+    )
+    assert ov["next"] == "inventory"
     cookie = fetch(base + "/login", {"login": "alice", "password": "s3cret"})[1]["Set-Cookie"].split(";")[0]
     status, _, body = fetch(base + "/", cookie=cookie)
     assert status == 200 and "10.0.0.1" in body and "Rigour in the scans" in body
@@ -549,3 +555,20 @@ def test_same_as_kit_means_byte_for_byte(mission, tmp_path):
     (mission.path / "scan_profiles.csv").write_bytes(shipped)
     kit = next(s for s in mission.overview()["steps"] if s["key"] == "kit")
     assert "same as kit segmentation" in kit["summary"]
+
+
+def test_overview_reads_the_findings_from_the_report(mission):
+    ov = mission.overview()
+    report = ov["steps"][-1]
+    assert report["state"] == "done" and re.fullmatch(
+        r"\d+ Finding\(s\) · \d+ undeclared flow\(s\)", report["summary"]
+    )
+
+
+def test_ports_outside_0_65535_are_refused():
+    from segowl.ports import parse_port_set
+
+    for bad in ("65536", "99999", "10-5", "udp:70000"):
+        with pytest.raises(ValueError):
+            parse_port_set(bad)
+    assert parse_port_set("0,65535,udp:161")

@@ -32,12 +32,15 @@ function rows() {
 
 async function load() { D = await api("/api/groups"); table.replaceData(rows()); status("Loaded"); }
 async function save() {
-  const bad = Object.entries(D.mission).filter(([, p]) => !portsOk(p)).map(([n]) => "@" + n);
+  // a group with no port yet (just added) is not saved until it gets one; one with a bad port blocks the save
+  const bad = Object.entries(D.mission).filter(([, p]) => toks(p).length && !portsOk(p)).map(([n]) => "@" + n);
   if (bad.length) { status(`Not saved: fix the ports of ${bad.join(", ")}`, "err"); return; }
+  const empty = Object.keys(D.mission).filter(n => !toks(D.mission[n]).length);
   status("Saving…");
   try {
-    const r = await api("/api/groups", {fp: D.fp["port_groups.csv"], groups: Object.entries(D.mission).map(([name, ports]) => ({name, ports}))});
-    D.fp["port_groups.csv"] = r.fp; status("Saved ✓", "ok");
+    const groups = Object.entries(D.mission).filter(([n]) => !empty.includes(n)).map(([name, ports]) => ({name, ports}));
+    D.fp["port_groups.csv"] = (await api("/api/groups", {fp: D.fp["port_groups.csv"], groups})).fp;
+    status(empty.length ? `Saved ✓ · ${empty.map(n => "@" + n).join(", ")} kept until it has ports` : "Saved ✓", "ok");
   } catch (e) { status(e.status === 409 ? "Modified elsewhere: reload" : "Not saved: " + e.message, "err"); }
 }
 
@@ -47,12 +50,7 @@ function portsEditor(cell, onRendered, success, cancel) {
     Ports.attachPorts(input, {groups: () => Object.fromEntries(allNames().map(n => [n, spec(n)])), onCommit: success, onCancel: cancel}); });
   return input;
 }
-function portChips(v, id) {
-  const t = toks(v); if (!t.length) return `<span style="color:#8a1a1a">— empty —</span>`;
-  const long = t.length > 10, show = long && !EXP.has(id) ? t.slice(0, 8) : t;
-  return show.map(x => `<span class="pill ${x.startsWith("udp:") ? "udp" : ""} ${tokOk(x) ? "" : "badtok"}">${esc(x)}</span>`).join("")
-    + (long ? `<span class="pill more" data-more="${esc(id)}">${EXP.has(id) ? "show less ▴" : `+${t.length - 8} more ▾`}</span>` : "");
-}
+const portChips = (v, id) => Ports.portChips(v, id, EXP);
 
 // ---------------------------------------------------------------- grid
 table = new Tabulator("#grid", {data: [], index: "id", layout: "fitColumns", height: "calc(100vh - 330px)", editTriggerEvent: "dblclick",
