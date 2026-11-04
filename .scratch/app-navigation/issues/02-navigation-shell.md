@@ -1,6 +1,6 @@
 # Navigation shell and Auditor Kit tab
 
-Status: ready-for-agent
+Status: done
 Blocked by: 01
 Spec: ../spec.md
 
@@ -13,3 +13,7 @@ Main menu in audit order (Overview · Inventory & Zones · Auditor Kit · Scans 
 - every existing screen is reachable in at most two clicks from any page
 - old URLs redirect to the new ones
 - the existing editors behave exactly as before (tests unchanged)
+
+## Comments
+
+2026-11-04 done: menu in audit order; "Auditor Kit ▾" opens on hover or keyboard focus (CSS only) and links `/kit/profiles`; the four tabs live under `/kit/<profiles|groups|labels|kits>`. `/mission` → `/`, `/profiles` → `/kit/profiles`, `/kits` → `/kit/kits`, `/kit` → `/kit/profiles` (303). The copies line names the kit whose files the Mission's equal (a kit file the Mission lacks makes it a partial match). Port Groups and Port Labels tabs show a "edited by hand" card until tickets 04 and 05. Review leftovers, not done: tab counts are shipped + Mission merged (04/05 may split them), redirects drop the query string (no caller passes one).

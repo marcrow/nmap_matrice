@@ -312,3 +312,51 @@ def test_kit_profiles_are_checked_against_the_groups_the_mission_will_have(missi
     with pytest.raises(ValueError, match="unknown Port Group"):
         kits.apply_kit(mission.path, dirs, dirs[0], "k")
     assert mission.text("port_groups.csv") == "group;ports\nops;22\n"
+
+
+def test_old_urls_redirect_and_every_screen_is_linked_from_every_page(served):
+    base, _ = served
+    cookie = fetch(base + "/login", {"login": "alice", "password": "s3cret"})[1]["Set-Cookie"].split(";")[0]
+    for old, new in {
+        "/mission": "/",
+        "/profiles": "/kit/profiles",
+        "/kits": "/kit/kits",
+        "/kit": "/kit/profiles",
+    }.items():
+        status, headers, _ = fetch(base + old, cookie=cookie)
+        assert (status, headers["Location"]) == (303, new), old
+    screens = [
+        "/",
+        "/inventory",
+        "/kit/profiles",
+        "/kit/groups",
+        "/kit/labels",
+        "/kit/kits",
+        "/scans",
+        "/policy",
+        "/report",
+    ]
+    for url in screens:
+        status, _, body = fetch(base + url, cookie=cookie)
+        assert status == 200, url
+        assert all(f'href="{s}"' in body for s in screens), url
+
+
+def test_kit_tab_says_which_known_kit_the_mission_copies(mission, tmp_path):
+    mission = Mission(mission.path, tmp_path / "cfg")
+    assert mission.kit_match() == "no kit file: shipped defaults"
+    shutil.copy(kits.SHIPPED / "segmentation" / "scan_profiles.csv", mission.path)
+    assert mission.kit_match() == "same as kit segmentation"
+    (mission.path / "port_groups.csv").write_text("group;ports\nops;22\n")
+    assert mission.kit_match() == "Scan Profiles same as kit segmentation"
+    mine = tmp_path / "kits" / "k"  # holds a port_groups.csv the Mission lacks: not the same
+    mine.mkdir(parents=True)
+    (mine / "scan_profiles.csv").write_text("name;ports;options\nquick;22;\n")
+    (mine / "port_groups.csv").write_text("group;ports\nops;23\n")
+    kits.write_dirs(tmp_path / "cfg", [str(mine.parent)])
+    (mission.path / "port_groups.csv").unlink()
+    (mission.path / "scan_profiles.csv").write_text("name;ports;options\nquick;22;\n")
+    assert mission.kit_match() == "Scan Profiles same as kit k"
+    with open(mission.path / "scan_profiles.csv", "a") as f:
+        f.write("extra;22;\n")
+    assert mission.kit_match() == "matches no known kit"

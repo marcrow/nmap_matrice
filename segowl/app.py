@@ -393,6 +393,30 @@ class Mission:
             "mission": [n for n in kits.FILES if self.file(n).is_file()],
         }
 
+    def kit_match(self) -> str:
+        """The known kit the Mission's kit files are copies of, e.g. "same as kit segmentation"."""
+        mine = {n: self.text(n) for n in kits.FILES if self.file(n).is_file()}
+        if not mine:
+            return "no kit file: shipped defaults"
+        best, same, whole = "", [], False
+        for k in kits.list_kits(kits.read_dirs(self.config)):
+            hits = [n for n in mine if k["files"].get(n) == mine[n]]
+            full = len(hits) == len(mine) == len(k["files"])  # a kit file the Mission lacks differs
+            if hits and (full, len(hits)) > (whole, len(same)):
+                best, same, whole = k["name"], hits, full
+        if not same:
+            return "matches no known kit"
+        what = "" if whole else ", ".join(TITLES[n] for n in same) + " "
+        return f"{what}same as kit {best}"
+
+    def kit_counts(self) -> dict[str, int]:
+        return {
+            "profiles": len(sp.read_profiles(self.text("scan_profiles.csv"))),
+            "groups": len(self.groups()[1]),
+            "labels": len(sp.load_labels(self.file("port_labels.csv"))),
+            "kits": len(kits.list_kits(kits.read_dirs(self.config))),
+        }
+
     def kit_zip(self, kit_dir: str, name: str) -> bytes:
         return kits.export_zip(kits.kit_path(kits.read_dirs(self.config), Path(kit_dir), name, write=False))
 
@@ -601,15 +625,26 @@ def _zip(files: dict[str, Path]) -> bytes:
 
 
 # ---------------------------------------------------------------- pages
-NAV = [
-    ("mission", "Mission"),
+NAV = [  # audit order; "" is the Overview, at /
+    ("", "Overview"),
     ("inventory", "Inventory & Zones"),
-    ("policy", "Flow Policy"),
-    ("profiles", "Scan Profiles"),
+    ("kit", "Auditor Kit"),
     ("scans", "Scans"),
-    ("kits", "Kits"),
+    ("policy", "Flow Policy"),
     ("report", "Report"),
 ]
+KIT_TABS = [  # the Auditor Kit tab's screens, under /kit/
+    ("profiles", "Scan Profiles", "nmap recipes: ports + options"),
+    ("groups", "Port Groups", "named port sets: @admin, @web…"),
+    ("labels", "Port Labels", "what runs on a port"),
+    ("kits", "Kits", "apply, save, share your kits"),
+]
+TITLES = {
+    "scan_profiles.csv": "Scan Profiles",
+    "port_groups.csv": "Port Groups",
+    "port_labels.csv": "Port Labels",
+}
+REDIRECTS = {"/mission": "/", "/profiles": "/kit/profiles", "/kits": "/kit/kits", "/kit": "/kit/profiles"}
 
 
 def asset(name: str) -> str:
@@ -619,7 +654,14 @@ def asset(name: str) -> str:
 def page(title: str, body: str, *, mission: Path | None = None, user="", active="", head="") -> bytes:
     nav = ""
     if mission is not None:
-        links = "".join(f'<a href="/{k}" class="{"on" if k == active else ""}">{t}</a>' for k, t in NAV)
+        drop = "".join(f'<a href="/kit/{k}"><b>{t}</b><span>{d}</span></a>' for k, t, d in KIT_TABS)
+        links = "".join(
+            f'<span class="dd"><a href="/kit/profiles" class="{"on" if k == active else ""}">{t} ▾</a>'
+            f'<div class="navdrop">{drop}</div></span>'
+            if k == "kit"
+            else f'<a href="/{k}" class="{"on" if k == active else ""}">{t}</a>'
+            for k, t in NAV
+        )
         nav = f"<nav>{links}</nav>"
     who = f'{html.escape(user)}<a href="/logout">log out</a>' if user else "local"
     where = ""
@@ -635,6 +677,27 @@ def page(title: str, body: str, *, mission: Path | None = None, user="", active=
         f'<div class="user">{who if mission is not None else ""}</div></header>{nav}{body}'
         f'<div id="toast"></div></body></html>'
     ).encode()
+
+
+def kit_body(m: Mission, sub: str, body: str) -> str:
+    """An Auditor Kit screen: sticky header with the four tabs, then the screen's own body."""
+    n = m.kit_counts()
+    tabs = "".join(
+        f'<a href="/kit/{k}" class="{"on" if k == sub else ""}">'
+        f'<b>{t}<span class="n">{n[k]}</span></b><span>{d}</span></a>'
+        for k, t, d in KIT_TABS
+    )
+    head = (
+        '<div class="kithead"><div class="t"><h2>Auditor Kit</h2><span class="small muted">'
+        f"This Mission's copies, never a kit folder · {html.escape(m.kit_match())} · "
+        f'<a href="/kit/kits">Save as a kit…</a></span></div><div class="bigtabs">{tabs}</div></div>'
+    )
+    return body.replace("<main>", "<main>" + head, 1)
+
+
+HAND_EDITED = """<main><div class="card"><b>{t}</b><p class="small muted">Edited by hand in the Mission's
+<code>{f}</code> for now (shipped defaults apply while it is absent); its editor is on its way.</p>
+</div></main>"""
 
 
 def mission_body(m: Mission) -> str:
@@ -711,6 +774,10 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
         def _page(self, title, body, active, head=""):
             self._send(200, page(title, body, mission=mission.path, user=self.user, active=active, head=head))
 
+        def _kit(self, sub: str, body: str):
+            title = next(t for k, t, _ in KIT_TABS if k == sub)
+            self._page(title, kit_body(mission, sub, body), "kit")
+
         def do_GET(self):
             if not self._host_ok():
                 return self._send(421, b"unexpected Host header", "text/plain")
@@ -758,9 +825,15 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                 "/api/scripts.zip": lambda: self._download(
                     f"segowl-{q.get('profile', [''])[0]}.zip", mission.scripts_zip(q.get("profile", [""])[0])
                 ),
-                "/profiles": lambda: self._page("Scan Profiles", asset("profiles.html"), "profiles"),
+                "/kit/profiles": lambda: self._kit("profiles", asset("profiles.html")),
+                "/kit/groups": lambda: self._kit(
+                    "groups", HAND_EDITED.format(t="Port Groups", f="port_groups.csv")
+                ),
+                "/kit/labels": lambda: self._kit(
+                    "labels", HAND_EDITED.format(t="Port Labels", f="port_labels.csv")
+                ),
+                "/kit/kits": lambda: self._kit("kits", asset("kits.html")),
                 "/scans": lambda: self._page("Scans", asset("scans.html"), "scans"),
-                "/kits": lambda: self._page("Kits", asset("kits.html"), "kits"),
                 "/api/kits": lambda: self._json(mission.kits()),
                 "/api/kits/export": lambda: self._download(
                     f"{q.get('name', ['kit'])[0]}.zip",
@@ -773,17 +846,19 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                     tabulator,
                 ),
             }
+            if url.path in REDIRECTS:
+                return self._redirect(REDIRECTS[url.path])
             if url.path in routes:
                 try:
                     return routes[url.path]()
                 except ValueError as e:
                     return self._json({"error": str(e)}, 400)
             mission.refresh()
-            if url.path in ("/", "/report"):
+            if url.path == "/":
+                return self._page("Overview", mission_body(mission), "")
+            if url.path == "/report":
                 body = '<iframe src="/report/report.html" title="Report"></iframe>'
                 return self._page("Report", mission_body(mission) if mission.error else body, "report")
-            if url.path == "/mission":
-                return self._page("Mission", mission_body(mission), "mission")
             if url.path.startswith("/report/"):
                 return self._static(mission.file("report"), urllib.parse.unquote(url.path[len("/report/") :]))
             self._send(404, page("Not found", "<main><p>Not found.</p></main>"))
