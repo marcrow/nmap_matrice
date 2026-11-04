@@ -150,7 +150,9 @@ python3 -m segowl serve mission/ --host 0.0.0.0 --cert cert.pem --key key.pem   
 ```
 The app reads and writes the same mission folder (no database, `docs/adr/0003-*`, `docs/adr/0004-*`):
 the report is regenerated whenever a mission file changes, by hand or from the app. Without a users file
-it only listens on loopback. Editors arrive with `.scratch/local-app/` tickets 03-06.
+it only listens on loopback. Menu in audit order: Overview · Inventory & Zones · Auditor Kit (Scan
+Profiles, Port Groups, Port Labels, Kits: the auditor's tooling, carried from Mission to Mission) · Scans
+(build the scan, then run it from each Source) · Flow Policy · Report.
 
 ## Development
 ```bash

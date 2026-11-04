@@ -46,6 +46,7 @@ class Profile:
     name: str
     ports: str
     options: str
+    description: str = ""  # what it is for; optional 4th column
 
 
 def read_profiles(text: str) -> list[Profile]:
@@ -53,15 +54,16 @@ def read_profiles(text: str) -> list[Profile]:
     for row in csv.reader(io.StringIO(text.lstrip("﻿")), delimiter=";"):
         row = [c.strip() for c in row]
         if row and row[0] and not row[0].startswith("#") and row[0].lower() != "name":
-            out.append(Profile(row[0], row[1] if len(row) > 1 else "", row[2] if len(row) > 2 else ""))
+            out.append(Profile(*(row + [""] * 4)[:4]))
     return out
 
 
 def profiles_text(profiles: list[Profile]) -> str:
     buf = io.StringIO()
     w = csv.writer(buf, delimiter=";", lineterminator="\n")
-    w.writerow(["name", "ports", "options"])
-    w.writerows([p.name, p.ports, p.options] for p in profiles)
+    n = 4 if any(p.description for p in profiles) else 3  # no description typed: the 3-column format stays
+    w.writerow(["name", "ports", "options", "description"][:n])
+    w.writerows([p.name, p.ports, p.options, p.description][:n] for p in profiles)
     return buf.getvalue()
 
 

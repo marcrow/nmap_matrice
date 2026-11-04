@@ -1,52 +1,9 @@
-<!-- SegOWL — Scan Profiles page body (ticket 04), wrapped by app.page(). -->
+<!-- SegOWL — Auditor Kit › Scan Profiles: the kit's catalogue (app-navigation 06), wrapped by app.page(). -->
 <main>
-<p class="sub">The command line on top is the whole profile: type in it to add ports, top ports, options or NSE
-scripts, ✕ to remove. It stays in sync with the panels below. Targets always come from the inventory; the commands
-are computed for the Source you pick. Changes save automatically.</p>
-<div class="toolbar">
-  <select id="pf"></select>
-  <input type="text" id="pname" style="width:200px" title="Profile name: letters, digits, . _ -">
-  <button class="btn" id="pnew">+ New</button><button class="btn" id="pdup">Duplicate</button>
-  <button class="btn" id="pdel">Delete</button>
-  <span style="margin-left:auto"></span><span class="status" id="st">Loading…</span>
-</div>
-<div id="banner"></div>
-<div class="palette" style="margin-bottom:14px"><div class="tokenline" id="tl"></div><div class="drop" id="pd" hidden></div></div>
-<div class="layout" style="grid-template-columns:minmax(0,1fr) minmax(0,1fr)">
-  <div class="card"><b>Ports</b>
-    <div class="opt"><label class="t">Port Groups</label><div id="grps"></div>
-      <div class="h">Tick to include a whole group (shipped defaults, overridden by the Mission's port_groups.csv).</div></div>
-    <div class="opt"><label class="t">nmap top ports</label><div><div class="seg" id="top"></div>
-      <input type="number" id="topc" placeholder="other" style="width:80px" min="1" max="65535"></div>
-      <div class="h">nmap's own list of the most common ports, picked on the Source.</div></div>
-    <input type="search" id="q" placeholder="Search ports: veeam, oob, ldap, ssh, 3389, udp:161, network…" style="width:100%;margin-top:6px">
-    <div id="lfbox"></div><div class="results" id="res"><div class="res muted">Port Labels (alternate ports included, e.g. ssh → 2222) and
-      the IANA registry. <span class="kbd">↑↓</span> <span class="kbd">Enter</span> to add.</div></div>
-    <div style="margin-top:10px"><b class="small">Selected</b> <span class="small muted" id="cnt"></span><div id="chips" style="margin-top:4px"></div></div>
-  </div>
-  <div class="card"><b>Options</b>
-    <div class="opt"><label class="t">TCP scan</label><div class="seg" id="tcp"></div><div class="h" id="tcph"></div></div>
-    <div class="opt"><label class="t">UDP scan</label><div class="small" id="udph"></div></div>
-    <div class="opt"><label class="t">Host discovery</label><label><input type="checkbox" id="opn"> -Pn skip discovery, port-scan every target</label>
-      <div class="h">Recommended: without it, hosts dropping ping are reported BLOCKED and never port-scanned.</div></div>
-    <div class="opt"><label class="t">Timing</label><div class="seg" id="tm"></div><div class="h">T4 inside a LAN; T2 for fragile OT/legacy. T3 is nmap's default.</div></div>
-    <div class="opt"><label class="t">Speed limits</label><div>retries <input type="number" id="mr" min="0" max="10" style="width:56px">
-      · min-rate <input type="number" id="minrate" placeholder="pkt/s" style="width:76px">
-      · host-timeout <input type="text" id="hto" placeholder="30m" style="width:60px"></div></div>
-    <div class="opt"><label class="t">Output detail</label><div><label><input type="checkbox" id="n"> -n no DNS</label>
-      &nbsp;<label><input type="checkbox" id="reason"> --reason</label> &nbsp;<label><input type="checkbox" id="sV"> -sV versions</label>
-      &nbsp;<label><input type="checkbox" id="O"> -O OS</label></div></div>
-    <div class="opt"><label class="t">NSE scripts</label><div><label><input type="checkbox" id="sC"> -sC default set</label>
-      <div class="palette" style="margin-top:4px"><input type="search" id="sq" placeholder="add a script: ssl, smb, rdp, ldap…" style="width:100%">
-      <div class="drop" id="sd" hidden></div></div><div id="schips"></div></div>
-      <div class="h">Names of common scripts; any installed script can be typed. --script-args is refused (may carry client data).</div></div>
-    <div class="opt"><label class="t">More options</label><div class="palette"><input type="search" id="oq"
-      placeholder="search any nmap option: rate, timeout, ttl, mtu…" style="width:100%"><div class="drop" id="od" hidden></div></div></div>
-    <div id="extra"></div>
-    <div id="warns"></div>
-    <div class="small" style="margin-top:8px"><b>Commands for Source</b> <select id="src"></select> <span class="muted" id="tcount"></span></div>
-    <div id="cmd"></div>
-  </div>
-</div>
+<p class="sub">The kit's nmap recipes, each with what it is for. Build and adjust a scan on the <a href="/scans">Scans</a>
+page: when you change a profile there, it offers to save it as a new version. Click a description to edit it.</p>
+<div class="toolbar"><input type="search" id="pq" placeholder="Filter: name, port, option, description" style="width:280px">
+  <a class="btn" href="/scans?new=1">+ New profile</a><span style="margin-left:auto"></span><span class="status" id="st">Loading…</span></div>
+<div class="card" style="padding:0;overflow:auto"><table class="grid" id="pt"></table></div>
 </main>
-<script src="/static/app_ports.js"></script><script src="/static/app_profiles.js"></script>
+<script src="/static/app_catalogue.js"></script>

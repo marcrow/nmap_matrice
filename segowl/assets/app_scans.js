@@ -1,5 +1,7 @@
-// SegOWL — Scans page (ticket 04): Sources × Scan Profiles progress, scripts, upload, exclude.
+// SegOWL — Scans page, step 2 (local-app 04): Sources × Scan Profiles progress, scripts, upload, exclude.
+// Own scope: the scan builder (app_profiles.js) shares the page.
 "use strict";
+(() => {
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
 async function api(path, body, raw) {
@@ -23,6 +25,7 @@ function render() {
     + D.sources.map(s => `<tr data-src="${esc(s.ip)}"><td><b>${esc(s.ip)}</b>${s.name ? " · " + esc(s.name) : ""}<div class="small muted">${esc(s.zone)}${s.known ? "" : '<span style="color:#8a1a1a">not in the inventory: ignored by the report</span>'}</div></td>`
       + D.profiles.map(p => { const got = p.expected.filter(b => has(s, b)), done = p.expected.length && got.length === p.expected.length;
         const missing = p.expected.filter(b => !has(s, b)), label = done ? "✓" : got.length ? `${got.length}/${p.expected.length} · script` : "— script";
+        if (window.SegDraft?.modified && window.SegDraft.name === p.name) return `<td class="${done ? "done" : "todo"}" title="${esc(p.name)} is modified above: save or discard the changes to download its script">${done ? "✓" : got.length ? `${got.length}/${p.expected.length}` : "—"} · <i>modified</i></td>`;
         return `<td class="${done ? "done" : "todo"}"><a href="/api/script?src=${encodeURIComponent(s.ip)}&profile=${encodeURIComponent(p.name)}" title="${done ? "done" : "missing: " + esc(missing.join(", "))} · click to download the script">${label}</a></td>`; }).join("")
       + `<td><div class="files">${s.files.map(f => `<div><span class="${f.excluded ? "ex" : ""}">${esc(f.name)}</span><button class="btn sm" data-src="${esc(s.ip)}" data-name="${esc(f.name)}" data-ex="${f.excluded ? "" : "1"}">${f.excluded ? "re-include" : "exclude"}</button></div>`).join("") || '<span class="muted">drop nmap files here</span>'}</div></td></tr>`).join("");
   $("#grid").querySelectorAll("button[data-name]").forEach(b => b.onclick = async () => {
@@ -44,5 +47,11 @@ function render() {
 }
 $("#adds").onclick = async () => { const ip = $("#cand").value; if (!ip) return; try { D = await api("/api/scans/source", {ip}); render(); toast(`Source ${ip} added: scans/${ip}/`); } catch (e) { msg(e.message, "err"); } };
 $("#zp").onchange = render;
-$("#zip").onclick = e => { if ($("#zip").getAttribute("href") === "#") { e.preventDefault(); toast("Add a Source and a Scan Profile first"); } };
+$("#zip").onclick = e => {
+  if (window.SegDraft?.modified && window.SegDraft.name === $("#zp").value) { e.preventDefault(); toast(`${$("#zp").value} is modified above: save or discard the changes first`); return; }
+  if ($("#zip").getAttribute("href") === "#") { e.preventDefault(); toast("Add a Source and a Scan Profile first"); }
+};
+window.addEventListener("draftchange", () => D && render());
+window.addEventListener("profiles-saved", async () => { try { D = await api("/api/scans"); render(); } catch (e) { msg(e.message, "err"); } });
 (async () => { try { D = await api("/api/scans"); render(); } catch (e) { msg(e.message, "err"); } })();
+})();

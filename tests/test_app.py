@@ -467,3 +467,30 @@ def test_a_hand_written_three_column_label_file_is_rewritten_without_loss(missio
     assert mission.text("port_labels.csv") == (
         "port;product;tags;vendor;cleartext\n# my notes\n9392;Veeam console;backup;;\n"
     )
+
+
+def test_profile_descriptions_are_optional_and_never_invented(mission):
+    three = "name;ports;options\nbroad;22;-Pn\nr;443;\n"
+    (mission.path / "scan_profiles.csv").write_text(three)
+    d = mission.profiles()
+    assert [(p["name"], p["description"], p["imported"]) for p in d["profiles"]] == [
+        ("broad", "", 1),
+        ("r", "", 0),
+    ]
+    fp = mission.save_profiles({"fp": d["fp"], "profiles": d["profiles"]})
+    assert mission.text("scan_profiles.csv") == three  # still 3 columns: nothing typed, nothing added
+    d["profiles"][0]["description"] = "First pass; from every Source"
+    mission.save_profiles({"fp": fp, "profiles": d["profiles"]})
+    assert mission.text("scan_profiles.csv") == (
+        'name;ports;options;description\nbroad;22;-Pn;"First pass; from every Source"\nr;443;;\n'
+    )
+    assert mission.profiles()["profiles"][0]["description"] == "First pass; from every Source"
+
+
+def test_a_kit_profile_description_shows_in_the_diff(mission, tmp_path):
+    kit = tmp_path / "kits" / "k"
+    kit.mkdir(parents=True)
+    (kit / "scan_profiles.csv").write_text("name;ports;options;description\nq;22;-Pn;quick look\n")
+    dirs = [tmp_path / "kits"]
+    out = kits.apply_kit(mission.path, dirs, dirs[0], "k", dry=True)
+    assert out["diff"]["scan_profiles.csv"]["added"] == [["q", "22;-Pn;quick look"]]

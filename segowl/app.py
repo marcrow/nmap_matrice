@@ -50,6 +50,7 @@ STATIC = {  # served under /static/
     "app_kits.js": "text/javascript; charset=utf-8",
     "app_groups.js": "text/javascript; charset=utf-8",
     "app_labels.js": "text/javascript; charset=utf-8",
+    "app_catalogue.js": "text/javascript; charset=utf-8",
     "app_ports.js": "text/javascript; charset=utf-8",
     "app_policy.js": "text/javascript; charset=utf-8",
     "app_profiles.js": "text/javascript; charset=utf-8",
@@ -360,15 +361,33 @@ class Mission:
     def profiles(self) -> dict:
         return {
             "fp": fingerprint(self.file("scan_profiles.csv")),
-            "profiles": [vars(p) for p in sp.read_profiles(self.text("scan_profiles.csv"))],
+            "profiles": [
+                {**vars(p), "imported": self.imported(p)}
+                for p in sp.read_profiles(self.text("scan_profiles.csv"))
+            ],
             "groups": self.groups()[1],
             "denied": sp.DENIED,
             "sources": self.source_ips() or [r["ip"] for r in self.rows()[:1]],
         }
 
+    def imported(self, p: sp.Profile) -> int:
+        """How many Sources already hold at least one Scan of this profile (Scans are tracked by name)."""
+        try:
+            bases = set(sp.expected_files(p, self.groups()[0]))
+        except ValueError:
+            return 0
+        scans = self.file("scans")
+        return sum(
+            any(
+                f.is_file() and f.suffix.lower() in SCAN_EXT_PRIORITY and f.stem in bases
+                for f in (scans / ip).iterdir()
+            )
+            for ip in self.source_ips()
+        )
+
     def save_profiles(self, data: dict) -> str:
         profiles = [
-            sp.Profile(str(p["name"]).strip(), str(p["ports"]).strip(), str(p["options"]).strip())
+            sp.Profile(*(str(p.get(k) or "").strip() for k in ("name", "ports", "options", "description")))
             for p in data.get("profiles", [])
         ]
         sets = self.groups()[0]

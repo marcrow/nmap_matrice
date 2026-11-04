@@ -1,4 +1,6 @@
-// SegOWL — Scan Profiles editor (ticket 04). Commands are computed by the server (/api/profiles/preview).
+// SegOWL — scan builder on the Scans page (app-navigation 06; editor from local-app 04). It edits a DRAFT of a
+// Scan Profile: nothing is saved until "Save as a new profile version", "Update" or "Discard". Commands are
+// computed by the server (/api/profiles/preview). window.SegDraft tells the Sources grid which profile is modified.
 "use strict";
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
@@ -59,26 +61,70 @@ function optStr(o) {
 }
 const portList = s => s.split(",").map(x => x.trim()).filter(Boolean);
 
-let D = null, cur = 0, P = null, o = null, dirty = false, saving = false;
-function load(i) { cur = i; const p = D.profiles[i]; P = {name: p.name, ports: portList(p.ports)}; o = parseOpts(p.options); render(); }
-function commit() { // editor state -> profile list, then autosave
-  D.profiles[cur] = {name: $("#pname").value.trim(), ports: P.ports.join(","), options: optStr(o)};
-  dirty = true; status("Unsaved changes…"); autosave(); preview();
+let D = null, cur = 0, P = null, o = null, saved = null, mode = null, saving = false;
+const NEW_OPTIONS = "-sS -Pn -T4 --max-retries 2 -n --reason";
+const uniq = base => { let n = base, k = 2; while (D.profiles.some(p => p.name === n)) n = `${base}-${k++}`; return n; };
+function load(i) { // i = -1: a new profile, not in the kit yet
+  cur = i; mode = null;
+  saved = i >= 0 ? D.profiles[i] : {name: uniq("new-profile"), ports: "", options: NEW_OPTIONS, description: "", imported: 0};
+  P = {name: saved.name, ports: portList(saved.ports)}; o = parseOpts(saved.options); render();
 }
-const autosave = debounce(save, 900);
-async function save() {
-  if (saving) { autosave(); return; }
-  saving = true; status("Saving…");
-  try { const r = await api("/api/profiles", {fp: D.fp, profiles: D.profiles}); D.fp = r.fp; dirty = false; status("Saved ✓", "ok"); refreshList(); }
+const draft = () => ({name: saved.name, ports: P.ports.join(","), options: optStr(o)});
+function changes() {
+  const was = portList(saved.ports);
+  return {add: P.ports.filter(x => !was.includes(x)), rem: was.filter(x => !P.ports.includes(x)), opts: optStr(o) !== optStr(parseOpts(saved.options))};
+}
+const modified = () => { if (cur < 0) return true; const c = changes(); return !!(c.add.length || c.rem.length || c.opts); };
+function commit() { drawMod(); preview(); }
+async function saveList(list, done) {
+  if (saving) return; saving = true; status("Saving…");
+  try { const r = await api("/api/profiles", {fp: D.fp, profiles: list}); D = await api("/api/profiles"); status("Saved ✓", "ok"); done(); window.dispatchEvent(new Event("profiles-saved")); }
   catch (e) { status(e.status === 409 ? "Modified elsewhere: reload" : "Not saved: " + e.message, "err"); }
   saving = false;
 }
-window.addEventListener("beforeunload", e => { if (dirty) { e.preventDefault(); e.returnValue = ""; } });
+window.addEventListener("beforeunload", e => { if (modified()) { e.preventDefault(); e.returnValue = ""; } });
+
+// ---- the "modified" bar: save as a new version, update the profile, or discard
+function drawMod() {
+  const mod = modified(), c = changes(), name = saved.name;
+  window.SegDraft = {name: cur >= 0 ? name : "", modified: mod}; window.dispatchEvent(new Event("draftchange"));
+  $("#pf").disabled = mod; $("#pf").title = mod ? "Save or discard the changes first" : "";
+  if (!mod) { $("#modbar").innerHTML = ""; return; }
+  const pills = cur < 0 ? `<b>New profile</b> <span class="small muted">not in the kit yet</span>` : `<b>Modified from ${esc(name)}</b> ${c.add.map(x => `<span class="pill" style="background:#e6f7ec">+ ${esc(x)}</span>`).join("")}${c.rem.map(x => `<span class="pill" style="background:#fde8e8;text-decoration:line-through">${esc(x)}</span>`).join("")}${c.opts ? `<span class="pill" style="background:#fff3d6">options: ${esc(optStr(o))}</span>` : ""}`;
+  const descr = cur < 0 ? "" : `Variant of ${name}: ${[...c.add.map(x => "+" + x), ...c.rem.map(x => "−" + x), ...(c.opts ? ["options changed"] : [])].join(" ")}`;
+  const form = `<div class="toolbar" style="margin:6px 0 0"><input type="text" id="nv-name" value="${esc(cur < 0 ? name : uniq(name + "-v2"))}" style="width:170px" title="Profile name: letters, digits, . _ -">
+    <input type="text" id="nv-desc" value="${esc(descr)}" placeholder="what it is for" style="flex:1;min-width:220px"><button class="btn sm pri" id="nv-ok">Save ${cur < 0 ? "the profile" : "the new version"}</button><button class="btn sm" data-mb="cancel">Cancel</button></div>`;
+  const upd = `<div class="small" style="margin-top:6px">${saved.imported} Source(s) already hold Scans made with the previous version of ${esc(name)}; they keep the same name. Update it anyway? <button class="btn sm pri" data-mb="updok">Update ${esc(name)}</button> <button class="btn sm" data-mb="cancel">Cancel</button></div>`;
+  $("#modbar").innerHTML = `<div class="modbar"><span>✎</span><div style="flex:1">${pills}
+      <div class="small muted">Scans are tracked by profile name: save the changes to download the scripts.</div>${mode === "newver" ? form : mode === "update" ? upd : ""}</div>
+    ${mode ? "" : `<button class="btn sm pri" data-mb="newver">${cur < 0 ? "Save as a new profile…" : "Save as a new profile version…"}</button>${cur < 0 ? "" : `<button class="btn sm" data-mb="update">Update ${esc(name)}</button>`}<button class="btn sm" data-mb="discard">Discard</button>`}</div>`;
+  $("#modbar").querySelectorAll("[data-mb]").forEach(b => b.onclick = () => {
+    const a = b.dataset.mb;
+    if (a === "newver") mode = "newver";
+    if (a === "update" || a === "updok") {
+      if (a === "update" && saved.imported) mode = "update";
+      else return saveList(D.profiles.map((p, i) => i === cur ? {...p, ...draft()} : p), () => { toast(`${name} updated`); load(cur); });
+    }
+    if (a === "cancel") mode = null;
+    if (a === "discard") { toast("Changes discarded"); return load(cur >= 0 ? cur : D.profiles.length ? 0 : -1); }
+    drawMod(); if (mode === "newver") $("#nv-name").select();
+  });
+  if ($("#nv-ok")) {
+    const ok = () => {
+      const n = $("#nv-name").value.trim();
+      if (!/^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(n) || D.profiles.some(p => p.name === n)) { $("#nv-name").style.borderColor = "#dc2626"; toast(`${n}: name taken or invalid (letters, digits, . _ -)`); return; }
+      saveList([...D.profiles, {...draft(), name: n, description: $("#nv-desc").value.trim()}], () => {
+        toast(cur < 0 ? `${n} saved in the kit` : `Saved as ${n} in the kit; ${name} is unchanged`); load(D.profiles.findIndex(p => p.name === n));
+      });
+    };
+    $("#nv-ok").onclick = ok; $("#modbar").onkeydown = e => { if (e.key === "Enter" && e.target.tagName === "INPUT") ok(); if (e.key === "Escape") { mode = null; drawMod(); } };
+  }
+}
 
 // ---------------------------------------------------------------- preview (server)
 const preview = debounce(async () => {
-  const p = D.profiles[cur]; if (!p) return;
-  const r = await api("/api/profiles/preview", {...p, src: $("#src").value}).catch(e => ({errors: [e.message], commands: [], warnings: []}));
+  if (!P) return;
+  const r = await api("/api/profiles/preview", {...draft(), src: $("#src").value}).catch(e => ({errors: [e.message], commands: [], warnings: []}));
   $("#warns").innerHTML = r.errors.map(e => `<div class="err">${esc(e)}</div>`).join("") + r.warnings.map(w => `<div class="warn">${esc(w)}</div>`).join("");
   $("#cmd").innerHTML = r.commands.map((c, i) => `<div class="small muted" style="margin-top:6px">${r.commands.length > 1 ? `Scan ${i + 1}/${r.commands.length} · ` : ""}${esc(c.label)}${r.commands.length > 1 && i === 0 ? " — nmap would intersect --top-ports with -p, so they run separately; SegOWL merges both into the Source View" : ""}</div><pre class="cmd">${esc(c.cmd)}</pre>`).join("");
   const c = r.counts || {};
@@ -88,9 +134,12 @@ const preview = debounce(async () => {
 }, 250);
 
 // ---------------------------------------------------------------- rendering
-function refreshList() { $("#pf").innerHTML = D.profiles.map((p, i) => `<option value="${i}" ${i === cur ? "selected" : ""}>${esc(p.name)}</option>`).join(""); }
+function refreshList() {
+  $("#pf").innerHTML = D.profiles.map((p, i) => `<option value="${i}" ${i === cur ? "selected" : ""}>${esc(p.name)}</option>`).join("") + (cur < 0 ? `<option value="-1" selected>${esc(saved.name)} (new)</option>` : "");
+  $("#pdesc").innerHTML = saved.description ? esc(saved.description) : `<span class="muted">No description yet: <a href="/kit/profiles">Auditor Kit › Scan Profiles</a>.</span>`;
+}
 function render() {
-  refreshList(); $("#pname").value = P.name;
+  refreshList();
   $("#grps").innerHTML = Object.entries(D.groups).map(([g, spec]) => `<label class="pill grp" style="cursor:pointer" title="${esc(spec)}"><input type="checkbox" data-g="${esc(g)}" ${P.ports.includes("@" + g) ? "checked" : ""}> ${esc(g)} <span class="muted">${spec.split(",").length}</span></label>`).join("");
   const top = (P.ports.find(k => k.startsWith("top:")) || "top:none").slice(4);
   $("#top").innerHTML = ["none", "100", "1000", "5000"].map(v => `<button data-v="${v}" class="${v === top ? "on" : ""}">${v}</button>`).join("");
@@ -103,9 +152,9 @@ function render() {
   $("#schips").innerHTML = o.scripts.map((s, i) => `<span class="pill">${esc(s)}<span class="x" data-i="${i}">✕</span></span>`).join("");
   $("#extra").innerHTML = o.extra.map((e, i) => { const m = MORE.find(x => x.f === e.f) || {h: "custom option"};
     return `<div class="opt"><label class="t">${esc(e.f)}</label><div>${m.arg || e.v ? `<input type="text" data-i="${i}" value="${esc(e.v)}" placeholder="${esc(m.arg || "")}" style="width:110px"> ` : ""}<button class="btn sm" data-rm="${i}">remove</button></div><div class="h">${esc(m.h)}</div></div>`; }).join("");
-  drawTokens(); preview();
+  drawTokens(); commit();
 }
-const set = fn => { fn(); render(); commit(); };
+const set = fn => { fn(); render(); };
 
 // ---- token line
 function tokens() {
@@ -180,17 +229,7 @@ function dropList(inp, drop, list, pick) {
 }
 
 function wire() {
-  $("#pf").onchange = e => { if (dirty) save(); load(+e.target.value); };
-  $("#pname").oninput = () => { P.name = $("#pname").value.trim(); drawTokens(); commit(); };
-  const fresh = (name, ports, options) => { let n = name, k = 2; while (D.profiles.some(p => p.name === n)) n = `${name}-${k++}`; D.profiles.push({name: n, ports, options}); load(D.profiles.length - 1); commit(); };
-  $("#pnew").onclick = () => fresh("new-profile", "@admin", "-sS -Pn -T4 --max-retries 2 -n");
-  $("#pdup").onclick = () => { const p = D.profiles[cur]; if (p) fresh(p.name + "-copy", p.ports, p.options); };
-  $("#pdel").onclick = () => {
-    const p = D.profiles[cur]; if (!p) return;
-    const b = $("#banner"); b.innerHTML = `<div class="warn banner"><span>Delete Scan Profile <b>${esc(p.name)}</b>? Scans already made with it stay in scans/.</span><button class="btn sm pri" id="dy">Delete</button><button class="btn sm" id="dn">Cancel</button></div>`;
-    $("#dn").onclick = () => b.innerHTML = "";
-    $("#dy").onclick = () => { b.innerHTML = ""; D.profiles.splice(cur, 1); if (!D.profiles.length) D.profiles.push({name: "broad-tcp", ports: "top:1000,@admin", options: "-sS -Pn -T4 --max-retries 2 -n"}); load(0); commit(); };
-  };
+  $("#pf").onchange = e => { load(+e.target.value); history.replaceState(null, "", "?profile=" + encodeURIComponent(saved.name)); };
   $("#grps").onchange = e => { const k = "@" + e.target.dataset.g; set(() => P.ports = e.target.checked ? [...P.ports, k] : P.ports.filter(x => x !== k)); };
   const setTop = v => set(() => { P.ports = P.ports.filter(x => !x.startsWith("top:")); if (v && v !== "none") P.ports.unshift("top:" + v); });
   $("#top").onclick = e => { const b = e.target.closest("button"); if (b) setTop(b.dataset.v); };
@@ -221,8 +260,7 @@ function wire() {
 (async () => {
   try { D = await api("/api/profiles"); } catch (e) { status("Cannot load: " + e.message, "err"); return; }
   $("#src").innerHTML = D.sources.map(s => `<option>${esc(s)}</option>`).join("") || `<option value="">no Source yet</option>`;
-  const created = !D.profiles.length;
-  if (created) D.profiles.push({name: "broad-tcp", ports: "top:1000,@admin", options: "-sS -Pn -T4 --max-retries 2 -n"});
-  wire(); load(0); status(created ? "New profile (not saved yet)" : "Loaded", created ? "" : "ok");
-  if (created) commit();
+  const q = new URLSearchParams(location.search), i = D.profiles.findIndex(p => p.name === q.get("profile"));
+  wire(); load(q.has("new") || !D.profiles.length ? -1 : Math.max(i, 0)); status("Loaded", "ok");
+  if (q.has("profile") || q.has("new")) $("#build").scrollIntoView();
 })();
