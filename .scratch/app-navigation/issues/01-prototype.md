@@ -33,3 +33,23 @@ The spec's questions are answered (tag vocabulary derived from the data, Source 
 - Inventory, Scans, Flow Policy, Report and Kits are placeholders (unchanged screens).
 
 Awaiting the user's verdict per screen (Overview A/B, Kit nav A/B, the three editors, the tutorial text).
+
+2026-11-04 verdicts, round 1 (user's walkthrough):
+- **Overview: A, checklist.** Clearer than the pipeline here: errors show at once, and more information fits without overflowing the screen.
+- **Kit nav: neither.** Sub-tabs under the menu are not readable: one does not see there are sub-tabs, they get missed. The sidebar is visible but eats useful width on data-heavy screens (acceptable on a large screen, a pity on a small one). → round 2 proposes other layouts.
+- **Scan Profiles:** must create, duplicate (clone the current profile to modify it) and delete profiles, and save the profile being built "as a new profile" from the command/generation panel. Note: the built editor (local-app 04) already has + New / Duplicate / Delete; the prototype only mocked the port search, so round 2 shows the real toolbar plus "Save as new profile" next to the command.
+- **Port Groups:** creating a group works (the `@` is added by itself), Reset to shipped and Delete are good, the table view is fine. Missing: port autocomplete in the ports cell (Port Labels, IANA, `udp:` ports). Wanted: a more visual list, long port lists collapsed / expanded. Asked: could a group contain other groups? (see round 2)
+- **Port Labels:** good overall, creating a tag works. "+ Label" is confusing: it adds a blank row and switches the filter; the user created two rows without meaning to. → round 2: an explicit new-label form.
+- **Kits:** the prototype's summary hid the diff and the "save this Mission as a kit" form (both built in local-app 06): round 2 shows them.
+- New idea, out of scope: fill inventory names from the names resolved in the Scans → `.scratch/inventory-names-from-scans/spec.md`.
+
+2026-11-04 round 2 (same file; the Overview switch is gone, A is kept):
+- **Kit nav**, two new layouts, default C:
+  - **C · section header**: "Auditor Kit ▾" in the main menu opens a dropdown of the four screens with a one-line description each; on the page, a sticky header with four large tabs (name, count, description) and the "this Mission's copies / same as kit X" line. Visible, costs no width.
+  - **D · group in menu**: no second level at all; the main menu carries the four screens inside a framed "AUDITOR KIT" group (9 entries, one click each).
+  - A (tabs) and B (sidebar) are kept for comparison.
+- **Scan Profiles**: the real toolbar (profile select, name, + New, Duplicate, Delete with an inline confirmation) and **Save as new profile…** under the command preview (inline name field; the current profile stays as it was).
+- **Port Groups**: the ports cell autocompletes like the Scan Profiles search: a port number or a product (`338` → 3389 RDP, `winbox`), `udp:` ports (`udp:16` → udp:161 SNMP), the UDP twin of a typed port, and `@group`, which **inserts a copy of that group's ports**. Enter on a typed port keeps it as typed, arrows pick a suggestion, `,` moves to the next port. Ports show as chips; a list longer than 10 is folded ("+7 more ▾" / "show less ▴"). Double-click or click to edit.
+- **Groups inside groups**, the user's question: round 2 only inserts a copy (`@web` → its ports), which needs no change to `port_groups.csv` or the CLI. A live reference (`@web` kept in the file) would mean: the CLI parser resolving references and refusing cycles; overriding a shipped group silently changing every group that includes it (wanted or not); a kit whose group includes another group it does not carry. Open question for the verdict: is the copy enough?
+- **Port Labels**: "+ New label" opens an explicit form above the grid (port with autocomplete, product, tags, vendor, cleartext; Enter adds, Esc cancels); no blank row any more. A port + product that already exists is refused with the way out ("already ships: use Complete on it"); the new row is scrolled to and highlighted.
+- **Kits**: shows what is built: "Apply to this Mission…" opens the diff with the file picker; "Save this Mission as a kit" with name and folder; "Import a kit zip" opens its diff right after.
