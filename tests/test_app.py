@@ -1,4 +1,5 @@
 import io
+import re
 import shutil
 import threading
 import urllib.error
@@ -312,6 +313,30 @@ def test_kit_profiles_are_checked_against_the_groups_the_mission_will_have(missi
     with pytest.raises(ValueError, match="unknown Port Group"):
         kits.apply_kit(mission.path, dirs, dirs[0], "k")
     assert mission.text("port_groups.csv") == "group;ports\nops;22\n"
+
+
+def test_shipped_port_labels_are_valid_and_searchable(tmp_path):
+    from segowl import scan_profiles as sp
+    from segowl.ports import parse_port_set
+
+    header = (sp.DEFAULTS / "port_labels.csv").read_text(encoding="utf-8")
+    vocab = set(re.findall(r"^#   (\S+) ", header.split("# Tags")[1], re.M))
+    labels = sp.load_labels()
+    assert len(labels) > 400 and "risky" in vocab
+    for port, product, tags, _vendor, clear in labels:
+        parse_port_set(port)  # raises on a bad token
+        assert product and set(tags.split(",")) <= vocab, (port, product, tags)
+        assert clear in ("yes", "no", ""), (port, product, clear)
+    assert len({(p, prod) for p, prod, *_ in labels}) == len(labels), "duplicate port+product"
+
+    old = tmp_path / "port_labels.csv"  # a 3-column Mission file still loads, and adds to the shipped rows
+    old.write_text("port;product;tags\n9392;Veeam console;backup\n")
+    mine = sp.load_labels(old)
+    assert mine[-1] == ("9392", "Veeam console", "backup", "", "")
+
+    hits = sp.search_ports("cleartext", {}, labels)
+    assert hits[0]["src"] == "tag" and "23" in hits[0]["many"] and "22" not in hits[0]["many"]
+    assert any(h["key"] == "445" for h in sp.search_ports("microsoft", {}, labels))
 
 
 def test_old_urls_redirect_and_every_screen_is_linked_from_every_page(served):

@@ -40,7 +40,7 @@ Named, reusable recipe for a Scan: which ports (Port Groups, explicit ports, top
 _Avoid_: template, preset, scan config
 
 **Port Label**:
-Human description of a port (product, technology) with descriptive tags (admin, backup, oob…), used to find ports when building Port Groups and Scan Profiles. Purely descriptive: unlike a Port Group, it filters nothing and the Flow Policy cannot reference it.
+Human description of a port (product, technology, vendor, whether it is cleartext) with descriptive tags (admin, backup, oob, risky…), used to find ports when building Port Groups and Scan Profiles. Purely descriptive: unlike a Port Group, it filters nothing and the Flow Policy cannot reference it.
 _Avoid_: service, port category
 
 **Auditor Kit**:

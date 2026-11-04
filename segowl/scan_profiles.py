@@ -182,12 +182,13 @@ def _csv_rows(path: Path) -> list[list[str]]:
         ]
 
 
-def load_labels(mission_file: Path | None = None) -> list[tuple[str, str, str]]:
-    """Port Labels (port, product, tags): the shipped ones, then the Mission's additions."""
+def load_labels(mission_file: Path | None = None) -> list[tuple[str, str, str, str, str]]:
+    """Port Labels (port, product, tags, vendor, cleartext): the shipped ones, then the Mission's
+    additions. vendor and cleartext are optional trailing columns, so 3-column files still load."""
     rows = _csv_rows(DEFAULTS / "port_labels.csv")[1:]
     if mission_file:
         rows += [r for r in _csv_rows(mission_file) if r[0].lower() != "port"]
-    return [(r[0], r[1] if len(r) > 1 else "", r[2] if len(r) > 2 else "") for r in rows]
+    return [tuple((r + [""] * 5)[:5]) for r in rows]
 
 
 _IANA: list[tuple[str, str, str, str]] = []
@@ -199,7 +200,7 @@ def iana() -> list[tuple[str, str, str, str]]:
     return _IANA
 
 
-def search_ports(q: str, groups: dict[str, str], labels: list[tuple[str, str, str]], limit=60) -> list[dict]:
+def search_ports(q: str, groups: dict[str, str], labels: list[tuple[str, ...]], limit=60) -> list[dict]:
     """Port Groups, then Port Labels (tags, exact product first), then IANA; a typed port or top N first."""
     q = q.strip().lower()
     if not q:
@@ -217,7 +218,11 @@ def search_ports(q: str, groups: dict[str, str], labels: list[tuple[str, str, st
         for g, spec in groups.items()
         if q in g.lower() or q in spec.split(",")
     ]
-    tagged = sorted({p for p, _, tags in labels if q in tags.split(",")})
+    # cleartext=yes is searched and shown as one more tag
+    labels = [
+        (p, prod, ",".join(filter(None, [t, "cleartext" * (c == "yes")])), v) for p, prod, t, v, c in labels
+    ]
+    tagged = sorted({lab[0] for lab in labels if q in lab[2].split(",")})
     if len(tagged) > 1:
         out.append(
             {
@@ -230,14 +235,25 @@ def search_ports(q: str, groups: dict[str, str], labels: list[tuple[str, str, st
     hits = [
         lab
         for lab in labels
-        if q == lab[0].removeprefix("udp:") or q in lab[1].lower() or q in lab[2].split(",")
+        if q == lab[0].removeprefix("udp:")
+        or q in lab[1].lower()
+        or q in lab[2].split(",")
+        or q in lab[3].lower()
     ]
     hits.sort(
         key=lambda lab: (
             not (lab[1].lower() == q or (lab[1].lower().startswith(q + " ") and "alternate" not in lab[1]))
         )
     )
-    out += [{"key": p, "label": prod, "tags": tags, "src": "Port Label"} for p, prod, tags in hits]
+    out += [
+        {
+            "key": p,
+            "label": f"{prod} · {vendor}" if vendor and vendor.lower() not in prod.lower() else prod,
+            "tags": tags,
+            "src": "Port Label",
+        }
+        for p, prod, tags, vendor in hits
+    ]
     seen = {o["key"] for o in out}
     for name, port, proto, desc in iana():
         key = port if proto == "tcp" else f"{proto}:{port}"
