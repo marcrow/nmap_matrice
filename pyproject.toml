@@ -20,7 +20,7 @@ segowl = "segowl.cli:main"
 packages = ["segowl", "segowl.render"]
 
 [tool.setuptools.package-data]
-segowl = ["assets/*", "defaults/*"]
+segowl = ["assets/*", "defaults/*", "kits/*/*"]
 
 [tool.ruff]
 line-length = 110

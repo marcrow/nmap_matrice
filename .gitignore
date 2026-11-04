@@ -16,3 +16,4 @@ scans/
 # Only synthetic test data and shipped defaults are tracked.
 !tests/fixtures/**
 !segowl/defaults/**
+!segowl/kits/**

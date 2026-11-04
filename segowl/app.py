@@ -27,7 +27,7 @@ import zipfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from segowl import cli
+from segowl import cli, kits
 from segowl import mission_files as mf
 from segowl import scan_profiles as sp
 from segowl.inventory import load_inventory
@@ -44,6 +44,7 @@ STATIC = {  # served under /static/
     "app.css": "text/css; charset=utf-8",
     "app_inventory.js": "text/javascript; charset=utf-8",
     "app_mission.js": "text/javascript; charset=utf-8",
+    "app_kits.js": "text/javascript; charset=utf-8",
     "app_policy.js": "text/javascript; charset=utf-8",
     "app_profiles.js": "text/javascript; charset=utf-8",
     "app_scans.js": "text/javascript; charset=utf-8",
@@ -146,8 +147,9 @@ def mission_state(mission: Path) -> tuple:
 
 
 class Mission:
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, config: Path | None = None):
         self.path = path
+        self.config = config or Path.home() / ".config" / "segowl"  # holds kit_dirs
         self.state: tuple | None = None
         self.lines: list[str] = []
         self.error = ""
@@ -382,6 +384,48 @@ class Mission:
                 out.setdefault(f"{row[0]};{row[1]}", []).append(row[2])
         return {k: ",".join(v) for k, v in out.items()}
 
+    # ---- Auditor Kits
+    def kits(self) -> dict:
+        dirs = kits.read_dirs(self.config)
+        return {
+            "dirs": [str(d) for d in dirs],
+            "kits": kits.list_kits(dirs),
+            "mission": [n for n in kits.FILES if self.file(n).is_file()],
+        }
+
+    def kit_zip(self, kit_dir: str, name: str) -> bytes:
+        return kits.export_zip(kits.kit_path(kits.read_dirs(self.config), Path(kit_dir), name, write=False))
+
+    def set_kit_dirs(self, dirs: list[str]) -> dict:
+        bad = [d for d in dirs if d.strip() and not Path(d.strip()).expanduser().is_absolute()]
+        if bad:
+            raise ValueError(f"Kit folders must be absolute paths: {', '.join(bad)}")
+        with LOCK:
+            kits.write_dirs(self.config, dirs)
+        return self.kits()
+
+    def kit_action(self, action: str, d: dict, blob: bytes = b"") -> dict:
+        """save / apply / preview / import a kit; the kit is named by its folder and name."""
+        dirs, kit_dir, name = kits.read_dirs(self.config), Path(str(d.get("dir", ""))), str(d.get("name", ""))
+        overwrite = bool(d.get("overwrite"))
+        with LOCK:
+            if action == "save":
+                kits.save_kit(self.path, dirs, kit_dir, name, overwrite)
+                return {**self.kits(), "message": f"Saved as kit {name}"}
+            if action in ("apply", "preview"):
+                kit = kits.kit_path(dirs, kit_dir, name, write=False)
+                # what the preview showed is what gets applied: neither side may change in between
+                watched = [p / n for p in (self.path, kit) for n in kits.FILES]
+                if action == "apply":
+                    fp = d.get("fp") or {}
+                    check_fingerprints({p: fp.get(str(p), "") for p in watched})
+                report = kits.apply_kit(self.path, dirs, kit_dir, name, dry=action == "preview")
+                return {**self.kits(), "report": report, "fp": {str(p): fingerprint(p) for p in watched}}
+            if action == "import":
+                kits.import_zip(blob, dirs, kit_dir, name, overwrite)
+                return {**self.kits(), "message": f"Kit {name} imported"}
+        raise ValueError(f"Unknown kit action {action}")
+
     # ---- Sources, targets, Scans
     def rows(self) -> list[dict]:
         return [r for r in mf.read_inventory(self.text("inventory.csv"))[1] if r.get("ip")]
@@ -564,7 +608,6 @@ NAV = [
     ("kits", "Kits"),
     ("report", "Report"),
 ]
-READY = {"mission", "inventory", "policy", "profiles", "scans", "report"}  # Kits arrives with ticket 06
 
 
 def asset(name: str) -> str:
@@ -574,12 +617,7 @@ def asset(name: str) -> str:
 def page(title: str, body: str, *, mission: Path | None = None, user="", active="", head="") -> bytes:
     nav = ""
     if mission is not None:
-        links = "".join(
-            f'<a href="/{k}" class="{"on" if k == active else ""}">{t}</a>'
-            if k in READY
-            else f"<span>{t}</span>"
-            for k, t in NAV
-        )
+        links = "".join(f'<a href="/{k}" class="{"on" if k == active else ""}">{t}</a>' for k, t in NAV)
         nav = f"<nav>{links}</nav>"
     who = f'{html.escape(user)}<a href="/logout">log out</a>' if user else "local"
     where = ""
@@ -720,6 +758,12 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                 ),
                 "/profiles": lambda: self._page("Scan Profiles", asset("profiles.html"), "profiles"),
                 "/scans": lambda: self._page("Scans", asset("scans.html"), "scans"),
+                "/kits": lambda: self._page("Kits", asset("kits.html"), "kits"),
+                "/api/kits": lambda: self._json(mission.kits()),
+                "/api/kits/export": lambda: self._download(
+                    f"{q.get('name', ['kit'])[0]}.zip",
+                    mission.kit_zip(q.get("dir", [""])[0], q.get("name", [""])[0]),
+                ),
                 "/inventory": lambda: self._page(
                     "Inventory",
                     (ASSETS / "inventory.html").read_text(encoding="utf-8"),
@@ -797,10 +841,18 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                     d = json.loads(body)
                     mission.move_scan(d.get("src", ""), d.get("name", ""), bool(d.get("exclude")))
                     return self._json(mission.scans())
+                if url.path == "/api/kits/dirs":
+                    dirs = [str(x) for x in json.loads(body).get("dirs", [])]
+                    return self._json(mission.set_kit_dirs(dirs))
+                if url.path == "/api/kits/import":
+                    q = {k: v[0] for k, v in urllib.parse.parse_qs(url.query).items()}
+                    return self._json(mission.kit_action("import", q, body))
+                if url.path.startswith("/api/kits/"):
+                    return self._json(mission.kit_action(url.path.rsplit("/", 1)[-1], json.loads(body)))
                 if url.path == "/api/import/client":
                     return self._json(mission.import_client(body, apply="dry=1" not in url.query))
-            except Conflict as e:
-                return self._json({"error": str(e)}, 409)
+            except (Conflict, FileExistsError) as e:
+                return self._json({"error": str(e), "exists": isinstance(e, FileExistsError)}, 409)
             except (ValueError, KeyError, TypeError, AttributeError) as e:
                 return self._json({"error": str(e)}, 400)
             self._json({"error": "Not found"}, 404)
@@ -856,7 +908,7 @@ def make_server(
             f"[!] Refusing to listen on {host} without authentication: create a user first "
             f"(segowl user add <login> --config {config})"
         )
-    mission = Mission(Path(mission_dir).resolve())
+    mission = Mission(Path(mission_dir).resolve(), config)
     ensure_skeleton(mission.path)
     allowed: set[str] = set()
     server = ThreadingHTTPServer((host, port), make_handler(mission, users_file, bool(cert), allowed))

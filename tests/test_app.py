@@ -4,10 +4,12 @@ import threading
 import urllib.error
 import urllib.parse
 import urllib.request
+import zipfile
 from pathlib import Path
 
 import pytest
 
+from segowl import kits
 from segowl.app import Conflict, Mission, add_user, fingerprint, make_server, save_file
 from segowl.inventory import load_inventory
 from segowl.policy import load_policy
@@ -210,3 +212,64 @@ def test_policy_page_loads_with_a_broken_inventory_and_mixed_case_actions(missio
     mission.file("inventory.csv").write_text("ip;zone;type;name\nnot-an-ip;dmz;vm;x\n")
     d = mission.policy()
     assert d["observed"] == {} and d["errors"][0]
+
+
+# ---------------------------------------------------------------- ticket 06: Auditor Kits
+def test_saved_kit_holds_only_the_three_config_files(mission, tmp_path):
+    mission.file("scan_profiles.csv").write_text("name;ports;options\nquick;@admin;-sT -Pn\n")
+    mission.file("port_labels.csv").write_text("port;product;tags\n9392;Veeam console;backup\n")
+    kit_dir = tmp_path / "my-kits"
+    kits.save_kit(mission.path, [kit_dir], kit_dir, "acme")
+    assert sorted(p.name for p in (kit_dir / "acme").iterdir()) == ["port_labels.csv", "scan_profiles.csv"]
+
+
+def test_shipped_kits_cannot_be_overwritten(mission, tmp_path):
+    shipped = kits.list_kits([])
+    assert shipped and all(k["shipped"] for k in shipped)
+    for write in (
+        lambda: kits.save_kit(mission.path, [kits.SHIPPED], kits.SHIPPED, shipped[0]["name"], overwrite=True),
+        lambda: kits.import_zip(kits.export_zip(kits.SHIPPED / shipped[0]["name"]), [], kits.SHIPPED, "x"),
+    ):
+        with pytest.raises(ValueError, match="read-only"):
+            write()
+
+
+def test_applying_a_kit_then_exporting_it_round_trips(mission, tmp_path):
+    src = tmp_path / "kits" / "src"
+    src.mkdir(parents=True)
+    (src / "scan_profiles.csv").write_bytes(b"name;ports;options\r\nweb;@web,udp:161;-sT -Pn\r\n")
+    (src / "port_groups.csv").write_bytes("group;ports\nweb;80,443,8443\n# é\n".encode())
+    mission.file("port_labels.csv").write_text("port;product;tags\n1;x;y\n")  # not in the kit: removed
+    dirs = [tmp_path / "kits"]
+    preview = kits.apply_kit(mission.path, dirs, dirs[0], "src", dry=True)
+    assert preview["port_labels.csv"] == "removed: 1 row(s), then the shipped defaults"
+    assert mission.file("port_labels.csv").exists()
+    kits.apply_kit(mission.path, dirs, dirs[0], "src")
+    kits.save_kit(mission.path, dirs, dirs[0], "again")
+    with zipfile.ZipFile(io.BytesIO(kits.export_zip(dirs[0] / "again"))) as zf:
+        assert {n: zf.read(n) for n in zf.namelist()} == {p.name: p.read_bytes() for p in src.iterdir()}
+
+
+def test_kits_never_land_in_the_shipped_folder_or_a_mission(mission, tmp_path):
+    segowl_dir = kits.SHIPPED.parent
+    nested = kits.SHIPPED / "segmentation"
+    for dirs, kit_dir, name in (([segowl_dir], segowl_dir, "kits"), ([nested], nested, "x")):
+        with pytest.raises(ValueError, match="read-only"):
+            kits.save_kit(mission.path, dirs, kit_dir, name, overwrite=True)
+    with pytest.raises(ValueError, match="Mission"):
+        kits.save_kit(mission.path, [tmp_path], tmp_path, "mission", overwrite=True)
+    with pytest.raises(ValueError, match="no kit"):
+        kits.export_zip(kits.kit_path([tmp_path], tmp_path, "nothing", write=False))
+
+
+def test_apply_refuses_what_changed_since_the_preview(mission):
+    shipped = kits.list_kits([])[0]
+    ref = {"dir": shipped["dir"], "name": shipped["name"]}
+    preview = mission.kit_action("preview", ref)
+    assert preview["report"]["scan_profiles.csv"].startswith("added")
+    mission.file("port_groups.csv").write_text("group;ports\nweb;80\n")  # edited meanwhile
+    with pytest.raises(Conflict):
+        mission.kit_action("apply", {**ref, "fp": preview["fp"]})
+    again = mission.kit_action("preview", ref)
+    mission.kit_action("apply", {**ref, "fp": again["fp"]})
+    assert not mission.file("port_groups.csv").exists()

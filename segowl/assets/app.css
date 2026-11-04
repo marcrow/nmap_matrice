@@ -11,7 +11,6 @@ header img{width:34px;height:34px}.brand{font-weight:700;font-size:19px}.brand b
 nav{background:var(--navy2);display:flex;gap:2px;padding:0 10px}
 nav a{color:#cbd5e6;text-decoration:none;padding:10px 14px;font-size:13px;border-bottom:3px solid transparent}
 nav a:hover{color:#fff}nav a.on{color:#fff;border-bottom-color:var(--amber);font-weight:600}
-nav span{color:#cbd5e6;opacity:.4;padding:10px 14px;font-size:13px}
 main{padding:16px 18px}
 h2{margin:0 0 4px;font-size:18px}.sub{color:var(--slate);font-size:13px;margin:0 0 12px}
 .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:12px}
@@ -24,6 +23,7 @@ iframe{width:100%;height:calc(100vh - 110px);border:0;display:block}
 .btn{border:1px solid #c3cad6;background:#fff;border-radius:6px;padding:6px 11px;font-size:13px;cursor:pointer;color:var(--ink);text-decoration:none;display:inline-block}
 .btn:hover{border-color:var(--cyan)}.btn.pri{background:var(--navy);color:#fff;border-color:var(--navy)}
 .btn.sm{padding:3px 8px;font-size:12px}
+.btn:disabled{opacity:.45;cursor:default}
 input[type=text],input[type=search],input[type=password],select,textarea{border:1px solid #c3cad6;border-radius:6px;padding:6px 9px;font-size:13px;font-family:inherit}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--cyan2);border-color:var(--cyan)}
 .toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
