@@ -419,8 +419,10 @@ class Mission:
                 if action == "apply":
                     fp = d.get("fp") or {}
                     check_fingerprints({p: fp.get(str(p), "") for p in watched})
-                report = kits.apply_kit(self.path, dirs, kit_dir, name, dry=action == "preview")
-                return {**self.kits(), "report": report, "fp": {str(p): fingerprint(p) for p in watched}}
+                files = d.get("files")  # None: every file the kit has
+                files = None if files is None else [str(f) for f in files]
+                out = kits.apply_kit(self.path, dirs, kit_dir, name, files, dry=action == "preview")
+                return {**self.kits(), **out, "fp": {str(p): fingerprint(p) for p in watched}}
             if action == "import":
                 kits.import_zip(blob, dirs, kit_dir, name, overwrite)
                 return {**self.kits(), "message": f"Kit {name} imported"}

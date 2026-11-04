@@ -108,3 +108,10 @@ table.grid tr.drop td{outline:2px dashed var(--cyan);outline-offset:-2px}
 .pop h5{margin:0 0 6px;font-size:13px}
 .rule{display:flex;gap:6px;align-items:center;margin:4px 0}.rule .x{cursor:pointer}
 .err.small{padding:3px 8px;margin:0 0 4px}
+/* kits: apply preview */
+.kitdiff{background:#fff;border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.kf{padding:7px 0;border-bottom:1px solid #eef2f6}.kf label{cursor:pointer;margin-right:6px}
+table.diff{font-family:ui-monospace,monospace;font-size:12px;border-collapse:collapse;margin-top:4px;width:100%}
+table.diff td{padding:1px 8px;vertical-align:top}table.diff td:nth-child(2){width:1%;white-space:nowrap}table.diff td:first-child{width:14px;font-weight:700}
+table.diff tr.add{background:#e6f7ec}table.diff tr.del{background:#fde8e8}table.diff tr.chg{background:#fff6e0}
+table.diff .old{text-decoration:line-through;color:var(--slate)}

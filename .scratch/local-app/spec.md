@@ -56,7 +56,7 @@ Zones = those of `inventory.csv` ∪ `zones.csv`.
 
 - A kit = folder with `port_groups.csv`, `scan_profiles.csv`, `port_labels.csv`. No client data, by construction (no targets, option deny list); no content scan.
 - Sources: shipped kits `segowl/kits/<name>/` (read-only) + folders listed in `kit_dirs` (e.g. a cloned private repo, updated with `git pull` by the user).
-- Actions: save the Mission's config as a kit (into a chosen kit dir), apply a kit to the Mission (replaces, with preview), import/export a kit as zip.
+- Actions: save the Mission's config as a kit (into a chosen kit dir), apply a kit to the Mission (row-level diff, then the auditor picks which kit files replace the Mission's; a file the kit lacks or left unpicked is untouched), import/export a kit as zip.
 - Client export: zip of `inventory.csv` + `flow_policy.csv`; import replaces them after a parse-error preview. Plus "zip the whole Mission".
 
 ## Port reference

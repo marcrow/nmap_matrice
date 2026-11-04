@@ -239,11 +239,10 @@ def test_applying_a_kit_then_exporting_it_round_trips(mission, tmp_path):
     src.mkdir(parents=True)
     (src / "scan_profiles.csv").write_bytes(b"name;ports;options\r\nweb;@web,udp:161;-sT -Pn\r\n")
     (src / "port_groups.csv").write_bytes("group;ports\nweb;80,443,8443\n# é\n".encode())
-    mission.file("port_labels.csv").write_text("port;product;tags\n1;x;y\n")  # not in the kit: removed
     dirs = [tmp_path / "kits"]
     preview = kits.apply_kit(mission.path, dirs, dirs[0], "src", dry=True)
-    assert preview["port_labels.csv"] == "removed: 1 row(s), then the shipped defaults"
-    assert mission.file("port_labels.csv").exists()
+    assert preview["diff"]["scan_profiles.csv"]["added"] == [["web", "@web,udp:161;-sT -Pn"]]
+    assert not mission.file("scan_profiles.csv").exists()  # a preview writes nothing
     kits.apply_kit(mission.path, dirs, dirs[0], "src")
     kits.save_kit(mission.path, dirs, dirs[0], "again")
     with zipfile.ZipFile(io.BytesIO(kits.export_zip(dirs[0] / "again"))) as zf:
@@ -266,10 +265,50 @@ def test_apply_refuses_what_changed_since_the_preview(mission):
     shipped = kits.list_kits([])[0]
     ref = {"dir": shipped["dir"], "name": shipped["name"]}
     preview = mission.kit_action("preview", ref)
-    assert preview["report"]["scan_profiles.csv"].startswith("added")
+    assert preview["diff"]["scan_profiles.csv"]["status"] == "new"
     mission.file("port_groups.csv").write_text("group;ports\nweb;80\n")  # edited meanwhile
     with pytest.raises(Conflict):
-        mission.kit_action("apply", {**ref, "fp": preview["fp"]})
+        mission.kit_action("apply", {**ref, "fp": preview["fp"], "files": ["scan_profiles.csv"]})
     again = mission.kit_action("preview", ref)
-    mission.kit_action("apply", {**ref, "fp": again["fp"]})
-    assert not mission.file("port_groups.csv").exists()
+    mission.kit_action("apply", {**ref, "fp": again["fp"], "files": ["scan_profiles.csv"]})
+    assert mission.text("port_groups.csv") == "group;ports\nweb;80\n"  # not in the shipped kit: kept
+    assert mission.text("scan_profiles.csv")
+
+
+def test_apply_takes_only_the_chosen_kit_files_and_keeps_the_others(mission, tmp_path):
+    kit = tmp_path / "kits" / "k"
+    kit.mkdir(parents=True)
+    (kit / "port_groups.csv").write_text("group;ports\nweb;80,443\nmgmt;22\n")
+    (kit / "scan_profiles.csv").write_text("name;ports;options\nweb;@web;-sT -Pn\n")
+    mine_groups = "group;ports\nweb;80\nlegacy;23\n"
+    mission.file("port_groups.csv").write_text(mine_groups)
+    mission.file("port_labels.csv").write_text("port;product;tags\n1;x;y\n")  # not in the kit
+    dirs = [tmp_path / "kits"]
+    preview = kits.apply_kit(mission.path, dirs, dirs[0], "k", dry=True)
+    assert preview["diff"]["port_groups.csv"] == {
+        "status": "changed",
+        "added": [["mgmt", "22"]],
+        "removed": [["legacy", "23"]],
+        "changed": [["web", "80", "80,443"]],
+    }
+    assert preview["diff"]["port_labels.csv"] == {"status": "absent"}
+    kits.apply_kit(mission.path, dirs, dirs[0], "k", files=["scan_profiles.csv"])
+    assert mission.text("scan_profiles.csv") == (kit / "scan_profiles.csv").read_text()
+    assert mission.text("port_groups.csv") == mine_groups  # not chosen
+    assert mission.text("port_labels.csv") == "port;product;tags\n1;x;y\n"  # not in the kit
+
+
+def test_kit_profiles_are_checked_against_the_groups_the_mission_will_have(mission, tmp_path):
+    kit = tmp_path / "kits" / "k"
+    kit.mkdir(parents=True)
+    (kit / "scan_profiles.csv").write_text("name;ports;options\nops;@ops;-sT -Pn\n")
+    (kit / "port_groups.csv").write_text("group;ports\nother;80\n")
+    dirs = [tmp_path / "kits"]
+    mission.file("port_groups.csv").write_text("group;ports\nops;22\n")  # @ops only exists in the Mission
+    only_profiles = kits.apply_kit(mission.path, dirs, dirs[0], "k", files=["scan_profiles.csv"], dry=True)
+    assert only_profiles["errors"] == []
+    both = kits.apply_kit(mission.path, dirs, dirs[0], "k", dry=True)  # the kit's groups would drop @ops
+    assert "unknown Port Group" in both["errors"][0]
+    with pytest.raises(ValueError, match="unknown Port Group"):
+        kits.apply_kit(mission.path, dirs, dirs[0], "k")
+    assert mission.text("port_groups.csv") == "group;ports\nops;22\n"

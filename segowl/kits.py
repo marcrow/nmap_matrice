@@ -1,8 +1,9 @@
 """Auditor Kits: a folder holding at most port_groups.csv, scan_profiles.csv and port_labels.csv (GLOSSARY).
 
 A kit never holds client data, by construction: only these three files are ever read or written, and
-Scan Profiles refuse the options that would carry targets (scan_profiles.DENIED). A file missing from a
-kit means "the shipped defaults"; applying a kit therefore also removes the Mission's file.
+Scan Profiles refuse the options that would carry targets (scan_profiles.DENIED). Applying a kit copies
+the files the auditor picks, after a row-level diff; a file the kit lacks or that is not picked is left
+as it is in the Mission.
 
 Kit folders: the shipped one (read-only) and the folders listed in <config>/kit_dirs, one per line;
 every sub-folder of a kit folder is a kit.
@@ -10,6 +11,7 @@ every sub-folder of a kit folder is a kit.
 
 from __future__ import annotations
 
+import csv
 import io
 import os
 import tempfile
@@ -24,16 +26,18 @@ FILES = ("port_groups.csv", "scan_profiles.csv", "port_labels.csv")
 SHIPPED = Path(__file__).resolve().parent / "kits"
 
 
-def _copy(src: Path, dst: Path) -> None:
-    """Make dst hold exactly src's kit files (byte for byte), removing the ones src lacks."""
+KEY_COLUMNS = {"port_groups.csv": 1, "scan_profiles.csv": 1, "port_labels.csv": 2}  # what names a row
+HEADER_CELLS = ("group", "name", "port")
+
+
+def _copy(src: Path, dst: Path, names=FILES) -> None:
+    """Copy src's kit files among `names` into dst, byte for byte; the others are left alone."""
     dst.mkdir(parents=True, exist_ok=True)
-    for name in FILES:
+    for name in names:
         if (src / name).is_file():
             tmp = dst / f".{name}.tmp"
             tmp.write_bytes((src / name).read_bytes())
             os.replace(tmp, dst / name)
-        else:
-            (dst / name).unlink(missing_ok=True)
 
 
 def kit_path(dirs: list[Path], kit_dir: Path, name: str, *, write: bool) -> Path:
@@ -68,37 +72,73 @@ def save_kit(mission: Path, dirs: list[Path], kit_dir: Path, name: str, overwrit
     if not any((mission / n).is_file() for n in FILES):
         raise ValueError(f"Nothing to save: the Mission has none of {', '.join(FILES)}")
     _copy(mission, path)
+    for n in FILES:  # an overwritten kit mirrors the Mission
+        if not (mission / n).is_file():
+            (path / n).unlink(missing_ok=True)
     return path
 
 
-def _rows(f: Path) -> int:
-    lines = f.read_text(encoding="utf-8-sig").splitlines()[1:]
-    return sum(1 for x in lines if x.strip() and not x.startswith("#"))
+def _table(path: Path) -> dict[str, str]:
+    """A kit file as {row key: rest of the row}; comments, header and blank lines are not rows."""
+    out: dict[str, str] = {}
+    text = path.read_text(encoding="utf-8-sig") if path.is_file() else ""
+    for row in csv.reader(io.StringIO(text), delimiter=";"):
+        row = [c.strip() for c in row]
+        while row and not row[-1]:
+            row.pop()
+        if row and row[0] and not row[0].startswith("#") and row[0].lower() not in HEADER_CELLS:
+            k = KEY_COLUMNS[path.name]
+            out[" ".join(row[:k])] = ";".join(row[k:])
+    return out
 
 
-def apply_kit(mission: Path, dirs: list[Path], kit_dir: Path, name: str, dry: bool = False) -> dict[str, str]:
-    """Replace the Mission's three config files with the kit's; return what happens to each file."""
-    kit = kit_path(dirs, kit_dir, name, write=False)
-    if not kit.is_dir():
-        raise ValueError(f"No kit {name} in {kit_dir}")
-    errors = check(kit)
-    if errors:
-        raise ValueError("; ".join(errors))
-    report = {}
+def diff(mission: Path, kit: Path) -> dict[str, dict]:
+    """Per kit file: absent (not in the kit), same, new (the Mission has none) or changed, with the rows."""
+    out: dict[str, dict] = {}
     for n in FILES:
         new, old = kit / n, mission / n
         if not new.is_file():
-            after = "no Scan Profile" if n == "scan_profiles.csv" else "the shipped defaults"
-            report[n] = f"removed: {_rows(old)} row(s), then {after}" if old.is_file() else f"none ({after})"
-        elif not old.is_file():
-            report[n] = f"added: {_rows(new)} row(s)"
-        elif new.read_bytes() == old.read_bytes():
-            report[n] = "unchanged"
+            out[n] = {"status": "absent"}
+            continue
+        a, b = _table(old), _table(new)
+        if old.is_file() and old.read_bytes() == new.read_bytes():
+            status = "same"
         else:
-            report[n] = f"replaced: {_rows(old)} → {_rows(new)} row(s)"
+            status = "changed" if old.is_file() else "new"
+        out[n] = {
+            "status": status,
+            "added": [[k, v] for k, v in b.items() if k not in a],
+            "removed": [[k, v] for k, v in a.items() if k not in b],
+            "changed": [[k, a[k], v] for k, v in b.items() if k in a and a[k] != v],
+        }
+    return out
+
+
+def apply_kit(
+    mission: Path, dirs: list[Path], kit_dir: Path, name: str, files=None, dry: bool = False
+) -> dict:
+    """Copy the chosen kit files (default: all the kit has) over the Mission's; the others stay as they are.
+
+    Returns the diff and the errors of the resulting Mission config; nothing is written when there are errors.
+    """
+    kit = kit_path(dirs, kit_dir, name, write=False)
+    if not kit.is_dir():
+        raise ValueError(f"No kit {name} in {kit_dir}")
+    files = [n for n in FILES if (kit / n).is_file()] if files is None else list(files)
+    unknown = [n for n in files if n not in FILES or not (kit / n).is_file()]
+    if unknown:
+        raise ValueError(f"Not in kit {name}: {', '.join(unknown)}")
+    with tempfile.TemporaryDirectory() as tmp:  # the Mission's config as it would be after the apply
+        _copy(mission, Path(tmp))
+        _copy(kit, Path(tmp), files)
+        errors = check(Path(tmp))
     if not dry:
-        _copy(kit, mission)
-    return report
+        if not files:
+            raise ValueError("Choose at least one kit file to apply")
+        if errors:
+            raise ValueError("; ".join(errors))
+        _copy(kit, mission, files)
+    return {"diff": diff(mission, kit), "errors": errors}
 
 
 def read_dirs(config: Path) -> list[Path]:
@@ -138,7 +178,7 @@ def check(folder: Path) -> list[str]:
         if (folder / "scan_profiles.csv").is_file()
         else ""
     )
-    return [f"{p.name}: {e}" for p in sp.read_profiles(text) for e in sp.validate(p, groups)]
+    return [f"Scan Profile {e}" for p in sp.read_profiles(text) for e in sp.validate(p, groups)]
 
 
 def export_zip(kit: Path) -> bytes:

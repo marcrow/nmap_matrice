@@ -3,8 +3,8 @@
 <h2>Auditor Kits</h2>
 <p class="sub">A kit carries your Port Groups, Scan Profiles and Port Labels from Mission to Mission: only
 <code>port_groups.csv</code>, <code>scan_profiles.csv</code> and <code>port_labels.csv</code>, never client data. Applying
-a kit replaces all three of the Mission's files: one the kit lacks is removed (Port Groups and Port Labels fall back to the
-shipped defaults; Scan Profiles have none). The preview lists every change before anything is written.</p>
+a kit shows a row-by-row diff with the Mission; you pick which of its files replace the Mission's, the others stay as
+they are.</p>
 <div id="msg"></div>
 <div class="card" style="padding:0;overflow:auto"><table class="grid" id="kl"></table></div>
 <div class="layout" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr));align-items:start">
