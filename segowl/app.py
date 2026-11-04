@@ -926,6 +926,10 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
             name = url.path.removeprefix("/static/")
             if name in STATIC:
                 return self._send(200, (ASSETS / name).read_bytes(), STATIC[name])
+            if (
+                re.fullmatch(r"tutorial/[a-z0-9-]+\.svg", name) and (ASSETS / name).is_file()
+            ):  # Overview diagrams
+                return self._send(200, (ASSETS / name).read_bytes(), "image/svg+xml")
             if url.path == "/login":
                 return self._send(200, page("Sign in", LOGIN_FORM.format(err="")))
             user = self._user()

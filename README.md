@@ -2,6 +2,31 @@
 
 # SegOWL — segmentation matrix + Mermaid + HTML report
 
+**Rigour in the scans. Visibility on the flows. Quality in the report.** You know nmap. SegOWL turns the
+scans you run from inside the perimeter into the two views a segmentation review needs, per Zone and per
+Source, set against what the client says should pass.
+
+- **Rigour**: the same optimised nmap from every Source, against the whole inventory: nothing forgotten,
+  nothing to rerun.
+- **Visibility**: thousands of nmap answers become one view per Zone and one per Source: what passes, and
+  what should not.
+- **Restitution**: matrices and diagrams per client and per target selection, ready for your pentest or
+  audit report.
+
+<p align="center"><img src="segowl/assets/tutorial/zone-view.svg" width="49%" alt="Zone view">
+<img src="segowl/assets/tutorial/source-view.svg" width="49%" alt="Source view"></p>
+<p align="center"><img src="segowl/assets/tutorial/work-process.svg" width="100%" alt="Work process"></p>
+
+### Why SegOWL
+
+Without it, you grep: `grep -h "3389/open" scans/*/*.gnmap`, then again per Zone, per Source, for 445,
+5985, 623… and the questions stay open: which of these are really not allowed? any of them in T0? did I
+think of every grep, find every Finding? With it, the same outputs fit on one screen, and a retest shows
+the change cell by cell.
+
+<p align="center"><img src="segowl/assets/tutorial/zone-matrix.svg" width="38%" alt="Zone matrix">
+<img src="segowl/assets/tutorial/retest.svg" width="58%" alt="Retest compared cell by cell"></p>
+
 ## Workflow
 
 Everything for one engagement lives in a **mission folder**:

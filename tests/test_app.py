@@ -5,6 +5,7 @@ import threading
 import urllib.error
 import urllib.parse
 import urllib.request
+import xml.dom.minidom
 import zipfile
 from pathlib import Path
 
@@ -494,3 +495,23 @@ def test_a_kit_profile_description_shows_in_the_diff(mission, tmp_path):
     dirs = [tmp_path / "kits"]
     out = kits.apply_kit(mission.path, dirs, dirs[0], "k", dry=True)
     assert out["diff"]["scan_profiles.csv"]["added"] == [["q", "22;-Pn;quick look"]]
+
+
+def test_tutorial_diagrams_stand_alone_and_are_served(served):
+    files = sorted((Path(__file__).parents[1] / "segowl" / "assets" / "tutorial").glob("*.svg"))
+    assert {"zone-view.svg", "source-view.svg", "work-process.svg", "zone-matrix.svg"} <= {
+        f.name for f in files
+    }
+    for f in files:
+        svg = f.read_text(encoding="utf-8")
+        xml.dom.minidom.parseString(svg)  # well-formed: an <img> shows nothing otherwise
+        assert "<script" not in svg and "@import" not in svg and " class=" not in svg, f.name
+        assert set(re.findall(r'href="([^"]*)"|url\(([^)]*)\)', svg)) <= {
+            ("", u) for u in re.findall(r"url\((#[^)]*)\)", svg)
+        }
+        assert f.name.startswith("benefit-") or '<rect x="-12" y="-12"' in svg  # own white background
+    base, _ = served
+    cookie = fetch(base + "/login", {"login": "alice", "password": "s3cret"})[1]["Set-Cookie"].split(";")[0]
+    status, headers, body = fetch(base + "/static/tutorial/zone-view.svg", cookie=cookie)
+    assert (status, headers["Content-Type"]) == (200, "image/svg+xml") and body.startswith("<svg")
+    assert fetch(base + "/static/tutorial/../app.py", cookie=cookie)[0] == 404
