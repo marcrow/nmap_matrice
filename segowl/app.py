@@ -241,6 +241,81 @@ class Mission:
             msg = f"Renamed {old} → {new}: {n_inv} Interface(s), {n_pol} Flow Policy field(s) rewritten"
             return {"fp": self.fps(), "message": msg}
 
+    # ---- Overview: the state of each step, computed from the folder (nothing stored, ADR-0003)
+    def overview(self) -> dict:
+        self.refresh()
+        steps = [self._step_inventory(), self._step_kit(), self._step_scans(), self._step_policy()]
+        steps.append(self._step_report(steps[2]["state"] != "todo"))
+        nxt = next((s for s in steps if s["state"] == "warn"), None) or next(
+            (s for s in steps if s["state"] != "done"), None
+        )
+        return {"steps": steps, "next": nxt["key"] if nxt else ""}
+
+    def _step_inventory(self) -> dict:
+        rows, problems = self.rows(), []
+        try:
+            if rows:
+                load_inventory(str(self.file("inventory.csv")))  # the CLI's own loader
+        except SystemExit as e:
+            problems.append(str(e.code))
+        if err := mf.check_inventory(self.text("inventory.csv")):
+            problems.append(err)
+        if n := sum(1 for r in rows if not r.get("zone")):
+            problems.append(f"{n} Interface(s) without Zone")
+        zones = {r["zone"] for r in rows if r.get("zone")}
+        state = "warn" if problems else "done" if rows else "todo"
+        summary = f"{len(rows)} Interface(s) · {len(zones)} Zone(s)" if rows else "No Interface yet"
+        return _step("inventory", state, summary, problems, "/inventory", "Open the inventory")
+
+    def _step_kit(self) -> dict:
+        problems = []
+        try:
+            load_port_groups(str(self.file("port_groups.csv")))
+        except SystemExit as e:
+            problems.append(str(e.code))
+        n = len(sp.read_profiles(self.text("scan_profiles.csv")))
+        groups, labels = len(self.port_groups()["mission"]), len(sp.read_labels(self.file("port_labels.csv")))
+        parts = [f"{n} Scan Profile(s)", f"{groups} Mission Port Group(s)" * bool(groups)]
+        parts += [f"{labels} Mission Port Label(s)" * bool(labels), self.kit_match()]
+        state = "warn" if problems else "done" if n else "todo"
+        href, action = ("/kit/profiles", "Open the kit") if n else ("/kit/kits", "Apply a kit")
+        return _step("kit", state, " · ".join(filter(None, parts)), problems, href, action)
+
+    def _step_scans(self) -> dict:
+        sources = self.source_ips()
+        done = [ip for ip in sources if any(_is_scan(f) for f in (self.file("scans") / ip).iterdir())]
+        if not sources:
+            return _step("scans", "todo", "No Source yet", [], "/scans", "Add the Sources")
+        state = "done" if len(done) == len(sources) else "prog" if done else "todo"
+        summary = f"{len(done)} / {len(sources)} Source(s) with a Scan"
+        if left := len(sources) - len(done):
+            summary += f" · {left} to go"
+        return _step("scans", state, summary, [], "/scans", "Download the scripts" if left else "Open")
+
+    def _step_policy(self) -> dict:
+        rules = mf.read_policy(self.text("flow_policy.csv"))
+        if not rules:
+            return _step(
+                "policy", "todo", "No rule yet (optional)", [], "/policy", "Decide from the observed flows"
+            )
+        try:
+            problems = sorted({e for e in self.rule_errors(rules) if e})
+        except Exception as e:  # a broken inventory can make the check itself fail
+            problems = [str(e)]
+        undecided = sum(1 for r in rules if r["action"] not in ("allow", "deny"))
+        state = "warn" if problems else "prog" if undecided else "done"
+        summary = f"{len(rules)} rule(s)" + (f" · {undecided} undecided" if undecided else "")
+        return _step("policy", state, summary, problems, "/policy", "Open the Flow Policy")
+
+    def _step_report(self, has_scans: bool) -> dict:
+        if not has_scans:
+            return _step("report", "todo", "Generated once Scans are in", [], "/report", "Open")
+        if self.error:
+            return _step("report", "warn", "Not generated", [self.error], "/report", "See the error")
+        m = re.search(r"(\d+) Finding\(s\), (\d+) undeclared", "\n".join(self.lines))
+        summary = f"{m[1]} Finding(s) · {m[2]} undeclared flow(s)" if m else "Generated (no Flow Policy yet)"
+        return _step("report", "done", summary, [], "/report", "Open the report")
+
     # ---- Port Groups
     def port_groups(self) -> dict:
         """Shipped and Mission groups as specs, and who uses each group (rules, profiles)."""
@@ -521,13 +596,14 @@ class Mission:
         }
 
     def kit_match(self) -> str:
-        """The known kit the Mission's kit files are copies of, e.g. "same as kit segmentation"."""
-        mine = {n: self.text(n) for n in kits.FILES if self.file(n).is_file()}
+        """The known kit the Mission's kit files copy byte for byte, e.g. "same as kit segmentation"."""
+        mine = {n: self.file(n).read_bytes() for n in kits.FILES if self.file(n).is_file()}
         if not mine:
             return "no kit file: shipped defaults"
         best, same, whole = "", [], False
         for k in kits.list_kits(kits.read_dirs(self.config)):
-            hits = [n for n in mine if k["files"].get(n) == mine[n]]
+            folder = Path(k["dir"]) / k["name"]
+            hits = [n for n in mine if n in k["files"] and (folder / n).read_bytes() == mine[n]]
             full = len(hits) == len(mine) == len(k["files"])  # a kit file the Mission lacks differs
             if hits and (full, len(hits)) > (whole, len(same)):
                 best, same, whole = k["name"], hits, full
@@ -743,6 +819,32 @@ class Mission:
                 tmp_pol.unlink(missing_ok=True)
 
 
+STEP_TITLES = {
+    "inventory": "Inventory & Zones",
+    "kit": "Auditor Kit",
+    "scans": "Scans",
+    "policy": "Flow Policy",
+    "report": "Report",
+}
+
+
+def _step(key: str, state: str, summary: str, problems: list[str], href: str, action: str) -> dict:
+    """One Overview row; state: done, prog (in progress), todo (not started), warn (problem)."""
+    return {
+        "key": key,
+        "title": STEP_TITLES[key],
+        "state": state,
+        "summary": summary,
+        "problem": "\n".join(problems),
+        "href": href,
+        "action": action,
+    }
+
+
+def _is_scan(f: Path) -> bool:
+    return f.is_file() and f.suffix.lower() in SCAN_EXT_PRIORITY
+
+
 LABEL_COLUMNS = ["port", "product", "tags", "vendor", "cleartext"]
 
 
@@ -841,6 +943,36 @@ def kit_body(m: Mission, sub: str, body: str) -> str:
     return body.replace("<main>", "<main>" + head, 1)
 
 
+ICONS = {"done": "✓", "prog": "◐", "todo": "○", "warn": "!"}
+CLIENT_EXCHANGE = """<div class="card"><b>Exchange with the client</b>
+  <p class="small muted">The client's part of a Mission is its inventory and Flow Policy.</p>
+  <div class="toolbar"><a class="btn" href="/api/export/client.zip">Download client zip</a>
+  <a class="btn" href="/api/export/mission.zip">Download the whole Mission</a><span class="sep"></span>
+  <label class="btn">Import a client zip…<input type="file" id="imp" accept=".zip" hidden></label></div>
+  <div id="impres"></div></div>"""
+
+
+def overview_body(m: Mission) -> str:
+    """Checklist of the five steps (computed), client exchange, then the presentation of the tool."""
+    ov = m.overview()
+    nxt = next((s for s in ov["steps"] if s["key"] == ov["next"]), None)
+    rows = "".join(
+        f'<tr class="{"next" if s is nxt else ""}"><td class="st"><span class="ico {s["state"]}">'
+        f'{ICONS[s["state"]]}</span></td><td class="nm"><a href="{s["href"]}">{s["title"]}</a></td>'
+        f"<td>{html.escape(s['summary'])}"
+        + (f'<div class="err small">{html.escape(s["problem"])}</div>' if s["problem"] else "")
+        + f'</td><td class="act"><a class="btn sm {"pri" if s is nxt else ""}" href="{s["href"]}">'
+        f"{s['action']}{' →' if s is nxt else ''}</a></td></tr>"
+        for s in ov["steps"]
+    )
+    lead = f"Next: <b>{nxt['title']}</b>." if nxt else "Every step is done: the report is ready to share."
+    return f"""<main><h2>Overview</h2><p class="sub">{lead} The states are computed from the Mission folder;
+nothing else is stored.</p>
+<div class="card" style="padding:6px 12px"><table class="steps">{rows}</table></div>
+{CLIENT_EXCHANGE}
+{asset("overview.html")}</main><script src="/static/app_mission.js"></script>"""
+
+
 def mission_body(m: Mission) -> str:
     gen = (
         f'<p class="err">{html.escape(m.error)}</p>'
@@ -851,12 +983,7 @@ def mission_body(m: Mission) -> str:
     return f"""<main>
 <div class="card"><b>Report generation</b>{gen}</div>
 <div class="card"><b>Files</b><p class="small">{html.escape(files or "none")}</p></div>
-<div class="card"><b>Exchange with the client</b>
-  <p class="small muted">The client's part of a Mission is its inventory and Flow Policy.</p>
-  <div class="toolbar"><a class="btn" href="/api/export/client.zip">Download client zip</a>
-  <a class="btn" href="/api/export/mission.zip">Download the whole Mission</a><span class="sep"></span>
-  <label class="btn">Import a client zip…<input type="file" id="imp" accept=".zip" hidden></label></div>
-  <div id="impres"></div></div>
+{CLIENT_EXCHANGE}
 </main><script src="/static/app_mission.js"></script>"""
 
 
@@ -998,7 +1125,7 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                     return self._json({"error": str(e)}, 400)
             mission.refresh()
             if url.path == "/":
-                return self._page("Overview", mission_body(mission), "")
+                return self._page("Overview", overview_body(mission), "")
             if url.path == "/report":
                 body = '<iframe src="/report/report.html" title="Report"></iframe>'
                 return self._page("Report", mission_body(mission) if mission.error else body, "report")

@@ -515,3 +515,37 @@ def test_tutorial_diagrams_stand_alone_and_are_served(served):
     status, headers, body = fetch(base + "/static/tutorial/zone-view.svg", cookie=cookie)
     assert (status, headers["Content-Type"]) == (200, "image/svg+xml") and body.startswith("<svg")
     assert fetch(base + "/static/tutorial/../app.py", cookie=cookie)[0] == 404
+
+
+def test_an_empty_mission_starts_with_the_inventory(tmp_path):
+    from segowl.app import ensure_skeleton
+
+    ensure_skeleton(tmp_path / "m")
+    ov = Mission(tmp_path / "m", tmp_path / "cfg").overview()
+    assert [s["state"] for s in ov["steps"]] == ["todo"] * 5
+    assert ov["next"] == "inventory"
+
+
+def test_a_broken_input_file_is_the_next_step_with_the_clis_message(served):
+    base, path = served
+    (path / "flow_policy.csv").write_text("src;dst;ports;action;comment\nnowhere;*;22;deny;x\n")
+    ov = Mission(path, path.parent / "cfg").overview()
+    pol = next(s for s in ov["steps"] if s["key"] == "policy")
+    assert pol["state"] == "warn" and "nowhere" in pol["problem"] and ov["next"] == "policy"
+    (path / "inventory.csv").write_text("ip;zone;type;name\n10.0.0.1;a;;\n10.0.0.1;b;;\n")
+    ov = Mission(path, path.parent / "cfg").overview()
+    inv = ov["steps"][0]
+    assert inv["state"] == "warn" and "10.0.0.1" in inv["problem"] and ov["next"] == "inventory"
+    cookie = fetch(base + "/login", {"login": "alice", "password": "s3cret"})[1]["Set-Cookie"].split(";")[0]
+    status, _, body = fetch(base + "/", cookie=cookie)
+    assert status == 200 and "10.0.0.1" in body and "Rigour in the scans" in body
+
+
+def test_same_as_kit_means_byte_for_byte(mission, tmp_path):
+    mission = Mission(mission.path, tmp_path / "cfg")
+    shipped = (kits.SHIPPED / "segmentation" / "scan_profiles.csv").read_bytes()
+    (mission.path / "scan_profiles.csv").write_bytes(shipped.replace(b"\n", b"\r\n"))
+    assert mission.kit_match() == "matches no known kit"
+    (mission.path / "scan_profiles.csv").write_bytes(shipped)
+    kit = next(s for s in mission.overview()["steps"] if s["key"] == "kit")
+    assert "same as kit segmentation" in kit["summary"]

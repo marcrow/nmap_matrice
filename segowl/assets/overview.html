@@ -1,0 +1,54 @@
+<!-- SegOWL — Overview: presentation of the tool (app-navigation 03, prototype round 4), below the checklist.
+     Diagrams are the static SVG files of segowl/assets/tutorial/, also shown in README.md. -->
+<div class="tuto">
+  <div class="hero"><div><div class="kicker">SegOWL · segmentation testing for pentesters and auditors</div>
+    <h3>Rigour in the scans. Visibility on the flows. Quality in the report.</h3>
+    <p>You know nmap. SegOWL turns the scans you run from inside the perimeter into the two views a segmentation
+    review needs, per Zone and per Source, set against what the client says should pass.</p>
+    <ul class="pillars"><li><b>Rigour</b>the same optimised nmap from every Source, against the whole inventory: nothing forgotten, nothing to rerun.</li>
+      <li><b>Visibility</b>thousands of nmap answers become one view per Zone and one per Source: what passes, and what should not.</li>
+      <li><b>Restitution</b>matrices and diagrams per client and per target selection, ready for your pentest or audit report.</li></ul></div>
+    <div class="herofig"><input type="radio" name="hv" id="hv-zone" checked hidden><input type="radio" name="hv" id="hv-src" hidden>
+      <div class="viewtabs"><label for="hv-zone" class="vz">Zone view</label><label for="hv-src" class="vs">Source view</label>
+        <span class="small muted vz-t">every Zone pair, the open ports on each edge</span><span class="small muted vs-t">everything one Source reaches, grouped by Zone</span></div>
+      <img class="vz-f" src="/static/tutorial/zone-view.svg" alt="Zone view: Zones, open flows coloured by Flow Policy status">
+      <img class="vs-f" src="/static/tutorial/source-view.svg" alt="Source view: everything one Source reaches, grouped by Zone">
+      <div class="legend dark"><span><i style="background:#dc2626"></i>open but denied: Finding</span><span><i style="background:#f59e0b"></i>open, undeclared</span>
+        <span><i style="background:#16a34a"></i>allowed</span><span><i style="border:2px dashed #f59e0b;background:none"></i>reachable, no open port</span><span><b style="color:#b91c1c">3389</b> admin port</span></div></div></div>
+  <h3>The work process</h3>
+  <div class="figwrap"><img class="flow" src="/static/tutorial/work-process.svg" alt="Work process in six steps"></div>
+  <ol class="tsteps">
+    <li><b>Define the inventory</b><div class="d">One line per Interface: IP and Zone (the segmentation intent: T0, users, DMZ, OOB…), then type and Machine name, both optional: names can later be filled from the Scans' DNS resolution. From the client's spreadsheet or the client's zip. <a href="/inventory">Inventory &amp; Zones</a></div></li>
+    <li><b>Select your Auditor Kit</b><div class="d">Apply your kit (Scan Profiles, Port Groups, Port Labels): every Source runs the same method. <a href="/kit/kits">Auditor Kit › Kits</a></div></li>
+    <li><b>Configure <span class="opt-tag">optional</span></b><div class="d">Tune a profile for this client: ports found by product or tag, options, the command shown live. Save it as a new version to keep it in your kit. <a href="/scans">Scans</a></div></li>
+    <li><b>Run on the Sources</b><div class="d">One script per Source, targets = the whole inventory minus the Source's Machine. Drop the .xml / .gnmap / .nmap on the Source's row: the views regenerate. <a href="/scans">Scans</a></div></li>
+    <li><b>Define the Flow Policy <span class="opt-tag">optional</span></b><div class="d">Allow or deny, Zone by Zone, starting from the flows you observed. Only an explicit deny makes a Finding; the rest stays undeclared, listed apart. <a href="/policy">Flow Policy</a></div></li>
+    <li><b>Matrices &amp; diagrams</b><div class="d">Zone and Source views, Findings, retests compared. Select a client or a target set and drop them into your pentest or audit report, or hand over the offline HTML report. <a href="/report">Report</a></div></li>
+  </ol>
+  <div class="divider"><span>Why SegOWL</span></div>
+  <div class="cmp"><div><div class="cap">Without SegOWL</div><div class="term"><span class="c">$ grep -h "3389/open" scans/*/*.gnmap | cut -d' ' -f2 | sort -u</span>
+10.0.0.10
+10.0.0.11
+10.9.0.25
+…
+<span class="q"># which of these are really not allowed? any of them in T0?</span>
+<span class="c">$ grep -h "3389/open" scans/10.20.*/*.gnmap | grep -E "^Host: 10\.(0|9)\."</span>
+<span class="q"># then again for 445, 5985, 623… per Zone, per Source
+# did I think of every grep? did I find every Finding?</span></div></div>
+    <div><div class="cap amber">With SegOWL</div><img class="mx" src="/static/tutorial/zone-matrix.svg" alt="Zone matrix">
+      <div class="small muted">from ↓ to → · the same outputs, one screen: 2 Findings, 2 undeclared flows to decide</div></div></div>
+  <div class="cmp"><div><div class="cap">Several Sources, one method</div><img class="fan" src="/static/tutorial/several-sources.svg" alt="Several Sources fanning out over the whole inventory">
+      <div class="small muted">The same profile runs from every Source against the whole inventory minus its own Machine: the coverage is complete the first time.</div></div>
+    <div><div class="cap">Retest after the fix</div><img class="fan" src="/static/tutorial/retest.svg" alt="Retest compared cell by cell">
+      <div class="small muted">Drop the new Scan next to the old one: the change shows cell by cell, and the diagrams follow.</div></div></div>
+  <h3>What it brings you</h3>
+  <div class="bgrid">
+    <div class="bcard"><img class="bi" src="/static/tutorial/benefit-nmap-command.svg" alt=""><b>Build the right nmap command</b><span>Ports found by product, tag or vendor (veeam, oob, winbox…), options explained, the exact command shown live: an optimised scan, not last year's one-liner.</span></div>
+    <div class="bcard"><img class="bi" src="/static/tutorial/benefit-nothing-forgotten.svg" alt=""><b>Nothing forgotten, nothing to rerun</b><span>One script per Source, targets = the whole inventory minus the Source: no second trip because a range or a port was missed.</span></div>
+    <div class="bcard"><img class="bi" src="/static/tutorial/benefit-shared-method.svg" alt=""><b>Your method, shared and improved</b><span>Kits carry your Scan Profiles, Port Groups and Port Labels: the same method on every audit, tuned per client, improved version after version, shared in a git repo.</span></div>
+    <div class="bcard"><img class="bi" src="/static/tutorial/benefit-step-back.svg" alt=""><b>Step back over the data</b><span>Thousands of nmap answers become one matrix and one graph per Zone and per Source: no more grepping text files to see what passes.</span></div>
+    <div class="bcard"><img class="bi" src="/static/tutorial/benefit-findings.svg" alt=""><b>Findings, not noise</b><span>Only an explicit deny makes a Finding; open flows nobody decided on are listed apart as undeclared, never buried.</span></div>
+    <div class="bcard"><img class="bi" src="/static/tutorial/benefit-retest.svg" alt=""><b>Retest and compare</b><span>Add Scans at any time; compare runs cell by cell to show what the fix changed.</span></div>
+    <div class="bcard"><img class="bi" src="/static/tutorial/benefit-report.svg" alt=""><b>Straight into your report</b><span>Matrices and diagrams for a chosen client or target set, ready to drop into your pentest or audit report; the offline HTML report on top.</span></div>
+  </div>
+</div>
