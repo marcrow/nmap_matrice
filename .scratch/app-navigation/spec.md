@@ -1,6 +1,6 @@
 # App navigation: Overview, Auditor Kit tab, Port Groups and Port Labels editors
 
-Status: ready-for-agent
+Status: done
 
 Vocabulary: `GLOSSARY.md` (Mission, Auditor Kit, Port Group, Port Label, Scan Profile, Source…). Decisions: `docs/adr/0003` (Mission folder is the only state), `docs/adr/0004` (stdlib server). Builds on `.scratch/local-app/`. Validated prototype: branch `prototype/app-navigation`, `prototype_nav/index.html` (four rounds, verdicts in `issues/01-prototype.md`): it is the reference for layout and behaviour.
 
