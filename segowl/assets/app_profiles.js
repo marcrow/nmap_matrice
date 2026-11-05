@@ -192,14 +192,14 @@ async function tpal() {
     ...QUICK.filter(([f, h]) => f.toLowerCase().includes(q) || h.includes(q)).sort((a, b) => (b[0].toLowerCase() === q) - (a[0].toLowerCase() === q)).map(([f, h, fn]) => ({kind: "flag", key: f, label: h, src: "option", fn})),
     ...MORE.filter(x => x.f.toLowerCase().includes(q) || x.h.toLowerCase().includes(q)).map(x => ({kind: "flag", key: x.f, label: x.h, src: "option", fn: o => o.extra.push({f: x.f, v: ""})})),
     ...NSE.filter(([n, , h]) => n.includes(q) || h.toLowerCase().includes(q)).map(([n, c, h]) => ({kind: "flag", key: "--script " + n, label: h, src: "NSE " + c, fn: o => { if (!o.scripts.includes(n)) o.scripts.push(n); }})),
-    ...Object.entries(D.denied).filter(([f]) => f.toLowerCase().includes(q)).map(([f, why]) => ({deny: 1, key: f, label: "not allowed: " + why, src: "refused"}))].slice(0, 40);
+    ...Object.entries(D.denied).filter(([f]) => f.toLowerCase().includes(q)).map(([f, why]) => ({deny: 1, key: f, label: "not allowed: " + why, src: "refused"}))].slice(0, Math.max(40, ports.length)); // every listed port, then options up to 40
   const pd = $("#pd"); pd.hidden = false;
-  pd.innerHTML = titems.map((it, i) => `<div class="res ${i === thl ? "hl" : ""}" data-i="${i}" ${it.deny ? 'style="opacity:.6;cursor:not-allowed"' : ""}><span class="p">${esc(it.many ? "#" + q : it.key)}</span><span>${esc(it.label)}${it.tags ? " " + it.tags.split(",").map(t => `<span class="pill">${esc(t)}</span>`).join("") : ""}</span><span class="src">${esc(it.src)}</span></div>`).join("") || `<div class="res muted">no match</div>`;
+  pd.innerHTML = titems.map((it, i) => `<div class="res ${i === thl ? "hl" : ""}" data-i="${i}" ${it.deny ? 'style="opacity:.6;cursor:not-allowed"' : ""}><span class="p">${esc(it.src === "search" ? "all" : it.many ? "#" + q : it.key)}</span><span>${esc(it.label)}${it.tags ? " " + it.tags.split(",").map(t => `<span class="pill">${esc(t)}</span>`).join("") : ""}</span><span class="src">${esc(it.src)}</span></div>`).join("") || `<div class="res muted">no match</div>`;
   pd.querySelectorAll(".res[data-i]").forEach(r => r.onmousedown = e => { e.preventDefault(); tpick(titems[+r.dataset.i]); });
 }
 function addPort(it) {
   (it.many || [it.key]).forEach(k => { if (k.startsWith("top:")) P.ports = P.ports.filter(x => !x.startsWith("top:")); if (!P.ports.includes(k)) P.ports.push(k); });
-  toast("Added " + (it.many ? it.many.length + " ports" : it.key));
+  toast("Added " + (it.many ? (it.ports ?? it.many.length) + " ports" : it.key));
 }
 function tpick(it) {
   if (it.deny) { toast("Refused: " + it.label); return; }
@@ -210,7 +210,7 @@ function tpick(it) {
 let hl = 0, items = [];
 const showRes = debounce(async () => {
   const q = $("#q").value; items = q.trim() ? await api("/api/ports?q=" + encodeURIComponent(q)) : []; hl = 0;
-  $("#res").innerHTML = items.map((it, i) => `<div class="res ${i === hl ? "hl" : ""}" data-i="${i}"><span class="p">${esc(it.many ? "#" + q : it.key)}</span><span>${esc(it.label)}${it.tags ? " " + it.tags.split(",").map(t => `<span class="pill">${esc(t)}</span>`).join("") : ""}</span><span class="src">${esc(it.src)}</span></div>`).join("") || `<div class="res muted">No match. Type a port number to add it as is.</div>`;
+  $("#res").innerHTML = items.map((it, i) => `<div class="res ${i === hl ? "hl" : ""}" data-i="${i}"><span class="p">${esc(it.src === "search" ? "all" : it.many ? "#" + q : it.key)}</span><span>${esc(it.label)}${it.tags ? " " + it.tags.split(",").map(t => `<span class="pill">${esc(t)}</span>`).join("") : ""}</span><span class="src">${esc(it.src)}</span></div>`).join("") || `<div class="res muted">No match. Type a port number to add it as is.</div>`;
   $("#res").querySelectorAll(".res[data-i]").forEach(r => r.onclick = () => set(() => addPort(items[+r.dataset.i])));
   // a typed port nobody labelled yet: offer to label it, in this Mission (same form as Auditor Kit › Port Labels)
   const typed = q.trim().toLowerCase().replace(/^tcp:/, "");

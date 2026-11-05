@@ -1,6 +1,6 @@
 # Select every port of a search at once, kept readable in the profile
 
-Status: ready-for-agent
+Status: done
 
 Vocabulary: `GLOSSARY.md` (Port Group, Port Label, Scan Profile). Idea raised by the user on 2026-11-05, out of the scope of `app-navigation`; noted for later.
 
@@ -25,3 +25,9 @@ Scope:
 1. A multi-word query matches **every word** (AND) across port, product, tags and vendor, so `veeam backup` also finds the "Veeam B&R…" ports tagged backup.
 2. A **Select all the results** button adds every port of the current result list (Port Labels hits) at once; ports already in the profile are not added twice.
 3. The existing "all N ports tagged 'x'" entry stays as it is.
+
+## Done (2026-11-05)
+
+- AND search across port, product, tags and vendor (`search_ports`).
+- A first result **all · select all N ports listed ⚠ check them first** (plus the ranges it holds, e.g. `2500-3300`); N counts the ports once ranges are expanded. Not offered for a typed port (its completions) nor a tag (the "all N ports tagged" entry does it).
+- When it is offered, every matching Port Label is listed (no 60-row cut), so what you add is what you see.

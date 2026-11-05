@@ -577,3 +577,30 @@ def test_ports_outside_0_65535_are_refused():
         with pytest.raises(ValueError):
             parse_port_set(bad)
     assert parse_port_set("0,65535,udp:161")
+
+
+def test_port_search_matches_every_word_and_offers_to_select_all_the_results():
+    from segowl import scan_profiles as sp
+
+    labels = sp.load_labels()
+    hits = sp.search_ports("veeam backup", {}, labels)
+    keys = {h["key"] for h in hits if h["src"] == "Port Label"}
+    # "Veeam B&R…" tagged backup too, not only the products named "Veeam Backup"
+    assert {"9392", "6160", "9191"} <= keys
+    db = sp.search_ports("veeam db", {}, labels)
+    assert "9392" not in {h["key"] for h in db if h["src"] == "Port Label"}
+    every = next(h for h in hits if h["src"] == "search")
+    assert (
+        set(every["many"]) == keys and every["ports"] == 838
+    )  # 2500-3300 counts 801, 2741 and 2805 fall inside it
+    assert (
+        every["label"].startswith(f"select all {every['ports']} ports listed ⚠")
+        and "2500-3300" in every["label"]
+    )
+    # more matches than the usual 60 rows: every one is listed, so what you add is what you see
+    web = sp.search_ports("web admin", {}, labels)
+    listed = {h["key"] for h in web if h["src"] == "Port Label"}
+    assert len(listed) > 60 and listed == set(next(h for h in web if h["src"] == "search")["many"])
+    # a typed port and a lone tag keep their own entries, no "select all" on top
+    assert not any(h["src"] == "search" for h in sp.search_ports("338", {}, labels))
+    assert not any(h["src"] == "search" for h in sp.search_ports("backup", {}, labels))

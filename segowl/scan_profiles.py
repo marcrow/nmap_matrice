@@ -251,21 +251,42 @@ def search_ports(q: str, groups: dict[str, str], labels: list[tuple[str, ...]], 
                 "many": tagged,
             }
         )
-    hits = [
-        lab
-        for lab in labels
-        if q == lab[0].removeprefix("udp:")
-        or starts(lab[0])
-        or q in lab[1].lower()
-        or q in lab[2].split(",")
-        or q in lab[3].lower()
-    ]
+
+    def match(w: str, lab: tuple[str, ...]) -> bool:  # starts() only fires for a one-word numeric query
+        return (
+            w == lab[0].removeprefix("udp:")
+            or starts(lab[0])
+            or w in lab[1].lower()
+            or w in lab[2].split(",")
+            or w in lab[3].lower()
+        )
+
+    # several words: each one must match the port, the product, a tag or the vendor ("veeam backup")
+    hits = [lab for lab in labels if all(match(w, lab) for w in q.split())]
     hits.sort(
         key=lambda lab: (
             not (lab[1].lower() == q or (lab[1].lower().startswith(q + " ") and "alternate" not in lab[1])),
             starts(lab[0]) and lab[0].removeprefix("udp:") != m[2],
         )
     )
+    # not for a typed port (its completions) nor a tag (the "all N ports tagged" entry above selects them)
+    result_ports = sorted({lab[0] for lab in hits})
+    if len(result_ports) > 1 and not m and len(tagged) < 2:
+        total = sum(count_ports(r) for r in parse_port_set(",".join(result_ports)).values())
+        ranges = " ".join(p for p in result_ports if "-" in p)
+        warn = f"select all {total} ports listed ⚠ check them first" + (
+            f", ranges: {ranges}" if ranges else ""
+        )
+        out.append(
+            {
+                "key": ",".join(result_ports),
+                "label": warn,
+                "src": "search",
+                "many": result_ports,
+                "ports": total,
+            }
+        )
+        limit = max(limit, len(out) + len(hits))  # every listed port is shown: you add what you see
     out += [
         {
             "key": p,
