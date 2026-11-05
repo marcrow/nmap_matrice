@@ -19,7 +19,9 @@ from segowl.render.mermaid import EdgeStatus, hid, mermaid_source, mermaid_zone,
 from segowl.verdict import ALIVE, STATE_RANK, VCLASS, VERDICT_NAME, Cell, cell_text
 
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
-HTML_CSS = (ASSETS / "report.css").read_text(encoding="utf-8")
+# the report takes the app's palette (app.css :root) so both stay one look
+APP_ROOT = re.search(r":root\{[^}]*\}", (ASSETS / "app.css").read_text(encoding="utf-8")).group()
+HTML_CSS = APP_ROOT + (ASSETS / "report.css").read_text(encoding="utf-8")
 HTML_JS = (ASSETS / "report.js").read_text(encoding="utf-8")
 LOGO_SVG = (ASSETS / "logo.svg").read_text(encoding="utf-8")
 FAVICON = "data:image/svg+xml;base64," + base64.b64encode(LOGO_SVG.encode()).decode()
@@ -222,6 +224,11 @@ def _legend(policy: bool = False) -> str:
     )
 
 
+def _sec(title: str, body: str) -> str:
+    """A top-level section of a tab: a white card with its title."""
+    return f'<div class="sec"><h2>{title}</h2>{body}</div>'
+
+
 def _zone_tag(z: str) -> str:
     return f'<span class="tag">{html.escape(z)}</span>'
 
@@ -257,32 +264,40 @@ def _diagram(base: str, variants: list[str]) -> str:
 
 
 def _global_tab(a: Analysis) -> str:
-    return "".join(
-        [
-            "<h2>Global diagram (zone &rarr; zone)</h2>",
-            _zone_legend_html(a.inv),
-            _legend(a.policy is not None),
-            _diagram(
+    return (
+        _sec(
+            "Global diagram (zone &rarr; zone)",
+            _zone_legend_html(a.inv)
+            + _legend(a.policy is not None)
+            + _diagram(
                 mermaid_zone(a.agg, a.inv, a.highlight, a.zone_status(a.matrix)),
                 [
                     mermaid_zone(aggregate_zones(m, a.inv), a.inv, a.highlight, a.zone_status(m))
                     for m in a.group_matrices.values()
                 ],
             ),
-            "<h2>Consolidated zone &rarr; zone matrix</h2>",
-            _zone_matrix_html(a.agg, a.inv, a.highlight, a.zone_status(a.matrix)),
-            "<h2>Consolidated host &rarr; host matrix</h2>",
-            '<p class="legend">Hover a cell for the Scans behind its verdict.</p>',
-            _legend(a.policy is not None),
-            _host_matrix_html(a.matrix, a.inv, a.highlight, a.pair_status(a.matrix)),
-            "<h2>Pivot Machines</h2>",
-            '<p class="legend">Machines spanning several zones and reached OPEN: from the source zone, '
-            "a one-hop path to the machine's other zones.</p>",
-            _pivots_html(a),
-            "<h2>Exposure per target</h2>",
-            _exposure_html(a.exp, a.inv, a.highlight),
-        ]
+        )
+        + _sec(
+            "Zone &rarr; zone matrix", _zone_matrix_html(a.agg, a.inv, a.highlight, a.zone_status(a.matrix))
+        )
+        + _sec(
+            "Host &rarr; host matrix",
+            '<p class="hint">Hover a cell for the Scans behind its verdict.</p>'
+            + _legend(a.policy is not None)
+            + _host_matrix_html(a.matrix, a.inv, a.highlight, a.pair_status(a.matrix)),
+        )
     )
+
+
+def _pivots_tab(a: Analysis) -> str:
+    return (
+        '<p class="hint">Machines spanning several zones and reached OPEN: from the source zone, '
+        "a one-hop path to the machine's other zones.</p>" + _pivots_html(a)
+    )
+
+
+def _pertarget_tab(a: Analysis) -> str:
+    return _sec("Exposure per target", _exposure_html(a.exp, a.inv, a.highlight))
 
 
 def _persource_tab(a: Analysis) -> str:
@@ -306,17 +321,17 @@ def _persource_tab(a: Analysis) -> str:
         disp = "block" if i == 0 else "none"
         zs = sorted({inv[d].zone for d, c in matrix[s].items() if c.verdict >= ALIVE})
         boxes = "".join(
-            f'<label><input type="checkbox" checked value="{zid(z)}" onchange="refilter(this)"> '
+            f'<label class="chk"><input type="checkbox" checked value="{zid(z)}" onchange="refilter(this)"> '
             f"{html.escape(z)}</label>"
             for z in zs
         )
         bar = (
-            f'<div class="srcbar" data-name="{html.escape(inv[s].short)}"><b>Zones:</b>{boxes}'
-            "<span><button onclick=\"exportImg(this,'svg')\">Export SVG</button> "
-            "<button onclick=\"exportImg(this,'png')\">Export PNG</button></span></div>"
+            f'<div class="srcbar" data-name="{html.escape(inv[s].short)}"><b>Zones</b>{boxes}'
+            '<span class="exp"><button class="btn" onclick="exportImg(this,\'svg\')">Export SVG</button> '
+            '<button class="btn" onclick="exportImg(this,\'png\')">Export PNG</button></span></div>'
         )
         panes.append(
-            f'<div class="srcpane" id="src_{hid(s)}" style="display:{disp}">'
+            f'<div class="srcpane sec" id="src_{hid(s)}" style="display:{disp}">'
             f"<h2>{html.escape(inv[s].short)} "
             f'<span class="tag">{html.escape(inv[s].zone)} · {html.escape(inv[s].htype)} · '
             f"{html.escape(s)}</span>"
@@ -328,11 +343,14 @@ def _persource_tab(a: Analysis) -> str:
             )
             + f"<h3>Target details</h3>{_source_table_html(s, matrix[s], inv, a.highlight)}</div>"
         )
-    return f'<select id="srcsel" onchange="showSource(this.value)">{options}</select>' + "".join(panes)
+    return (
+        f'<label class="pick">Source <select id="srcsel" onchange="showSource(this.value)">{options}</select>'
+        "</label>" + "".join(panes)
+    )
 
 
 def _filter_box() -> str:
-    return '<input class="filter" placeholder="Filter rows..." oninput="filterRows(this)">'
+    return '<input class="filter" type="search" placeholder="Search this table…" oninput="filterRows(this)">'
 
 
 def _scans_tab(a: Analysis) -> str:
@@ -422,23 +440,28 @@ def _scans_tab(a: Analysis) -> str:
         f"<tbody>{''.join(cov_rows)}</tbody></table></div>"
     )
     return (
-        "<h2>Scans</h2>"
-        '<p class="legend">One row per Scan. When Scans of a Source disagree on a port, the most '
-        "permissive state wins (an open port seen once proves the flow passed); the conflicts column "
-        "counts the disagreements a Scan takes part in, detailed in the matrix cell tooltips.</p>"
-        f"{scans_table}"
-        "<h2>Conflicts</h2>"
-        '<p class="legend">Ports on which the Scans of a Source disagree. To take a Scan out of the '
-        "analysis, move its file into a sub-folder of its source folder (e.g. "
-        "<code>scans/&lt;source_ip&gt;/excluded/</code>) and regenerate the report: it is then listed "
-        "below as excluded, not read.</p>"
-        f"{conflicts_table}"
-        f"<h3>Excluded scans</h3><ul>{excluded or '<li>None</li>'}</ul>"
-        "<h2>Coverage per target</h2>"
-        '<p class="legend">Number of ports tested per protocol from each Source (number of Scans); '
-        "<code>.</code> = in no Scan output, <code>?</code> = a non-XML Scan does not tell which ports it "
-        "tested. Hover a cell for the Scans.</p>"
-        f"{coverage_table}"
+        _sec(
+            "Scans",
+            '<p class="hint">One row per Scan. When Scans of a Source disagree on a port, the most '
+            "permissive state wins (an open port seen once proves the flow passed); the conflicts column "
+            "counts the disagreements a Scan takes part in, detailed in the matrix cell tooltips.</p>"
+            + scans_table,
+        )
+        + _sec(
+            "Conflicts",
+            '<p class="hint">Ports on which the Scans of a Source disagree. To take a Scan out of the '
+            "analysis, move its file into a sub-folder of its source folder (e.g. "
+            "<code>scans/&lt;source_ip&gt;/excluded/</code>) and regenerate the report: it is then listed "
+            "below as excluded, not read.</p>"
+            + conflicts_table
+            + f"<h3>Excluded scans</h3><ul>{excluded or '<li>None</li>'}</ul>",
+        )
+        + _sec(
+            "Coverage per target",
+            '<p class="hint">Number of ports tested per protocol from each Source (number of Scans); '
+            "<code>.</code> = in no Scan output, <code>?</code> = a non-XML Scan does not tell which "
+            "ports it tested. Hover a cell for the Scans.</p>" + coverage_table,
+        )
     )
 
 
@@ -452,15 +475,20 @@ def _anomalies_tab(a: Analysis) -> str:
     unknown = "".join(f'<li class="warn">{html.escape(ip)}</li>' for ip in a.unknown)
     orphan = "".join(f'<li class="warn">{html.escape(ip)}</li>' for ip in a.orphan)
     return (
-        f"<h2>Sources without scan</h2><ul>{missing or '<li>None</li>'}</ul>"
-        f"<h2>Reachable hosts outside the inventory</h2><ul>{unknown or '<li>None</li>'}</ul>"
-        "<h2>Ignored scans</h2><p>Source folder or file name is not an inventory IP "
-        "(expected: <code>scans/&lt;source_ip&gt;/*.xml</code> "
-        f"or <code>scans/&lt;source_ip&gt;.xml</code>).</p><ul>{orphan or '<li>None</li>'}</ul>"
-        "<h2>Asymmetric flows</h2>"
-        '<p class="legend">A reaches B (OPEN or closed ports) while B &rarr; A is blocked: typically a '
-        "one-way firewall rule. Only pairs where both are Sources and both directions tested common "
-        "ports.</p>" + _asymmetry_html(a)
+        _sec("Sources without scan", f"<ul>{missing or '<li>None</li>'}</ul>")
+        + _sec("Reachable hosts outside the inventory", f"<ul>{unknown or '<li>None</li>'}</ul>")
+        + _sec(
+            "Ignored scans",
+            "<p>Source folder or file name is not an inventory IP "
+            "(expected: <code>scans/&lt;source_ip&gt;/*.xml</code> "
+            f"or <code>scans/&lt;source_ip&gt;.xml</code>).</p><ul>{orphan or '<li>None</li>'}</ul>",
+        )
+        + _sec(
+            "Asymmetric flows",
+            '<p class="hint">A reaches B (OPEN or closed ports) while B &rarr; A is blocked: typically a '
+            "one-way firewall rule. Only pairs where both are Sources and both directions tested common "
+            "ports.</p>" + _asymmetry_html(a),
+        )
     )
 
 
@@ -514,19 +542,19 @@ def _diff_tab(a: Analysis) -> str:
             f'<optgroup label="{html.escape(h.short)} ({html.escape(h.zone)})">{"".join(group)}</optgroup>'
         )
     if len(sets) < 2:
-        return "<h2>Scan Diff</h2><p>Needs at least two Scans.</p>"
+        return _sec("Scan Diff", "<p>Needs at least two Scans.</p>")
     targets = {ip: {"name": h.short, "zone": h.zone} for ip, h in a.inv.items()}
     data = json.dumps({"sets": sets, "targets": targets}).replace("<", "\\u003c")
     select = "".join(options)
-    return (
-        "<h2>Scan Diff</h2>"
-        '<p class="legend">Compares the open ports seen by two Scans or Source Views: over time '
+    return _sec(
+        "Scan Diff",
+        '<p class="hint">Compares the open ports seen by two Scans or Source Views: over time '
         "(same Source, before / after a fix) or across Sources (what one sees that the other does not). "
         "<b>added</b> = open in B, tested and not open in A; <b>removed</b> = the reverse; "
         "<b>not comparable</b> = the other side did not test the port (or its Coverage is unknown).</p>"
         f'<div class="srcbar"><label>A <select id="diff-a" onchange="runDiff()">{select}</select></label>'
         f'<label>B <select id="diff-b" onchange="runDiff()">{select}</select></label></div>'
-        f'<div id="diff-out"></div><script type="application/json" id="diff-data">{data}</script>'
+        f'<div id="diff-out"></div><script type="application/json" id="diff-data">{data}</script>',
     )
 
 
@@ -571,8 +599,8 @@ def _policy_tab(a: Analysis) -> str:
         for r in a.policy or []
     ]
     allowed = len(a.decisions) - len(findings) - len(undeclared)
-    return (
-        "<h2>Flow Policy</h2>"
+    return _sec(
+        "Flow Policy",
         f'<div class="legend"><span class="p-deny v-open">{len(findings)} Finding(s)</span>'
         f'<span class="p-undeclared v-open">{len(undeclared)} undeclared</span>'
         f'<span class="p-allow v-open">{allowed} allowed</span> '
@@ -586,49 +614,78 @@ def _policy_tab(a: Analysis) -> str:
         + "<h3>Undeclared flows</h3>"
         + _flows_table(undeclared, side)
         + "<h3>Rules</h3>"
-        + _flows_table(rules, ["line", "src", "dst", "ports", "action", "comment", "flows decided", ""])
+        + _flows_table(rules, ["line", "src", "dst", "ports", "action", "comment", "flows decided", ""]),
     )
 
 
-TABS = (
-    ("global", "Global view", _global_tab),
-    ("policy", "Flow Policy", _policy_tab),
-    ("persource", "Per source", _persource_tab),
-    ("scans", "Scans", _scans_tab),
-    ("diff", "Diff", _diff_tab),
-    ("anomalies", "Anomalies", _anomalies_tab),
-)
+def _tabs(a: Analysis) -> list[tuple[str, str, str, str, Callable[[Analysis], str]]]:
+    """(key, title, count, one-line description, render) of the big tabs, in display order."""
+    n_scans = sum(len(v) for v in a.scans.values())
+    n_conf = sum(len(c.conflicts) for row in a.matrix.values() for c in row.values())
+    reached = sum(1 for d in a.inv if any(d in r and r[d].verdict >= ALIVE for r in a.matrix.values()))
+    policy = f"{len(a.findings)} Findings · {len(a.undeclared)} undeclared" if a.policy is not None else ""
+    tabs = [
+        (
+            "global",
+            "Global view",
+            f"{len(zone_palette(a.inv))} zones",
+            "diagram, zone and host matrices",
+            _global_tab,
+        ),
+        ("policy", "Flow Policy", policy, "Findings, undeclared flows, rules", _policy_tab),
+        ("pivots", "Pivot Machines", str(len(a.pivots)), "rebounds into other zones", _pivots_tab),
+        ("persource", "Per source", str(len(a.sources)), "what each Source reaches", _persource_tab),
+        ("pertarget", "Per target", str(reached), "who reaches each target", _pertarget_tab),
+        (
+            "scans",
+            "Scans",
+            f"{n_scans} · {n_conf} conflict(s)",
+            "coverage, conflicts, anomalies",
+            lambda a: _scans_tab(a) + _anomalies_tab(a),
+        ),
+        ("diff", "Diff", "", "before / after, Source vs Source", _diff_tab),
+    ]
+    return [t for t in tabs if t[0] != "policy" or a.policy is not None]
 
 
 def _group_filter(a: Analysis) -> str:
-    """Port Group selector (filters every view to the OPEN flows of the group) and the groups as JSON."""
+    """Port Group chips (filter every tab to the OPEN flows of the group; a dropdown beyond 8 groups)
+    and the groups as JSON."""
     if not a.port_groups:
         return ""
-    options = "".join(f'<option value="{i}">{html.escape(g)}</option>' for i, g in enumerate(a.port_groups))
+    names = list(a.port_groups)
+    if len(names) > 8:
+        opts = "".join(f'<option value="{i}">{html.escape(g)}</option>' for i, g in enumerate(names))
+        picker = f'<select onchange="setGroup(this.value)"><option value="">all ports</option>{opts}</select>'
+    else:
+        picker = '<button class="gchip on" data-g="" onclick="pickGroup(this)">all ports</button>' + "".join(
+            f'<button class="gchip" data-g="{i}" onclick="pickGroup(this)">{html.escape(g)}</button>'
+            for i, g in enumerate(names)
+        )
     data = json.dumps(list(a.port_groups.values())).replace("<", "\\u003c")
     return (
-        '<label class="groupsel">Port group: <select onchange="setGroup(this.value)">'
-        f'<option value="">all ports</option>{options}</select></label>'
+        f'<div class="groupsel"><span>Port Group</span><div>{picker}</div>'
+        '<span class="note">This filter applies to every tab.</span></div>'
         f'<script type="application/json" id="port-groups">{data}</script>'
     )
 
 
 def write_html(a: Analysis, out_dir: str) -> str:
-    tabs = [t for t in TABS if t[0] != "policy" or a.policy is not None]
+    tabs = _tabs(a)
     n_scans = sum(len(v) for v in a.scans.values())
     meta = (
-        f"{len(a.inv)} targets · {len(a.sources)} scanned source(s) · {n_scans} scan(s) · "
-        f"{len(a.missing)} without scan · {len(a.unknown)} host(s) outside inventory · "
-        f"{len(a.orphan)} ignored scan(s)"
+        f"{len(a.inv)} targets · {len(a.sources)} Source(s) · {n_scans} Scan(s) · "
+        f"{len(a.unknown)} host(s) outside the inventory · {len(a.orphan)} ignored Scan(s)"
     )
     buttons = "".join(
-        f'<button class="tab{" active" if i == 0 else ""}" data-tab="{key}" '
-        f"onclick=\"showTab('{key}')\">{title}</button>"
-        for i, (key, title, _) in enumerate(tabs)
+        f'<a class="{"on" if i == 0 else ""}" data-tab="{key}" href="#{key}" '
+        f"onclick=\"showTab('{key}');return false\">"
+        f"<b>{title}{f'<span class=n>{count}</span>' if count else ''}</b><span>{desc}</span></a>"
+        for i, (key, title, count, desc, _) in enumerate(tabs)
     )
     panes = "".join(
         f'<section id="tab-{key}" class="pane{" active" if i == 0 else ""}">{render(a)}</section>'
-        for i, (key, _, render) in enumerate(tabs)
+        for i, (key, _, _, _, render) in enumerate(tabs)
     )
     doc = f"""<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -636,10 +693,10 @@ def write_html(a: Analysis, out_dir: str) -> str:
 <title>SegOWL segmentation report</title>
 {_mermaid_script()}
 <style>{HTML_CSS}</style></head><body>
-<header><div><h1>Network segmentation report</h1>
-<div class="meta">{meta}</div>{_group_filter(a)}</div>
-<div class="brand">{LOGO_SVG}<span>Seg<b>OWL</b></span></div></header>
-<div class="tabs">{buttons}</div>
-{panes}
+<script>if(window.self!==window.top) document.body.classList.add('embed');</script>
+<header class="rhead"><div class="brand">{LOGO_SVG}<span>Seg<b>OWL</b></span></div>
+<div><h1>Network segmentation report</h1><div class="meta">{meta}</div></div></header>
+<div class="rtop"><div class="bigtabs">{buttons}</div>{_group_filter(a)}</div>
+<main>{panes}</main>
 <script>{HTML_JS}</script></body></html>"""
     return write_output(out_dir, "report.html", doc)

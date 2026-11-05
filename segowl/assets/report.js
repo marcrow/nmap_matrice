@@ -20,12 +20,14 @@ async function renderVisible(scope){
     await draw(el);
   }
 }
+// Big tabs; the open tab is kept in the URL hash, so a reload (or a shared link) reopens it.
 function showTab(id){
-  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('tab-'+id).classList.add('active');
-  document.querySelector('.tab[data-tab="'+id+'"]').classList.add('active');
-  renderVisible(document.getElementById('tab-'+id));
+  const pane=document.getElementById('tab-'+id);
+  if(!pane) return;
+  document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('active', p===pane));
+  document.querySelectorAll('.bigtabs a').forEach(t=>t.classList.toggle('on', t.dataset.tab===id));
+  history.replaceState(null, '', '#'+id);
+  renderVisible(pane);
 }
 function showSource(key){
   document.querySelectorAll('.srcpane').forEach(p=>p.style.display='none');
@@ -70,8 +72,14 @@ function inRanges(label, byProto){
   const [proto, port]=label.includes(':')?label.split(':'):['tcp', label];
   return (byProto[proto]||[]).some(([lo,hi])=>+port>=lo && +port<=hi);
 }
+// Port Group chips: the active one is filled; the bar is underlined while a group filters.
+function pickGroup(btn){
+  document.querySelectorAll('.gchip').forEach(b=>b.classList.toggle('on', b===btn));
+  setGroup(btn.dataset.g);
+}
 function setGroup(g){
   GROUP=g;
+  document.body.classList.toggle('grp', g!=='');
   const set=g===''?null:JSON.parse(document.getElementById('port-groups').textContent)[+g];
   document.querySelectorAll('[data-p]').forEach(el=>{
     if(el.dataset.orig===undefined){el.dataset.orig=el.innerHTML; el.dataset.cls=el.className;}
@@ -120,7 +128,8 @@ function exportImg(btn, fmt){
 }
 window.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('.mermaid').forEach(el=>{el.dataset.base=el.textContent;});
-  renderVisible(document.getElementById('tab-global'));
+  const h=location.hash.slice(1);
+  if(document.getElementById('tab-'+h)) showTab(h); else renderVisible(document.querySelector('.pane.active'));
 });
 // Hides the rows of the table following the filter box that do not contain its text.
 function filterRows(inp){

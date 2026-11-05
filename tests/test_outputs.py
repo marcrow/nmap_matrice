@@ -4,6 +4,7 @@ Intended change to a view: `UPDATE_SNAPSHOTS=1 uv run pytest`, then review the s
 """
 
 import os
+import re
 from pathlib import Path
 
 from segowl.analysis import analyze
@@ -14,6 +15,7 @@ from segowl.render.html import write_html
 
 MISSION = Path(__file__).parent / "fixtures" / "mission"
 SNAPSHOTS = Path(__file__).parent / "fixtures" / "snapshots"
+DEMO = Path(__file__).parent.parent / "demo"
 
 
 def _texts(root: Path) -> dict[Path, str]:
@@ -48,3 +50,12 @@ def test_inventory_text_is_escaped_in_the_report(tmp_path):
     a = analyze(inv, {"10.0.0.1": [parse_scan(str(scan), "10.0.0.1")]}, [])
     doc = open(write_html(a, str(tmp_path)), encoding="utf-8").read()
     assert bad not in doc
+
+
+def test_report_has_the_seven_big_tabs_and_loads_nothing_from_the_network(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr("sys.argv", ["segowl", str(DEMO), "-o", str(tmp_path)])
+    main()
+    doc = (tmp_path / "report.html").read_text(encoding="utf-8")
+    tabs = re.findall(r'data-tab="(\w+)"', doc)
+    assert tabs == ["global", "policy", "pivots", "persource", "pertarget", "scans", "diff"]
+    assert not re.search(r'<script[^>]+src=|<link[^>]+href="http', doc)  # offline: everything inlined

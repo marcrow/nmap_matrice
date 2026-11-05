@@ -1,6 +1,6 @@
 # Report chrome: big tabs, sticky Port Group bar, section cards
 
-Status: ready-for-agent
+Status: done
 Blocked by: –
 Spec: ../spec.md
 
@@ -15,3 +15,7 @@ Reference: branch `prototype/report-readability`, `segowl/render/html.py` `_tabs
 - `report.html` opened as a file and inside `/report` of the app: one header each time, the seven big tabs with their counts, the hash reopens the same tab
 - the Port Group chips filter every tab and stay visible while scrolling
 - no external request (offline constraint)
+
+## Comments
+
+**2026-11-05, done.** `render/html.py` `_tabs` (seven big tabs with counts and description), `_sec` (white card per section), `_group_filter` (chips, a `<select>` beyond 8 groups), `write_html` (plain header `.rhead`, sticky `.rtop`). The palette is `app.css` `:root`, prepended to `report.css` at generation (one source). `report.js`: `showTab` keeps the tab in the hash, `pickGroup`; the embed class is set by an inline script right after `<body>` (no header flash in the app). Pivot Machines and Per target hold the former Global view sections until tickets 06 and 07; Scans holds the former Anomalies tab. Checked headless on the demo, standalone (`#scans` reopens Scans) and in `/report` of the app (no own header). Test: `test_report_has_the_seven_big_tabs_and_loads_nothing_from_the_network`.
