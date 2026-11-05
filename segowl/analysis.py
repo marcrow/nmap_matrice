@@ -236,6 +236,21 @@ class Analysis:
         return [(s, d, p, r) for (s, d, p), r in self.decisions.items() if r is not None and r.action == DENY]
 
     @cached_property
+    def denied(self) -> dict[tuple[str, str], set[Port]]:
+        """(source, target) -> the open ports the Flow Policy denies (the ports of its Findings)."""
+        out: dict[tuple[str, str], set[Port]] = defaultdict(set)
+        for s, d, p, _ in self.findings:
+            out[(s, d)].add(p)
+        return dict(out)
+
+    @cached_property
+    def zone_denied(self) -> dict[tuple[str, str], set[Port]]:
+        out: dict[tuple[str, str], set[Port]] = defaultdict(set)
+        for (s, d), ports in self.denied.items():
+            out[(self.inv[s].zone, self.inv[d].zone)] |= ports
+        return dict(out)
+
+    @cached_property
     def undeclared(self) -> list[tuple[str, str, Port]]:
         return [(s, d, p) for (s, d, p), r in self.decisions.items() if r is None]
 

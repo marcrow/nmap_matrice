@@ -27,6 +27,7 @@ function showTab(id){
   document.querySelectorAll('.pane').forEach(p=>p.classList.toggle('active', p===pane));
   document.querySelectorAll('.bigtabs a').forEach(t=>t.classList.toggle('on', t.dataset.tab===id));
   history.replaceState(null, '', '#'+id);
+  freeze(pane);
   renderVisible(pane);
 }
 function showSource(key){
@@ -77,27 +78,42 @@ function pickGroup(btn){
   document.querySelectorAll('.gchip').forEach(b=>b.classList.toggle('on', b===btn));
   setGroup(btn.dataset.g);
 }
-function setGroup(g){
-  GROUP=g;
-  document.body.classList.toggle('grp', g!=='');
-  const set=g===''?null:JSON.parse(document.getElementById('port-groups').textContent)[+g];
+// Open ports of an element, admin ones bold, '+n' beyond cap. Mirrors html.py _ports_html.
+function portsHtml(labels, admin, cap){
+  const t=labels.map(l=>admin.includes(l)?'<b>'+l+'</b>':l);
+  return cap && t.length>cap ? t.slice(0,cap).join(',')+' <small>+'+(t.length-cap)+'</small>' : t.join(',');
+}
+// Freezes the column widths of the visible matrices (measured unfiltered), so tiles never jump.
+function freeze(scope){
+  const todo=[...scope.querySelectorAll('table.mx:not([data-frozen])')].filter(t=>t.offsetWidth);
+  if(!todo.length) return;
+  const set=groupSet(); if(set) filterPorts(null);
+  todo.forEach(t=>{ t.dataset.frozen=1; t.querySelectorAll('thead th').forEach(th=>th.style.minWidth=th.getBoundingClientRect().width+'px'); });
+  if(set) filterPorts(set);
+}
+function groupSet(){ return GROUP===''?null:JSON.parse(document.getElementById('port-groups').textContent)[+GROUP]; }
+// Changes only the port text of each element (data-p); the Flow Policy icon, bold and tile stay. A tile with no
+// port of the group reads as unseen, as in the restricted matrices.
+function filterPorts(set){
   document.querySelectorAll('[data-p]').forEach(el=>{
     if(el.dataset.orig===undefined){el.dataset.orig=el.innerHTML; el.dataset.cls=el.className;}
-    const keep=set?el.dataset.p.split(',').filter(x=>x && inRanges(x, set)):null;
-    if(el.tagName==='LI'){
-      el.style.display=!set||keep.length?'':'none';
-      const pl=el.querySelector('.pl'); if(pl) pl.textContent=set?keep.join(','):el.dataset.p;
-      return;
-    }
-    if(!set||(keep.length && keep.length===el.dataset.p.split(',').filter(Boolean).length)){el.innerHTML=el.dataset.orig; el.className=el.dataset.cls;}
-    else if(keep.length){el.textContent=keep.join(','); el.className=el.dataset.cls;}
-    else if(el.dataset.cls.includes('v-')){el.textContent='.'; el.className='v-none';}
-    else el.textContent='';
+    el.innerHTML=el.dataset.orig; el.className=el.dataset.cls; el.style.display='';
+    if(!set) return;
+    const keep=el.dataset.p.split(',').filter(x=>x && inRanges(x, set)), pl=el.querySelector('.pl')||el;
+    if(keep.length) pl.innerHTML=portsHtml(keep, (el.dataset.b||'').split(','), +el.dataset.cap||0);
+    else if(/\bv-/.test(el.dataset.cls)){el.innerHTML='<span class="pl">–</span>'; el.className=el.dataset.cls.replace(/\b[vp]-\w+/g,'')+' v-none';}
+    else{pl.textContent=''; if(el.tagName==='LI') el.style.display='none';}
   });
   document.querySelectorAll('.card').forEach(c=>{
     const li=[...c.querySelectorAll('li[data-p]')];
     if(li.length) c.style.display=li.some(l=>l.style.display!=='none')?'':'none';
   });
+}
+function setGroup(g){
+  freeze(document.querySelector('.pane.active'));
+  GROUP=g;
+  document.body.classList.toggle('grp', g!=='');
+  filterPorts(groupSet());
   document.querySelectorAll('.mermaid[data-done]').forEach(el=>el.removeAttribute('data-done'));
   renderVisible(document.querySelector('.pane.active'));
 }

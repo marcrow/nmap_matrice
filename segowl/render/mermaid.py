@@ -25,6 +25,8 @@ MERMAID_INIT = (
 
 
 POLICY_COLORS = {DENY: "#dc2626", UNDECLARED: "#f59e0b", ALLOW: "#16a34a"}
+GREY = "#94a3b8"  # open inside a zone, without a Flow Policy
+SLATE = "#64748b"  # reachable, no open port
 EdgeStatus = dict[tuple[str, str], str]  # (from, to) -> Flow Policy status of the OPEN flows on that edge
 
 
@@ -32,12 +34,21 @@ def _no_highlight(port: Port) -> bool:
     return False
 
 
-def _label(ports: Iterable[Port], highlight: Callable[[Port], bool], cap: int = 6) -> str:
-    """Edge label; highlighted (admin) ports in red."""
-    labels = [
-        f"<b style='color:#b91c1c'>{port_label(p)}</b>" if highlight(p) else port_label(p)
-        for p in sorted(ports)
-    ]
+Denied = dict[tuple[str, str], set[Port]]  # (from, to) -> ports the Flow Policy denies (Analysis.denied)
+
+
+def _label(
+    ports: Iterable[Port], highlight: Callable[[Port], bool], denied: Iterable[Port] = (), cap: int = 6
+) -> str:
+    """Edge label: ports the Flow Policy denies in red, admin ports bold, plain otherwise; those first."""
+    denied = set(denied)
+
+    def one(p: Port) -> str:
+        t = port_label(p)
+        t = f"<span style='color:{POLICY_COLORS[DENY]}'>{t}</span>" if p in denied else t
+        return f"<b>{t}</b>" if highlight(p) else t
+
+    labels = [one(p) for p in sorted(ports, key=lambda p: (p not in denied, not highlight(p), p))]
     return ",".join(labels[:cap]) + (",..." if len(labels) > cap else "")
 
 
@@ -66,15 +77,16 @@ def _edge(
 ) -> tuple[str, str]:
     """Mermaid edge + its linkStyle: solid if OPEN, dashed otherwise.
 
-    OPEN colour: the Flow Policy status when there is one, else red cross-zone / green same-zone.
+    OPEN colour: the Flow Policy status when there is one; without a Flow Policy every flow is
+    undeclared (ADR-0002): amber across zones, grey inside a zone. Red only ever means Finding.
     """
     if verdict == OPEN:
-        col = POLICY_COLORS[status] if status else "#e11d48" if cross else "#16a34a"
+        col = POLICY_COLORS[status] if status else POLICY_COLORS[UNDECLARED] if cross else GREY
         return (
             f'  {a} ==>|"{_safe(label)}"| {b}',
             f"  linkStyle {idx} stroke:{col},stroke-width:{w_open},stroke-linecap:round;",
         )
-    col = "#f59e0b" if cross else "#94a3b8"
+    col = SLATE  # reachable, no open port: nothing for the Flow Policy to judge
     return (
         f'  {a} -.->|"{_safe(label)}"| {b}',
         f"  linkStyle {idx} stroke:{col},stroke-width:{w_reach},stroke-dasharray:5 4,stroke-linecap:round;",
@@ -127,6 +139,7 @@ def mermaid_zone(
     inv: Inventory,
     highlight: Callable[[Port], bool] = _no_highlight,
     status: EdgeStatus | None = None,
+    denied: Denied | None = None,
 ) -> str:
     """Zone graph; status = Flow Policy status per (src zone, dst zone)."""
     pal = zone_palette(inv)
@@ -139,7 +152,7 @@ def mermaid_zone(
         if a.verdict < ALIVE:
             continue
         if a.open_ports:
-            label = _label(a.open_ports, highlight)
+            label = _label(a.open_ports, highlight, (denied or {}).get((zs, zd), ()))
         else:
             label = f"{a.pass_pairs} host(s)" + (" alive" if a.verdict == ALIVE else "")
         st = (status or {}).get((zs, zd))
@@ -155,6 +168,7 @@ def mermaid_source(
     inv: Inventory,
     highlight: Callable[[Port], bool] = _no_highlight,
     status: EdgeStatus | None = None,
+    denied: Denied | None = None,
 ) -> str:
     """Modern radial view: source (hexagon) + reachable targets, grouped/tinted by zone.
 
@@ -181,7 +195,11 @@ def mermaid_source(
     )
     styles = []
     for d, c in reach.items():
-        label = _label(c.open_ports, highlight) if c.verdict == OPEN else VERDICT_NAME[c.verdict].lower()
+        label = (
+            _label(c.open_ports, highlight, (denied or {}).get((src, d), ()))
+            if c.verdict == OPEN
+            else VERDICT_NAME[c.verdict].lower()
+        )
         st = (status or {}).get((src, d))
         line, style = _edge(
             "S", hid(d), c.verdict, inv[src].zone != inv[d].zone, label, len(styles), status=st
@@ -197,6 +215,7 @@ def mermaid_hosts(
     inv: Inventory,
     highlight: Callable[[Port], bool] = _no_highlight,
     status: EdgeStatus | None = None,
+    denied: Denied | None = None,
 ) -> str:
     zones = defaultdict(list)
     for ip in ordered_ips(inv):
@@ -213,7 +232,7 @@ def mermaid_hosts(
                 hid(d),
                 OPEN,
                 inv[s].zone != inv[d].zone,
-                _label(c.open_ports, highlight),
+                _label(c.open_ports, highlight, (denied or {}).get((s, d), ())),
                 len(styles),
                 w_open="2px",
                 status=(status or {}).get((s, d)),

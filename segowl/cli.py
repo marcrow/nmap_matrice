@@ -102,11 +102,17 @@ def run(args: argparse.Namespace) -> list[str]:
     if policy is not None:
         write_findings_md(a, args.out)
     pair_status = a.pair_status(matrix)
-    write_output(args.out, "segmentation.mmd", mermaid_zone(agg, inv, a.highlight, a.zone_status(matrix)))
+    write_output(
+        args.out,
+        "segmentation.mmd",
+        mermaid_zone(agg, inv, a.highlight, a.zone_status(matrix), a.zone_denied),
+    )
     if args.host_graph:
-        write_output(args.out, "segmentation_hosts.mmd", mermaid_hosts(matrix, inv, a.highlight, pair_status))
+        write_output(
+            args.out, "segmentation_hosts.mmd", mermaid_hosts(matrix, inv, a.highlight, pair_status, a.denied)
+        )
     for s in matrix:
-        mmd = mermaid_source(s, matrix[s], inv, a.highlight, pair_status)
+        mmd = mermaid_source(s, matrix[s], inv, a.highlight, pair_status, a.denied)
         write_output(os.path.join(args.out, "mermaid"), f"{s}.mmd", mmd)
     write_observed_flows(a, args.out)
     write_observed_zone_flows(a, args.out)

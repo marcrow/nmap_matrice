@@ -40,18 +40,11 @@ input[type=checkbox]{accent-color:var(--navy);width:14px;height:14px;vertical-al
 h2{font-size:16px;margin:22px 0 8px;}
 h3{font-size:14px;margin:16px 0 6px;color:#6B7C93;}
 .legend{font-size:12px;color:#5a6678;margin:6px 0 14px;}
-.legend span{display:inline-block;padding:2px 7px;border-radius:4px;margin-right:6px;}
 .tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px;max-height:72vh;background:#fff;}
 table{border-collapse:collapse;font-size:12px;width:max-content;}
 th,td{border:1px solid #e7eaf0;padding:5px 8px;text-align:center;white-space:nowrap;}
 thead th{position:sticky;top:0;background:var(--mist);z-index:2;}
 tbody th{position:sticky;left:0;background:#f3f5f9;text-align:left;z-index:1;}
-.v-open{background:#d7f5dd;color:#04611f;font-weight:600;}
-.v-reach{background:#fdebcf;color:#8a5200;}
-.v-alive{background:#e4ecf7;color:#3b5578;}
-.v-block{background:#f6dada;color:#8a1a1a;}
-.v-none{background:#f1f1f3;color:#9aa3b2;}
-.v-self{background:#e9eef6;color:#5a6b86;}
 .mermaid{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0;overflow:auto;font-family:inherit;}  /* pre is monospace otherwise: labels measured in sans-serif then truncated */
 .err{color:#c0392b;font-size:12px;white-space:pre-wrap;}
 .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:8px 0;font-size:13px;}
@@ -64,18 +57,10 @@ ul{margin:4px 0 4px 18px;padding:0;font-size:13px;}
 .filter{display:block;width:280px;margin:6px 0 8px;}
 td.cmd{text-align:left;white-space:normal;min-width:240px;max-width:380px;}
 td.cmd code{white-space:pre-wrap;word-break:break-word;font-size:11px;}
-.admin{box-shadow:inset 3px 0 0 #dc2626;}
-li.admin{box-shadow:none;border-left:3px solid #dc2626;padding-left:6px;}
 .d-added{background:#fde2e2;color:#991b1b;font-weight:600;}
 .d-removed{background:#d7f5dd;color:#04611f;}
 .d-not-comparable{background:#f1f1f3;color:#6b7280;}
 .d-unchanged{background:#eef1f6;color:#33415c;}
-.p-deny{box-shadow:inset 0 -4px 0 #dc2626;}
-.p-undeclared{box-shadow:inset 0 -4px 0 #f59e0b;}
-.p-allow{box-shadow:inset 0 -4px 0 #16a34a;}
-.admin.p-deny{box-shadow:inset 3px 0 0 #dc2626,inset 0 -4px 0 #dc2626;}
-.admin.p-undeclared{box-shadow:inset 3px 0 0 #dc2626,inset 0 -4px 0 #f59e0b;}
-.admin.p-allow{box-shadow:inset 3px 0 0 #dc2626,inset 0 -4px 0 #16a34a;}
 details.ports{white-space:normal;overflow-wrap:anywhere;max-width:340px;text-align:left;font-size:11px;}
 details.ports .plist{max-height:220px;overflow:auto;}
 details.ports summary{cursor:pointer;font-size:12px;white-space:nowrap;}
@@ -83,3 +68,38 @@ details.ports[open]{background:#f8fafc;padding:2px 4px;border-radius:4px;}
 table.fit{width:100%;}
 table.fit td,table.fit th{white-space:normal;}
 table.fit td.cmd{min-width:0;}
+/* Two colour codes, never mixed. The Flow Policy: red / amber / green, always with its icon. The verdict: one
+   navy hue, darker = more open. */
+:root{--v-open:#1d4f86;--v-reach:#6f9fd0;--v-alive:#c3d9ef;--deny:#dc2626;--undeclared:#f59e0b;--allow:#16a34a}
+.pg{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;font-style:normal;font-size:10px;font-weight:800;color:#fff;margin-right:4px;vertical-align:-2px;font-family:-apple-system,Segoe UI,Roboto,sans-serif;flex:none}
+.pg-deny{background:var(--deny)}.pg-undeclared{background:var(--undeclared);color:#3b2600}.pg-allow{background:var(--allow)}
+.vb{display:inline-block;padding:1px 7px;border-radius:10px;font-size:11px;font-weight:600}
+.vb.v-open{background:var(--v-open);color:#fff}.vb.v-reach{background:var(--v-reach);color:var(--navy)}.vb.v-alive{background:var(--v-alive);color:#1e3a5f}
+.vb.v-block{background:#e9edf2;color:#5a6678}.vb.v-none{border:1px dashed #c9d2dd;color:#8994a3}
+/* matrices: tiles, in the style of the Flow Policy editor */
+table.mx{border-collapse:separate;border-spacing:3px;width:auto}
+.mx th{border:0;font-size:11.5px;padding:4px 6px;background:#fff}
+.mx thead th{background:#fff}.mx th.corner{font-size:10.5px;color:var(--slate);font-weight:400;left:0;z-index:4}
+.mx tbody th{text-align:right}
+.mx td,.lt{border:1px solid transparent;border-radius:7px;font-size:11px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;position:relative;color:var(--ink)}
+.mx td{padding:4px 16px 4px 6px;min-width:34px;text-align:center}
+.zm td{min-width:96px;height:52px;text-align:left;vertical-align:top;padding:5px 16px 16px 7px}
+.zm td .pairs{position:absolute;right:6px;bottom:4px;font-size:9.5px;opacity:.75;font-family:-apple-system,Segoe UI,Roboto,sans-serif}
+.zchip{display:inline-block;border:1px solid;border-radius:12px;padding:2px 9px;font-size:11.5px;font-weight:600;font-family:-apple-system,Segoe UI,Roboto,sans-serif}
+:is(.mx td,.lt).v-open,:is(.mx td,.lt).v-reach,:is(.mx td,.lt).v-alive{background:#fff;border-color:#dfe6ee}
+:is(.mx td,.lt):is(.v-open,.v-reach,.v-alive)::after{content:"";position:absolute;top:4px;right:4px;width:8px;height:8px;border-radius:50%}
+:is(.mx td,.lt).v-open::after{background:var(--v-open)}:is(.mx td,.lt).v-reach::after{background:var(--v-reach)}
+:is(.mx td,.lt).v-alive::after{background:var(--v-alive);box-shadow:0 0 0 1px #9fbcdc}
+:is(.mx td,.lt).v-block{background:#e9edf2;color:#7b8798;border-color:#e9edf2}
+:is(.mx td,.lt).v-none{background:#fff;color:#b8c1cd;border:1px dashed #c9d2dd}
+:is(.mx td,.lt).v-self{background:repeating-linear-gradient(45deg,#f3f6fa,#f3f6fa 4px,#e9eef4 4px,#e9eef4 8px)}
+:is(.mx td,.lt).p-deny{background:#fde4e4;border-color:#f2a7a7}
+:is(.mx td,.lt).p-undeclared{background:#fff3d9;border-color:#f3d27a}
+:is(.mx td,.lt).p-allow{background:#e2f5e8;border-color:#a5d9b4}
+td b{font-weight:800}
+/* legends, one per view, under what they describe */
+.lg{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;font-size:12px;color:#33415c;margin:6px 0 4px}
+.lg>span{display:inline-flex;align-items:center;gap:5px}
+.lg svg{flex:none}.lg .sep{width:1px;height:16px;background:var(--line)}
+.lt{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:22px;padding:0 17px 0 7px;font-style:normal}
+.lt .pg{margin-right:3px}

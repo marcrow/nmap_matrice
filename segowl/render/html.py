@@ -11,12 +11,22 @@ from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable
 from pathlib import Path
 
-from segowl.analysis import Analysis, Exposure, Matrix, Row, ZoneMatrix, aggregate_zones
+from segowl.analysis import Analysis, Exposure, Matrix, Row, ZoneAgg, ZoneMatrix, aggregate_zones
 from segowl.inventory import Host, Inventory, extra_columns, ordered_ips
+from segowl.policy import ALLOW, DENY, UNDECLARED
 from segowl.ports import Port, count_ports, format_ranges, port_label, ports_text
-from segowl.render.common import machine_palette, write_output, zone_cell, zone_palette
-from segowl.render.mermaid import EdgeStatus, hid, mermaid_source, mermaid_zone, zid
-from segowl.verdict import ALIVE, STATE_RANK, VCLASS, VERDICT_NAME, Cell, cell_text
+from segowl.render.common import machine_palette, write_output, zone_palette
+from segowl.render.mermaid import (
+    GREY,
+    POLICY_COLORS,
+    SLATE,
+    EdgeStatus,
+    hid,
+    mermaid_source,
+    mermaid_zone,
+    zid,
+)
+from segowl.verdict import ALIVE, BLOCK, NODATA, OPEN, REACH, STATE_RANK, VCLASS, VERDICT_NAME, Cell
 
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
 # the report takes the app's palette (app.css :root) so both stay one look
@@ -46,16 +56,45 @@ def _no_highlight(port: Port) -> bool:
     return False
 
 
-def _ports_attr(ports: Iterable[Port], highlight: Highlight) -> tuple[str, str]:
-    """(data-p attribute read by the Port Group filter, highlight class) of an element showing open ports."""
+def _ports_attr(ports: Iterable[Port], highlight: Highlight) -> str:
+    """Attributes read by the Port Group filter: data-p (every open port), data-b (the admin ones, bold)."""
     ports = list(ports)
-    return f' data-p="{ports_text(ports)}"', " admin" if any(highlight(p) for p in ports) else ""
+    admin = ports_text([p for p in ports if highlight(p)])
+    return f' data-p="{ports_text(ports)}"' + (f' data-b="{admin}"' if admin else "")
 
 
-def _cell_html(c: Cell, highlight: Highlight = _no_highlight) -> str:
-    attr, hl = _ports_attr(c.open_ports, highlight)
-    cls = VCLASS[c.verdict] + (" conflict" if c.conflicts else "") + hl
-    return f'<td class="{cls}"{attr} title="{_provenance(c)}">{html.escape(cell_text(c))}</td>'
+def _ports_html(ports: Iterable[Port], highlight: Highlight, cap: int = 0) -> str:
+    """Open ports, admin ones bold; beyond cap, '+n'. Mirrored by portsHtml in report.js."""
+    t = [f"<b>{port_label(p)}</b>" if highlight(p) else port_label(p) for p in sorted(ports)]
+    return ",".join(t[:cap]) + f" <small>+{len(t) - cap}</small>" if cap and len(t) > cap else ",".join(t)
+
+
+FLOW = {
+    DENY: ("✕", "Finding: denied by the Flow Policy"),
+    UNDECLARED: ("?", "undeclared"),
+    ALLOW: ("✓", "allowed"),
+}
+MARK = {
+    REACH: "closed",
+    ALIVE: "ping",
+    BLOCK: "×",
+    NODATA: "–",
+}  # BLOCKED tested and blocked, UNSEEN never seen
+
+
+def _pg(st: str | None) -> str:
+    """Flow Policy mark: its colour always comes with its icon."""
+    return f'<i class="pg pg-{st}" title="{FLOW[st][1]}">{FLOW[st][0]}</i>' if st else ""
+
+
+def _cell_html(c: Cell, highlight: Highlight = _no_highlight, st: str | None = None) -> str:
+    """A matrix tile: tinted by the Flow Policy (with its icon), the verdict as a dot (CSS), the ports."""
+    cls = VCLASS[c.verdict] + (" conflict" if c.conflicts else "") + (f" p-{st}" if st else "")
+    txt = _ports_html(c.open_ports, highlight) if c.verdict == OPEN else MARK.get(c.verdict, "")
+    return (
+        f'<td class="{cls}"{_ports_attr(c.open_ports, highlight)} title="{_provenance(c)}">'
+        f'{_pg(st)}<span class="pl">{txt}</span></td>'
+    )
 
 
 def _host_title(h: Host) -> str:
@@ -63,6 +102,9 @@ def _host_title(h: Host) -> str:
     return html.escape(
         " · ".join([h.ip, h.zone, h.htype] + [f"{k}: {v}" for k, v in h.extra.items()]), quote=True
     )
+
+
+CORNER = '<th class="corner">from ↓ · to →</th>'
 
 
 def _host_matrix_html(
@@ -80,41 +122,50 @@ def _host_matrix_html(
     head = "".join(th(d) for d in dsts)
     rows = []
     for s in srcs:
-        cells = []
-        for d in dsts:
-            if inv[d].machine == inv[s].machine:
-                cells.append('<td class="v-self">-</td>')
-            else:
-                cell = _cell_html(matrix[s].get(d, Cell()), highlight)
-                if st := (status or {}).get((s, d)):
-                    cell = cell.replace('<td class="', f'<td class="p-{st} ', 1)
-                cells.append(cell)
+        cells = [
+            '<td class="v-self"></td>'
+            if inv[d].machine == inv[s].machine
+            else _cell_html(matrix[s].get(d, Cell()), highlight, (status or {}).get((s, d)))
+            for d in dsts
+        ]
         rows.append(f"<tr>{th(s)}{''.join(cells)}</tr>")
     return (
-        f'<div class="tablewrap"><table><thead><tr><th>source \\ target</th>{head}</tr></thead>'
+        f'<div class="tablewrap"><table class="mx"><thead><tr>{CORNER}{head}</tr></thead>'
         f"<tbody>{''.join(rows)}</tbody></table></div>"
     )
+
+
+def _zone_chip(z: str, pal: dict[str, tuple[str, str, str]]) -> str:
+    f, s, t = pal[z]
+    return f'<span class="zchip" style="background:{f};border-color:{s};color:{t}">{html.escape(z)}</span>'
 
 
 def _zone_matrix_html(
     agg: ZoneMatrix, inv: Inventory, highlight: Highlight = _no_highlight, status: EdgeStatus | None = None
 ) -> str:
-    zones = sorted(zone_palette(inv))
-    head = "".join(f"<th>{html.escape(z)}</th>" for z in zones)
+    pal = zone_palette(inv)
+    zones = sorted(pal)
+    head = "".join(f"<th>{_zone_chip(z, pal)}</th>" for z in zones)
     rows = []
     for zs in zones:
         cells = []
         for zd in zones:
-            a = agg.get((zs, zd))
-            cls, txt = zone_cell(a)
-            pairs = f"<br><small>{a.pass_pairs}/{a.total_pairs}</small>" if a and a.verdict >= ALIVE else ""
-            attr, hl = _ports_attr(a.open_ports if a else [], highlight)
+            a = agg.get((zs, zd)) or ZoneAgg()
             st = (status or {}).get((zs, zd))
-            cls += f" p-{st}" if st else ""
-            cells.append(f'<td class="{cls}{hl}"{attr}>{html.escape(txt)}{pairs}</td>')
-        rows.append(f"<tr><th>{html.escape(zs)}</th>{''.join(cells)}</tr>")
+            txt = _ports_html(a.open_ports, highlight, cap=6) if a.verdict == OPEN else MARK[a.verdict]
+            pairs = (
+                f'<small class="pairs">{a.pass_pairs}/{a.total_pairs} pairs</small>'
+                if a.verdict >= ALIVE
+                else ""
+            )
+            cells.append(
+                f'<td class="{VCLASS[a.verdict]}{f" p-{st}" if st else ""}"'
+                f'{_ports_attr(a.open_ports, highlight)} data-cap="6">'
+                f'{_pg(st)}<span class="pl">{txt}</span>{pairs}</td>'
+            )
+        rows.append(f"<tr><th>{_zone_chip(zs, pal)}</th>{''.join(cells)}</tr>")
     return (
-        f'<div class="tablewrap"><table><thead><tr><th>src \\ dst</th>{head}</tr></thead>'
+        f'<div class="tablewrap"><table class="mx zm"><thead><tr>{CORNER}{head}</tr></thead>'
         f"<tbody>{''.join(rows)}</tbody></table></div>"
     )
 
@@ -148,12 +199,11 @@ def _source_table_html(src: str, row: Row, inv: Inventory, highlight: Highlight 
         if inv[d].machine == inv[src].machine:
             continue
         c = row.get(d, Cell())
-        attr, hl = _ports_attr(c.open_ports, highlight)
         rows.append(
             f"<tr><th>{html.escape(inv[d].short)}</th>"
             f"<td>{html.escape(inv[d].zone)}</td><td>{html.escape(inv[d].htype)}</td>"
-            f'<td class="{VCLASS[c.verdict]}">{VERDICT_NAME[c.verdict]}</td>'
-            f'<td class="{hl.strip()}"{attr}>{html.escape(ports_text(c.open_ports))}</td>'
+            f"<td>{_vb(c.verdict)}</td>"
+            f"<td{_ports_attr(c.open_ports, highlight)}>{_ports_html(c.open_ports, highlight)}</td>"
             f"<td>{_tested_html(c)}</td>"
             f"<td>{html.escape(', '.join(c.scans))}</td>"
             + "".join(f"<td>{html.escape(inv[d].extra.get(k, ''))}</td>" for k in extras)
@@ -174,11 +224,10 @@ def _exposure_html(exp: Exposure, inv: Inventory, highlight: Highlight = _no_hig
         if not opens and not reach:
             continue
         items = "".join(
-            '<li class="{1}"{0}>'.format(*_ports_attr(ports, highlight))
-            + '<span class="warn">OPEN</span> from '
+            f"<li{_ports_attr(ports, highlight)}>{_vb(OPEN)} from "
             f"<b>{html.escape(inv[s].short)}</b> "
             f'<span class="tag">{html.escape(inv[s].zone)}</span>: '
-            f'<span class="pl">{ports_text(ports)}</span></li>'
+            f'<span class="pl">{_ports_html(ports, highlight)}</span></li>'
             for s, ports in opens
         ) + "".join(
             f'<li data-p="">reachable (closed) from {html.escape(inv[s].short)} '
@@ -193,34 +242,70 @@ def _exposure_html(exp: Exposure, inv: Inventory, highlight: Highlight = _no_hig
     return "".join(blocks) or "<p>No exposure.</p>"
 
 
-def _zone_legend_html(inv: Inventory) -> str:
-    pal = zone_palette(inv)
-    chips = "".join(
-        f'<span style="background:{f};border:1px solid {s};color:{t};'
-        f'padding:2px 9px;border-radius:12px;margin:0 6px 4px 0;display:inline-block;font-size:12px;">'
-        f"{html.escape(z)}</span>"
-        for z, (f, s, t) in sorted(pal.items())
+def _vb(verdict: int) -> str:
+    """Verdict badge in a table: one navy hue, darker = more open (red / amber / green: Flow Policy)."""
+    return f'<span class="vb {VCLASS[verdict]}">{VERDICT_NAME[verdict]}</span>'
+
+
+def _line(col: str, dash: bool = False) -> str:
+    da = ' stroke-dasharray="5 4"' if dash else ""
+    line = f'<line x1="1" y1="5" x2="27" y2="5" stroke="{col}" stroke-width="2.5"{da}/>'
+    return f'<svg width="28" height="10">{line}</svg>'
+
+
+def _diagram_legend(policy: bool) -> str:
+    """What the diagrams use, and only that: edge colours, dashed edge, port marks."""
+    if policy:
+        edges = (
+            f"<span>{_line(POLICY_COLORS[DENY])}{_pg(DENY)} open, denied: <b>Finding</b></span>"
+            f"<span>{_line(POLICY_COLORS[UNDECLARED])}{_pg(UNDECLARED)} open, undeclared</span>"
+            f"<span>{_line(POLICY_COLORS[ALLOW])}{_pg(ALLOW)} open, allowed</span>"
+        )
+        ports = (
+            "port numbers: <b>bold</b> = admin port, "
+            f'<span style="color:{POLICY_COLORS[DENY]}">red</span> = denied by the Flow Policy'
+        )
+    else:
+        edges = (
+            f"<span>{_line(POLICY_COLORS[UNDECLARED])}{_pg(UNDECLARED)} open across zones "
+            "(no Flow Policy: undeclared)</span>"
+            f"<span>{_line(GREY)} open inside a zone</span>"
+        )
+        ports = "port numbers: <b>bold</b> = admin port"
+    return (
+        f'<div class="lg">{edges}<span>{_line(SLATE, True)} reachable, no open port</span>'
+        f'<span class="sep"></span><span>{ports}</span></div>'
     )
-    return f'<div style="margin:4px 0 12px;">{chips}</div>'
 
 
-def _legend(policy: bool = False) -> str:
-    colours = (
-        '<span class="p-deny v-open">denied (Finding)</span>'
-        '<span class="p-undeclared v-open">undeclared</span>'
-        '<span class="p-allow v-open">allowed</span> — OPEN flows by Flow Policy'
+def _matrix_legend(policy: bool) -> str:
+    """What the matrix cells use, and only that: each item is a tile drawn like a cell."""
+
+    def t(cls: str, inner: str, label: str) -> str:
+        return f'<span><i class="lt {cls}">{inner}</i>{label}</span>'
+
+    pol = (
+        '<span class="sep"></span>'
+        + t(f"v-open p-{DENY}", f"{_pg(DENY)}ports", "Finding (denied)")
+        + t(f"v-open p-{UNDECLARED}", f"{_pg(UNDECLARED)}ports", "undeclared")
+        + t(f"v-open p-{ALLOW}", f"{_pg(ALLOW)}ports", "allowed")
         if policy
-        else '<span style="color:#e11d48">— red = cross-zone OPEN</span>'
+        else ""
     )
     return (
-        '<div class="legend">'
-        '<span class="v-open">OPEN service</span>'
-        '<span class="v-reach">reachable (closed)</span>'
-        '<span class="v-alive">alive (ping/ARP)</span>'
-        '<span class="v-block">blocked</span>'
-        '<span class="v-none">unseen</span>'
-        '<span class="v-none conflict">Scans disagree</span>'
-        f"{colours}</div>"
+        '<div class="lg">'
+        + t("v-open", "ports", "OPEN: the open ports")
+        + t("v-reach", "closed", "reachable (closed port)")
+        + t("v-alive", "ping", "alive (ping/ARP)")
+        + t("v-block", "×", "blocked")
+        + t("v-none", "–", "unseen")
+        + t("v-self", "", "same Machine")
+        + t("v-open conflict", "ports", "Scans disagree")
+        + '<span class="sep"></span>'
+        + t("v-open", "<b>22</b>,80", "bold: admin port")
+        + '<span class="muted">dot: verdict, darker = more open</span>'
+        + pol
+        + "</div>"
     )
 
 
@@ -244,9 +329,9 @@ def _pivots_html(a: Analysis) -> str:
         for z, rows in sorted(by_zone.items()):
             onward = ", ".join(_zone_tag(x) for x in zones if x != z)
             items = "".join(
-                '<li class="{1}"{0}>'.format(*_ports_attr(ports, a.highlight))
-                + f"{html.escape(inv[s].short)} &rarr; {html.escape(d)} {_zone_tag(inv[d].zone)}: "
-                f'<span class="pl">{ports_text(ports)}</span></li>'
+                f"<li{_ports_attr(ports, a.highlight)}>"
+                f"{html.escape(inv[s].short)} &rarr; {html.escape(d)} {_zone_tag(inv[d].zone)}: "
+                f'<span class="pl">{_ports_html(ports, a.highlight)}</span></li>'
                 for s, d, ports in rows
             )
             groups.append(f"<div>from {_zone_tag(z)} &rarr; leads to {onward}<ul>{items}</ul></div>")
@@ -267,24 +352,27 @@ def _global_tab(a: Analysis) -> str:
     return (
         _sec(
             "Global diagram (zone &rarr; zone)",
-            _zone_legend_html(a.inv)
-            + _legend(a.policy is not None)
-            + _diagram(
-                mermaid_zone(a.agg, a.inv, a.highlight, a.zone_status(a.matrix)),
+            _diagram(
+                mermaid_zone(a.agg, a.inv, a.highlight, a.zone_status(a.matrix), a.zone_denied),
                 [
-                    mermaid_zone(aggregate_zones(m, a.inv), a.inv, a.highlight, a.zone_status(m))
+                    mermaid_zone(
+                        aggregate_zones(m, a.inv), a.inv, a.highlight, a.zone_status(m), a.zone_denied
+                    )
                     for m in a.group_matrices.values()
                 ],
-            ),
+            )
+            + _diagram_legend(a.policy is not None),
         )
         + _sec(
-            "Zone &rarr; zone matrix", _zone_matrix_html(a.agg, a.inv, a.highlight, a.zone_status(a.matrix))
+            "Zone &rarr; zone matrix",
+            _zone_matrix_html(a.agg, a.inv, a.highlight, a.zone_status(a.matrix))
+            + _matrix_legend(a.policy is not None),
         )
         + _sec(
             "Host &rarr; host matrix",
             '<p class="hint">Hover a cell for the Scans behind its verdict.</p>'
-            + _legend(a.policy is not None)
-            + _host_matrix_html(a.matrix, a.inv, a.highlight, a.pair_status(a.matrix)),
+            + _host_matrix_html(a.matrix, a.inv, a.highlight, a.pair_status(a.matrix))
+            + _matrix_legend(a.policy is not None),
         )
     )
 
@@ -338,9 +426,10 @@ def _persource_tab(a: Analysis) -> str:
             f'<span class="tag">{len(a.scans[s])} scan(s)</span></h2>'
             + bar
             + _diagram(
-                mermaid_source(s, matrix[s], inv, a.highlight, status),
-                [mermaid_source(s, m[s], inv, a.highlight, st) for m, st in group_views],
+                mermaid_source(s, matrix[s], inv, a.highlight, status, a.denied),
+                [mermaid_source(s, m[s], inv, a.highlight, st, a.denied) for m, st in group_views],
             )
+            + _diagram_legend(a.policy is not None)
             + f"<h3>Target details</h3>{_source_table_html(s, matrix[s], inv, a.highlight)}</div>"
         )
     return (
@@ -421,9 +510,9 @@ def _scans_tab(a: Analysis) -> str:
         for s in srcs:
             c = a.matrix[s].get(d)
             if c is None:
-                cells.append('<td class="v-self">-</td>')
+                cells.append('<td class="muted">-</td>')
             elif not c.scans:
-                cells.append('<td class="v-none" title="in no Scan output">.</td>')
+                cells.append('<td class="muted" title="in no Scan output">.</td>')
             else:
                 txt = " · ".join(f"{proto} {count_ports(r)}" for proto, r in sorted(c.tested.items()))
                 txt += "" if c.coverage_known else " ?"
@@ -511,7 +600,7 @@ def _asymmetry_html(a: Analysis) -> str:
         '<div class="tablewrap"><table><thead><tr><th>passes from zone</th><th>to zone</th>'
         f"<th>interface pairs</th></tr></thead><tbody>{summary}</tbody></table></div>"
         f"<h3>Detail</h3>{_filter_box()}"
-        '<div class="tablewrap"><table><thead><tr><th>A</th><th>zone</th><th>B</th><th>zone</th>'
+        '<div class="tablewrap"><table class="mx"><thead><tr><th>A</th><th>zone</th><th>B</th><th>zone</th>'
         f"<th>A &rarr; B</th><th>B &rarr; A</th></tr></thead><tbody>{detail}</tbody></table></div>"
     )
 
