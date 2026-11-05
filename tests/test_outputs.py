@@ -22,7 +22,7 @@ def _texts(root: Path) -> dict[Path, str]:
     return {
         p.relative_to(root): p.read_text(encoding="utf-8")
         for p in root.rglob("*")
-        if p.is_file() and p.name != "report.html"  # HTML: covered by the escaping test, bundles mermaid
+        if p.is_file() and p.name != "report.html"  # HTML: covered by the tests below, bundles Cytoscape
     }
 
 
@@ -59,3 +59,4 @@ def test_report_has_the_seven_big_tabs_and_loads_nothing_from_the_network(tmp_pa
     tabs = re.findall(r'data-tab="(\w+)"', doc)
     assert tabs == ["global", "policy", "pivots", "persource", "pertarget", "scans", "diff"]
     assert not re.search(r'<script[^>]+src=|<link[^>]+href="http', doc)  # offline: everything inlined
+    assert "mermaid" not in doc.lower()  # every diagram is Cytoscape; the .mmd exports stay files

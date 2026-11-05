@@ -344,7 +344,7 @@ function controls(g) {
     + `<fieldset><legend>Machine</legend>${box('mcol', 'colour bar')}${box('mtie', 'dotted link')}`
     + '<div class="hint">Hover an Interface: the other Interfaces of its Machine are ringed.</div></fieldset></div></details>');
   const q = s => g.el.querySelector(s), redrawAll = () => { saveO(); GRAPHS.forEach(x => { x.dirty = true; }); drawVisibleGraphs(document); };
-  q('.glay').onchange = e => { O.lay = e.target.value; g.pin = null; redrawAll(); GRAPHS.forEach(x => { x.el.querySelector('.glay').value = O.lay; }); };
+  q('.glay').onchange = e => { O.lay = e.target.value; g.pin = null; redrawAll(); GRAPHS.forEach(x => { const l = x.el.querySelector('.glay'); if (l) l.value = O.lay; }); };
   q('.greset').onclick = () => { g.arr = {}; g.pin = null; runLayout(g); };
   q('.gpng').onclick = () => { const a = document.createElement('a');
     a.href = URL.createObjectURL(g.cy.png({full: true, scale: 2, bg: '#ffffff', output: 'blob'})); a.download = g.D.file + '.png'; a.click(); };
@@ -382,7 +382,10 @@ function showTip(g, t, ev) {
 }
 
 function initGraph(el) {
-  const g = {el, D: JSON.parse(el.querySelector('script').textContent), arr: {}, pin: null, side: {}, hidden: new Set(), dirty: true};
+  const g = {el, D: JSON.parse(el.querySelector('script').textContent), arr: {}, pin: null, side: {}, hidden: new Set(), dirty: true, draw: drawGraph};
+  GRAPHS.push(g);
+  el.graph = g;
+  if (g.D.zonegraph) { initZones(el, g); return g; }
   controls(g);
   el.insertAdjacentHTML('beforeend', '<div class="gwrap"><div class="gcy"></div><div class="gtip"></div></div>');
   g.cy = cytoscape({container: el.querySelector('.gcy'), style: STYLE, wheelSensitivity: 0.3, minZoom: 0.15, maxZoom: 4});
@@ -394,8 +397,6 @@ function initGraph(el) {
     ev.target.connectedEdges('.flow').addClass('hl'); showTip(g, t, ev); });
   cy.on('mouseover', 'edge.flow', ev => { if (ev.target.target().hasClass('tgt')) { ev.target.addClass('hl'); showTip(g, ev.target.target().data('t'), ev); } });
   cy.on('mouseout', 'node, edge', () => { cy.elements().removeClass('sib hl'); hide(); });
-  GRAPHS.push(g);
-  el.graph = g;
   return g;
 }
 // Draws the diagrams of scope that are visible and not drawn yet (or changed since); Cytoscape needs a sized box.
@@ -404,8 +405,82 @@ function drawVisibleGraphs(scope) {
   scope.querySelectorAll('.graph').forEach(el => {
     if (el.offsetParent === null) return;
     const g = el.graph || initGraph(el);
-    if (g.dirty) drawGraph(g);
+    if (g.dirty) g.draw(g);
   });
 }
 // Port Group changed: every diagram is redrawn when next shown.
 function graphsChanged() { GRAPHS.forEach(g => { g.dirty = true; }); }
+
+// ---- the Global view: Zone -> Zone. Zones on a circle (deterministic), one edge per Zone pair (a loop inside a
+// Zone), its ports in a tag on the edge (admin bold, denied red) ----
+function zoneLinks(D) {
+  const set = groupSet();
+  return D.links.flatMap(l => { if (!set) return [l];
+    const ports = l.verdict === 'OPEN' ? l.ports.filter(p => inRanges(p.l, set)) : [];
+    return ports.length ? [{...l, ports}] : []; });
+}
+function zoneElements(g) {
+  const D = g.D, links = zoneLinks(D);
+  const els = D.nodes.map(z => { const [f, s, c] = D.zones[z.zone];
+    return {data: {id: 'z:' + z.zone, name: z.zone, label: `${z.zone}\n${z.n} Interface(s)`, fill: f, stroke: s, text: c}, classes: 'znode'}; });
+  for (const l of links) {
+    const id = `e:${l.from}>${l.to}`, open = l.verdict === 'OPEN';
+    els.push({data: {id, source: 'z:' + l.from, target: 'z:' + l.to, col: edgeCol(l), z: RANK[status(l)] || 0, l,
+      label: open ? '' : l.word}, classes: 'flow zflow' + (open ? '' : ' dash') + (l.from === l.to ? ' loop' : '')});
+    if (open) els.push({data: {id: 'p:' + id, of: id, col: edgeCol(l), ...tag(l, 170)}, classes: 'tag'});
+  }
+  return els;
+}
+const ZSTYLE = STYLE.concat([
+  {selector: 'node.znode', style: {shape: 'round-rectangle', 'corner-radius': 6, 'background-color': 'data(fill)', 'border-color': 'data(stroke)',
+    'border-width': 2, label: 'data(label)', color: 'data(text)', 'font-weight': 700, 'font-size': 14, 'font-family': FONT, 'text-wrap': 'wrap',
+    'text-valign': 'center', 'text-halign': 'center', width: 'label', height: 'label', padding: 14, 'line-height': 1.4}},
+  {selector: 'edge.zflow', style: {'curve-style': 'bezier', 'control-point-step-size': 46, width: 1.8, 'arrow-scale': 0.9, label: 'data(label)',
+    'font-size': 10.5, color: SLATE, 'font-family': FONT, 'text-background-color': '#fff', 'text-background-opacity': 1, 'text-background-padding': 2}},
+  {selector: 'edge.loop', style: {'loop-direction': '0deg', 'loop-sweep': '-50deg', 'control-point-step-size': 70}},
+]);
+function drawZones(g) {
+  const cy = g.cy;
+  cy.elements().remove();
+  cy.add(zoneElements(g));
+  const n = cy.nodes('.znode').length;
+  cy.nodes('.znode').layout({name: 'circle', fit: false, radius: Math.max(200, n * 62), startAngle: -Math.PI / 2,
+    sort: (a, b) => a.id().localeCompare(b.id())}).run();
+  // loops point away from the centre of the circle
+  const c = cy.nodes('.znode').boundingBox(), cx = (c.x1 + c.x2) / 2, cyy = (c.y1 + c.y2) / 2;
+  cy.edges('.loop').forEach(e => { const p = e.source().position();
+    e.style('loop-direction', (Math.atan2(p.x - cx, cyy - p.y) * 180 / Math.PI) + 'deg'); });
+  placeZoneTags(g);
+  cy.fit(cy.elements(), 24);
+  if (cy.zoom() > 1.1) { cy.zoom(1.1); cy.center(); }
+  g.dirty = false;
+}
+// A port tag sits on its edge, past the middle towards the target: the two edges of a pair keep theirs apart.
+function placeZoneTags(g) {
+  g.cy.nodes('.tag').forEach(k => { const e = g.cy.$id(k.data('of')), m = e.midpoint(), s = e.source().position(), t = e.target().position();
+    if (e.isLoop()) { k.position(m); return; }
+    const L = Math.hypot(t.x - s.x, t.y - s.y) || 1, n = e.target(), room = (Math.max(k.width(), k.height()) + Math.max(n.width(), n.height())) / 2 + 8;
+    const d = Math.max(0, Math.min(0.2 * L, L / 2 - room));  // past the middle, never onto the target
+    k.position({x: m.x + (t.x - s.x) / L * d, y: m.y + (t.y - s.y) / L * d}); });
+}
+function zoneTip(g, l, ev) {
+  const tip = g.el.querySelector('.gtip'), st = status(l), D = g.D;
+  const ports = l.ports.map(p => `<span style="${p.admin ? 'font-weight:700;' : ''}${p.st === 'deny' ? 'color:#dc2626' : ''}">${gesc(p.l)}</span>`).join(', ');
+  tip.innerHTML = `<h4>${gesc(l.from)} → ${gesc(l.to)}</h4><div><span class="k">verdict</span> <b>${l.verdict}</b> · ${gesc(l.pairs)} Interface pairs</div>`
+    + (ports ? `<div><span class="k">open ports</span> ${ports}</div>` : '')
+    + (st ? `<div><span class="k">Flow Policy</span> <i class="pg pg-${st}">${ICON[st][0]}</i>${WORD[st]}</div>` : '');
+  const {x, y} = ev.renderedPosition; tip.style.display = 'block'; tip.style.left = (x + 16) + 'px'; tip.style.top = (y + 16) + 'px';
+}
+function initZones(el, g) {
+  el.insertAdjacentHTML('afterbegin', '<div class="gbar"><span class="gact"><button class="btn greset">Reset layout</button>'
+    + '<button class="btn gpng">Export PNG</button></span></div>');
+  el.insertAdjacentHTML('beforeend', '<div class="gwrap"><div class="gcy"></div><div class="gtip"></div></div>');
+  g.cy = cytoscape({container: el.querySelector('.gcy'), style: ZSTYLE, wheelSensitivity: 0.3, minZoom: 0.15, maxZoom: 4});
+  el.querySelector('.greset').onclick = () => drawZones(g);
+  el.querySelector('.gpng').onclick = () => { const a = document.createElement('a');
+    a.href = URL.createObjectURL(g.cy.png({full: true, scale: 2, bg: '#ffffff', output: 'blob'})); a.download = g.D.file + '.png'; a.click(); };
+  g.cy.on('drag', 'node.znode', () => placeZoneTags(g));
+  g.cy.on('mouseover', 'edge.zflow', ev => { ev.target.addClass('hl'); zoneTip(g, ev.target.data('l'), ev); });
+  g.cy.on('mouseout', 'edge', ev => { ev.target.removeClass('hl'); el.querySelector('.gtip').style.display = 'none'; });
+  g.draw = drawZones;
+}

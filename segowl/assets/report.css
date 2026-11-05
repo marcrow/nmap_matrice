@@ -47,7 +47,6 @@ th,td{border-bottom:1px solid #edf1f5;padding:6px 9px;text-align:left;white-spac
 thead th{position:sticky;top:0;background:var(--mist);z-index:2;font-weight:600;color:#33415c;}
 tbody th{position:sticky;left:0;background:#fff;z-index:1;font-weight:600;}
 tbody tr:hover>td:not([class*="v-"]),tbody tr:hover>th{background:#f6fbff;}
-.mermaid{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0;overflow:auto;font-family:inherit;}  /* pre is monospace otherwise: labels measured in sans-serif then truncated */
 .err{color:#c0392b;font-size:12px;white-space:pre-wrap;}
 .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:8px 0;font-size:13px;}
 .tag{display:inline-block;background:#eef1f6;border-radius:4px;padding:1px 6px;font-size:11px;margin-left:6px;color:#5a6678;}
@@ -138,7 +137,7 @@ a.tile[onclick*="scroll"]:hover{border-color:var(--cyan)}
 .ggroups label{display:flex;gap:6px;align-items:center;cursor:pointer}
 .ggroups .hint{font-size:11px;max-width:300px;line-height:1.35;margin:2px 0 0}
 .gwrap{position:relative}
-.gcy{width:100%;height:calc(100vh - 250px);min-height:480px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.gcy{width:100%;height:calc(100vh - 250px);min-height:560px;border:1px solid var(--line);border-radius:10px;background:#fff}
 .gtip{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 16px rgba(11,31,51,.14);padding:8px 10px;font-size:12px;max-width:340px;display:none;z-index:5;line-height:1.45}
 .gtip h4{margin:0 0 4px;font-size:13px;color:var(--navy)}.gtip .k{color:var(--slate)}
 .gmenu{position:absolute;z-index:50;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(11,31,51,.18);padding:6px;display:flex;flex-direction:column;gap:2px;font-size:12.5px;min-width:150px}

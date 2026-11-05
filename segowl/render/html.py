@@ -1,4 +1,4 @@
-"""Standalone tabbed HTML report (offline: mermaid is inlined when bundled)."""
+"""Standalone tabbed HTML report, offline: its scripts (Cytoscape.js included) are inlined."""
 
 from __future__ import annotations
 
@@ -6,7 +6,6 @@ import base64
 import html
 import json
 import re
-import sys
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable
 from pathlib import Path
@@ -18,11 +17,10 @@ from segowl.analysis import (
     Row,
     ZoneAgg,
     ZoneMatrix,
-    aggregate_zones,
     rebounds,
 )
 from segowl.inventory import Host, Inventory, extra_columns, ordered_ips
-from segowl.policy import ALLOW, DENY, UNDECLARED
+from segowl.policy import ALLOW, DENY, UNDECLARED, worst
 from segowl.ports import Port, count_ports, format_ranges, port_label, ports_text
 from segowl.render.common import machine_palette, write_output, zone_palette
 from segowl.render.mermaid import (
@@ -31,7 +29,6 @@ from segowl.render.mermaid import (
     SLATE,
     EdgeStatus,
     hid,
-    mermaid_zone,
 )
 from segowl.verdict import ALIVE, BLOCK, NODATA, OPEN, REACH, STATE_RANK, VCLASS, VERDICT_NAME, Cell
 
@@ -47,8 +44,6 @@ GRAPH_JS = "\n".join(
 GRAPH_JS = GRAPH_JS.replace("</script", "<\\/script")
 LOGO_SVG = (ASSETS / "logo.svg").read_text(encoding="utf-8")
 FAVICON = "data:image/svg+xml;base64," + base64.b64encode(LOGO_SVG.encode()).decode()
-MERMAID_JS = ASSETS / "mermaid.min.js"  # bundled -> inlined in report.html (offline)
-MERMAID_CDN = "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"
 
 
 def _provenance(c: Cell) -> str:
@@ -523,26 +518,46 @@ def _pivots_html(a: Analysis) -> str:
     )
 
 
-def _diagram(base: str, variants: list[str]) -> str:
-    """Mermaid block; data-g<i> holds the diagram restricted to the i-th Port Group (filter in the header)."""
-    attrs = "".join(f' data-g{i}="{html.escape(v, quote=True)}"' for i, v in enumerate(variants))
-    return f'<pre class="mermaid"{attrs}>{html.escape(base)}</pre>'
+def _zone_graph(a: Analysis) -> dict:
+    """Global view diagram: one node per Zone, one link per Zone pair passing (OPEN, reachable or alive), each
+    open port with the worst Flow Policy status it has between those two Zones."""
+    inv, pal = a.inv, zone_palette(a.inv)
+    port_st: dict[tuple[str, str, Port], str] = {}
+    for (s, d, p), rule in a.decisions.items():
+        k, st = (inv[s].zone, inv[d].zone, p), UNDECLARED if rule is None else rule.action
+        port_st[k] = worst([port_st[k], st]) if k in port_st else st
+    links = []
+    for (zs, zd), z in sorted(a.agg.items()):
+        if z.verdict < ALIVE:
+            continue
+        ports = [
+            {"l": port_label(p), "admin": a.highlight(p), "st": port_st.get((zs, zd, p))}
+            for p in sorted(z.open_ports)
+        ]
+        ports.sort(key=lambda p: (p["st"] != DENY, not p["admin"]))
+        word = f"{z.pass_pairs} {'alive' if z.verdict == ALIVE else 'reachable'}"
+        links.append(
+            {"from": zs, "to": zd, "verdict": VERDICT_NAME[z.verdict], "ports": ports, "cross": zs != zd}
+            | {"pairs": f"{z.pass_pairs}/{z.total_pairs}", "word": word}
+        )
+    count = Counter(h.zone for h in inv.values())
+    return {
+        "zonegraph": True,
+        "file": "zones",
+        "zones": pal,
+        "nodes": [{"zone": z, "n": count[z]} for z in sorted(pal)],
+        "links": links,
+    }
 
 
 def _global_tab(a: Analysis) -> str:
     return (
         _sec(
             "Global diagram (zone &rarr; zone)",
-            _diagram(
-                mermaid_zone(a.agg, a.inv, a.highlight, a.zone_status(a.matrix), a.zone_denied),
-                [
-                    mermaid_zone(
-                        aggregate_zones(m, a.inv), a.inv, a.highlight, a.zone_status(m), a.zone_denied
-                    )
-                    for m in a.group_matrices.values()
-                ],
-            )
-            + _diagram_legend(a.policy is not None),
+            _graph(_zone_graph(a))
+            + _diagram_legend(a.policy is not None).replace(
+                "</div>", '<span class="sep"></span><span>hover an edge: its Interface pairs</span></div>'
+            ),
         )
         + _sec(
             "Zone &rarr; zone matrix",
@@ -1024,20 +1039,6 @@ def _diff_tab(a: Analysis) -> str:
     )
 
 
-def _mermaid_script() -> str:
-    if MERMAID_JS.is_file():
-        return (
-            "<script>"
-            + MERMAID_JS.read_text(encoding="utf-8").replace("</script", "<\\/script")
-            + "</script>"
-        )
-    print(
-        f"[!] {MERMAID_JS} missing: report.html will load mermaid from the CDN (network required)",
-        file=sys.stderr,
-    )
-    return f'<script src="{MERMAID_CDN}"></script>'
-
-
 def _flows_table(rows: list[list[str]], head: list[str]) -> str:
     body = "".join("<tr>" + "".join(f"<td>{c}</td>" for c in r) + "</tr>" for r in rows)
     return (
@@ -1174,7 +1175,6 @@ def write_html(a: Analysis, out_dir: str) -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="{FAVICON}">
 <title>SegOWL segmentation report</title>
-{_mermaid_script()}
 <style>{HTML_CSS}</style></head><body>
 <script>if(window.self!==window.top) document.body.classList.add('embed');</script>
 <header class="rhead"><div class="brand">{LOGO_SVG}<span>Seg<b>OWL</b></span></div>

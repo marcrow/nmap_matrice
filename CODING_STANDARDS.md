@@ -9,5 +9,5 @@ Rules for review that no automated check enforces. Ruff, the test suite and the 
 - **Port semantics live in `segowl/ports.py`, mirrored by `inRanges` in `segowl/assets/report.js` and by
   `tokOk` in `segowl/assets/app_ports.js`** (the app's inline check; the server re-checks with `ports.py`).
   A change to the port label format (`22`, `udp:161`) or to range matching lands in all three.
-- **The report runs offline.** `report.html` inlines its scripts, `mermaid.min.js` included; the CDN is
-  only a fallback when the bundle is missing (the target machine has no internet access).
+- **The report runs offline.** `report.html` inlines its scripts, `cytoscape.min.js` included, and loads
+  nothing from the network (the target machine has no internet access).

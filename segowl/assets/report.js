@@ -1,23 +1,6 @@
-const HAS_MM = typeof mermaid !== 'undefined';
-if(HAS_MM) mermaid.initialize({startOnLoad:false, securityLevel:'loose', theme:'default', flowchart:{htmlLabels:true}});
-let idc=0;
 let GROUP='';  // index of the selected Port Group, '' = all ports
-// Diagram source for the selected Port Group (data-g<i>), else the full one (data-base).
-function srcOf(el){ return (GROUP!=='' && el.getAttribute('data-g'+GROUP)) || el.dataset.base; }
-async function draw(el){
-  try{const {svg}=await mermaid.render('mm'+(idc++), srcOf(el)); el.innerHTML=svg;}
-  catch(e){el.innerHTML='<pre class="err">'+String(e)+'</pre>';}
-}
-async function renderVisible(scope){
-  if(!scope) return;
-  drawVisibleGraphs(scope);
-  for(const el of [...scope.querySelectorAll('.mermaid:not([data-done])')]){
-    if(el.offsetParent===null) continue;
-    el.setAttribute('data-done','1');
-    if(!HAS_MM){el.innerHTML='<b class="err">mermaid.js not loaded (offline? segowl/assets/mermaid.min.js missing); diagram source:</b><br>'+el.innerHTML; continue;}
-    await draw(el);
-  }
-}
+// Draws the diagrams of scope that are shown (report_graph.js); Cytoscape needs a visible, sized box.
+function renderVisible(scope){ if(scope) drawVisibleGraphs(scope); }
 // Big tabs; the open tab is kept in the URL hash, so a reload (or a shared link) reopens it.
 function showTab(id){
   const pane=document.getElementById('tab-'+id);
@@ -81,12 +64,10 @@ function setGroup(g){
   GROUP=g;
   document.body.classList.toggle('grp', g!=='');
   filterPorts(groupSet());
-  document.querySelectorAll('.mermaid[data-done]').forEach(el=>el.removeAttribute('data-done'));
   graphsChanged();
   renderVisible(document.querySelector('.pane.active'));
 }
 window.addEventListener('DOMContentLoaded',()=>{
-  document.querySelectorAll('.mermaid').forEach(el=>{el.dataset.base=el.textContent;});
   const h=location.hash.slice(1);
   if(document.getElementById('tab-'+h)) showTab(h); else renderVisible(document.querySelector('.pane.active'));
 });

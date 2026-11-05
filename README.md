@@ -198,9 +198,10 @@ All interfaces of the source machine are always removed from the results: a scan
 sees itself locally typically shows many "open" ports that would skew the matrix.
 
 ## Outputs
-- `report.html`         : **standalone tabbed report** (Global view / Per source / Scans / Anomalies).
-  The Scans tab lists every Scan (file, date, command, tested ports, conflicts) and the
-  Coverage per target; matrix cells show in a tooltip the Scans behind their verdict.
+- `report.html`         : **standalone tabbed report** (Global view / Flow Policy / Pivot Machines /
+  Per source / Per target / Scans / Diff). The Scans tab lists every Scan (file, date, command, tested
+  ports, conflicts), the Coverage per target and the anomalies; matrix cells show in a tooltip the
+  Scans behind their verdict.
 - `matrix_hosts.md/.csv`: consolidated host -> host matrix
 - `matrix_zones.md`     : consolidated zone -> zone matrix
 - `exposure_targets.md` : target-oriented view (who reaches what)
@@ -228,15 +229,15 @@ Benefit: blocked targets show up as `filtered` (-> blocked) instead of being abs
 - `.`     : target absent from the scan output (unseen)
 
 ## Graphs
-The zone colours the background of its frame. Each multi-interface machine has its own
-node colour, and its interfaces are linked by a grey dotted line; single-interface
-machines stay white, bordered with the zone colour.
+Each zone has its own hue on its frame and title, never red, amber or green: those belong to the
+Flow Policy (red Finding, amber undeclared, green allowed), always shown with an icon. Each
+multi-interface machine has its own colour; single-interface machines stay white.
 
 ## HTML report (offline)
-`segowl/assets/mermaid.min.js` (shipped in the repo, v10.9.8) is
-inlined into `report.html`: the report is self-contained and renders without network.
-If it is missing, the report loads mermaid from the jsdelivr CDN (network required) and, on
-failure, shows the diagram source instead of a `mermaid is not defined` error.
+The report's diagrams are drawn by Cytoscape.js (`segowl/assets/cytoscape.min.js`, MIT, shipped in
+the repo, see `docs/adr/0005-cytoscape-for-network-diagrams.md`), inlined into `report.html` with
+the rest of its scripts: the report is self-contained and renders without network. The `.mmd`
+files stay plain Mermaid text, to paste into documents.
 
 ## Web app (in progress)
 ```bash

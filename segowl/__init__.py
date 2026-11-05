@@ -14,8 +14,8 @@ The script cross-checks each scan with the CSV inventory (ip;zone;type;name) and
   - segmentation.mmd          : global zone Mermaid
   - mermaid/<ip>.mmd          : per-source Mermaid
   - findings.md               : Findings and undeclared flows (with a Flow Policy only)
-  - report.html               : standalone tabbed report (Global / Per source / Anomalies)
-    (assets/mermaid.min.js is inlined -> viewable offline; otherwise CDN)
+  - report.html               : standalone tabbed report, offline (its scripts, Cytoscape.js
+    included, are inlined)
 
 MULTI-INTERFACE MACHINES & SELF EXCLUSION
 -----------------------------------------
