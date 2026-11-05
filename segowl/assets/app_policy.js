@@ -11,8 +11,10 @@ async function api(path, body) {
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.style.opacity = 1; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = 0, 3500); }
 function status(text, cls = "") { const s = $("#st"); s.textContent = text; s.className = "status " + cls; }
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
-const ZONE_COLORS = ["#0B1F33", "#0077a3", "#7a4a00", "#5b3fa0", "#a3324b", "#2f7d4f", "#6B7C93", "#b35c00", "#00808a", "#4b5563"];
-const zoneColor = z => ZONE_COLORS[[...String(z)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % ZONE_COLORS.length]; // same as Inventory
+// The report's Zone hues (render/common.py ZONE_COLORS, dark tone for white chip text), in Zone name order as
+// the report assigns them; never red, amber or green, which belong to the Flow Policy.
+const ZONE_COLORS = ["#174276", "#723555", "#0c535f", "#32266f", "#58381a"];
+const zoneColor = z => ZONE_COLORS[Math.max(0, [...D.zones].sort().indexOf(z)) % ZONE_COLORS.length];
 const zoneChip = z => `<span class="zonechip" style="background:${zoneColor(z)}">${esc(z)}</span>`;
 const MARK = {allow: "✓", deny: "✕", "": "?"};
 

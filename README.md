@@ -23,8 +23,8 @@ Source, set against what the client says should pass.
 
 <p align="center"><img src="segowl/assets/tutorial/source-view.svg" width="733" alt="Source view"></p>
 
-🟥 open but denied: Finding · 🟧 open, undeclared · 🟩 allowed · dashed: reachable, no open port ·
-**3389** in bold red: admin port
+🟥 ✕ open, denied: Finding · 🟧 ? open, undeclared · 🟩 ✓ open, allowed · dashed: reachable, no open port ·
+port numbers: **bold** = admin port, red = denied by the Flow Policy
 
 ## The work process
 
@@ -157,9 +157,9 @@ mission/
 Named sets of ports (`admin`, `directory`, `db`, `web`, `file`) shipped in
 `segowl/defaults/port_groups.csv`. A `mission/port_groups.csv` (`group;ports`, e.g.
 `admin;22,3389,5985,udp:161`) replaces a group of the same name or adds new ones.
-The **Port group** selector in the report header restricts every view (matrices, diagrams,
-exposure) to the OPEN flows on that group's ports. Open `admin` ports are always highlighted:
-red bar on cells, red labels on diagram edges.
+The **Port Group** chips under the report's tabs restrict every tab (matrices, diagrams, tables)
+to the OPEN flows on that group's ports. Open `admin` ports are always in bold, in matrix cells
+and on diagram edges.
 
 ## Flow Policy (optional)
 Without a Flow Policy the tool shows the views and the auditor judges: there are no Findings.

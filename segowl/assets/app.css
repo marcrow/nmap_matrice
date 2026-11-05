@@ -173,7 +173,10 @@ nav{position:relative;align-items:stretch}.dd{position:relative;display:flex}
 #hv-zone:checked~.viewtabs .vz,#hv-src:checked~.viewtabs .vs{background:var(--navy);color:#fff;border-color:var(--navy)}
 #hv-zone:checked~.vs-f,#hv-zone:checked~.viewtabs .vs-t,#hv-src:checked~.vz-f,#hv-src:checked~.viewtabs .vz-t{display:none}
 .legend{display:flex;flex-wrap:wrap;gap:10px;font-size:11.5px;color:#33415c;margin-top:4px}.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:5px;vertical-align:-1px}
-.hero .legend b{color:#b91c1c}
+.legend>span{display:inline-flex;align-items:center;gap:4px}.hero .legend b{color:#33415c}
+/* Flow Policy marks, as in the report: the colour always comes with its icon */
+.legend i.pg,.pg{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;font-style:normal;font-size:9.5px;font-weight:800;color:#fff;margin:0 2px 0 0;vertical-align:-2px}
+.pg-deny{background:#dc2626}.pg-undeclared{background:#f59e0b;color:#3b2600}.pg-allow{background:#16a34a}
 .figwrap{overflow-x:auto}.flow{width:100%;min-width:760px;height:auto}
 .tsteps{list-style:none;margin:0;padding:0;counter-reset:s}
 .tsteps li{counter-increment:s;display:grid;grid-template-columns:34px 1fr;gap:4px 10px;padding:10px 0;border-bottom:1px solid #eef2f6}

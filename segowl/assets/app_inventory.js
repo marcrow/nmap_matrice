@@ -3,7 +3,9 @@
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
 const BASE = ["ip", "zone", "type", "name"];
-const ZONE_COLORS = ["#0B1F33", "#0077a3", "#7a4a00", "#5b3fa0", "#a3324b", "#2f7d4f", "#6B7C93", "#b35c00", "#00808a", "#4b5563"];
+// The report's Zone hues (render/common.py ZONE_COLORS, dark tone for white chip text), in Zone name order as
+// the report assigns them; never red, amber or green, which belong to the Flow Policy.
+const ZONE_COLORS = ["#174276", "#723555", "#0c535f", "#32266f", "#58381a"];
 
 async function api(path, body, raw) {
   const opt = body === undefined ? {} : {method: "POST", headers: {"X-SegOWL": "1"},
@@ -22,7 +24,8 @@ let D = null, table = null, filterZone = null, dirty = false, saving = false, ag
 let dupSet = new Set(), nameCount = {};
 const rows = () => table.getData();
 const zoneNames = () => { const s = [...D.zones.map(z => z.name)]; rows().forEach(r => { if (r.zone && !s.includes(r.zone)) s.push(r.zone); }); return s; };
-const zoneColor = z => ZONE_COLORS[[...String(z)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % ZONE_COLORS.length]; // stable per name
+// ponytail: zoneNames() scans the rows on every chip; cache the sorted list if a large inventory feels slow
+const zoneColor = z => ZONE_COLORS[Math.max(0, [...zoneNames()].sort().indexOf(z)) % ZONE_COLORS.length];
 const zoneChip = z => `<span class="zonechip" style="background:${zoneColor(z)}">${esc(z)}</span>`;
 const machineNames = () => [...new Set(rows().map(r => r.name).filter(Boolean))].sort();
 const ipOk = v => /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/.test(v) || (v.includes(":") && /^[0-9a-fA-F:.]+$/.test(v));

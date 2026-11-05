@@ -13,8 +13,9 @@
         <span class="small muted vz-t">every Zone pair, the open ports on each edge</span><span class="small muted vs-t">everything one Source reaches, grouped by Zone</span></div>
       <img class="vz-f" src="/static/tutorial/zone-view.svg" alt="Zone view: Zones, open flows coloured by Flow Policy status">
       <img class="vs-f" src="/static/tutorial/source-view.svg" alt="Source view: everything one Source reaches, grouped by Zone">
-      <div class="legend dark"><span><i style="background:#dc2626"></i>open but denied: Finding</span><span><i style="background:#f59e0b"></i>open, undeclared</span>
-        <span><i style="background:#16a34a"></i>allowed</span><span><i style="border:2px dashed #f59e0b;background:none"></i>reachable, no open port</span><span><b style="color:#b91c1c">3389</b> admin port</span></div></div></div>
+      <div class="legend dark"><span><svg width="24" height="10"><line x1="1" y1="5" x2="23" y2="5" stroke="#dc2626" stroke-width="2.5"/></svg><i class="pg pg-deny">✕</i>open, denied: <b>Finding</b></span><span><svg width="24" height="10"><line x1="1" y1="5" x2="23" y2="5" stroke="#f59e0b" stroke-width="2.5"/></svg><i class="pg pg-undeclared">?</i>open, undeclared</span>
+        <span><svg width="24" height="10"><line x1="1" y1="5" x2="23" y2="5" stroke="#16a34a" stroke-width="2.5"/></svg><i class="pg pg-allow">✓</i>open, allowed</span><span><svg width="24" height="10"><line x1="1" y1="5" x2="23" y2="5" stroke="#64748b" stroke-width="2.5" stroke-dasharray="5 4"/></svg>reachable, no open port</span>
+        <span>port numbers: <b>bold</b> = admin port, <span style="color:#dc2626">red</span> = denied by the Flow Policy</span></div></div></div>
   <h3>The work process</h3>
   <div class="figwrap"><img class="flow" src="/static/tutorial/work-process.svg" alt="Work process in six steps"></div>
   <ol class="tsteps">
