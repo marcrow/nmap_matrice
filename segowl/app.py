@@ -705,6 +705,15 @@ class Mission:
             raise ValueError(f"{src} is not an inventory IP")
         self.source_dir(src).mkdir(parents=True, exist_ok=True)
 
+    def remove_source(self, src: str) -> None:
+        """Only an empty folder: a Scan, even excluded, is never deleted from the app."""
+        d = self.source_dir(src)
+        if any(f.is_file() for f in d.rglob("*")):
+            raise ValueError(f"scans/{src}/ holds files: remove them from the folder first")
+        for sub in sorted(d.rglob("*"), reverse=True):
+            sub.rmdir()
+        d.rmdir()
+
     def upload(self, src: str, name: str, stream, length: int) -> str:
         name = Path(name).name
         if Path(name).suffix.lower() not in SCAN_EXT_PRIORITY or name.startswith("."):
@@ -1198,6 +1207,9 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                     return self._json(mission.preview(json.loads(body)))
                 if url.path == "/api/scans/source":
                     mission.add_source(json.loads(body).get("ip", ""))
+                    return self._json(mission.scans())
+                if url.path == "/api/scans/source/remove":
+                    mission.remove_source(json.loads(body).get("ip", ""))
                     return self._json(mission.scans())
                 if url.path == "/api/scans/move":
                     d = json.loads(body)

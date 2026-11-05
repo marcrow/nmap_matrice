@@ -171,6 +171,11 @@ def test_uploaded_scan_completes_its_profile_and_feeds_the_report(mission, tmp_p
     assert "1 source(s)" in mission.lines[0]
     with pytest.raises(ValueError):
         mission.upload("../etc", "x.xml", io.BytesIO(b""), 0)
+    with pytest.raises(ValueError, match="holds files"):  # even an excluded Scan is kept
+        mission.remove_source("172.31.250.10")
+    mission.add_source("172.31.250.20")
+    mission.remove_source("172.31.250.20")
+    assert "172.31.250.20" not in mission.source_ips()
 
 
 # ---------------------------------------------------------------- ticket 05: Flow Policy editor

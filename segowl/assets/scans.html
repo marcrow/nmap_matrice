@@ -51,13 +51,14 @@ commands are computed for the Source you pick. Changes stay a draft until you sa
 </div>
 <div class="card"><div class="stephead"><span class="stepn">2</span><b>Run it from each Source</b>
   <span class="small muted">one row per Source (a folder <code>scans/&lt;ip&gt;/</code>), one column per Scan Profile</span></div>
-<p class="sub" style="margin-top:6px">A cell turns ✓ when the Scan it expects is in the folder. Click a cell to download
-the script to run on that Source. <b>Drop nmap files (.xml, .gnmap, .nmap) on a row</b> to store them for that Source.
-Excluding a Scan moves it to <code>excluded/</code>: it is kept, not read.</p>
+<p class="sub" style="margin-top:6px">A cell turns ✓ when the Scan it expects is in the folder. <b>Script</b> downloads
+the script to run on that Source. Add its results with <b>Add files…</b> or by dropping nmap files (.xml, .gnmap, .nmap)
+on the row. Excluding a Scan moves it to <code>excluded/</code>: it is kept, not read.</p>
 <div class="toolbar">
-  <select id="cand" style="min-width:260px"></select><button class="btn pri" id="adds">+ Add Source</button>
+  <input type="search" id="cand" list="candl" autocomplete="off" placeholder="Add a Source: type an IP, a name or a Zone" style="min-width:300px">
+  <datalist id="candl"></datalist><button class="btn pri" id="adds">+ Add Source</button>
   <span class="sep"></span>
-  <select id="zp"></select><a class="btn" id="zip">Download scripts for all Sources (.zip)</a>
+  <span class="small">Scripts for every Source, profile</span> <select id="zp"></select><a class="btn" id="zip">Download (.zip)</a>
 </div>
 <div id="msg"></div>
 <div class="card" style="padding:0;overflow:auto"><table class="grid" id="grid"></table></div>

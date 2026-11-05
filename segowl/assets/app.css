@@ -88,7 +88,7 @@ table.grid th,table.grid td{border:1px solid var(--line);padding:6px 8px;text-al
 table.grid th{background:var(--mist)}
 table.grid td.done{background:#e6f7ec;color:#14532d;text-align:center;font-weight:600}
 table.grid td.todo{background:#fbfcfe;color:#9aa3b2;text-align:center}
-table.grid tr.drop td{outline:2px dashed var(--cyan);outline-offset:-2px}
+table.grid tr.dropping td{outline:2px dashed var(--cyan);outline-offset:-2px}
 .files{font-size:11.5px;margin-top:4px}.files div{display:flex;gap:6px;align-items:center}
 .files .ex{color:var(--slate);text-decoration:line-through}
 /* flow policy matrix */
