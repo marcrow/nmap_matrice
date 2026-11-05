@@ -17,3 +17,5 @@ scans/
 !tests/fixtures/**
 !segowl/defaults/**
 !segowl/kits/**
+!lab/**
+lab/out/

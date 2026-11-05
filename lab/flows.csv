@@ -1,0 +1,16 @@
+# What fw-01 forwards between Zones. First match wins; anything else is dropped (nmap: filtered).
+# ports: all, or "tcp:22,80-90 udp:53". action: accept · reject (nmap: closed) · drop (nmap: filtered).
+# Same-Zone traffic never crosses the firewall.
+from;to;ports;action
+audit;dmz;all;accept
+audit;servers;all;accept
+audit;users;all;accept
+audit;admin;tcp:443;accept
+audit;admin;all;reject
+dmz;servers;tcp:53,88,389,5432,8080 udp:53;accept
+dmz;admin;tcp:443;accept
+admin;*;all;accept
+users;servers;tcp:53,88,135,139,389,445,464,636,3268,5432,8080 udp:53,88,123;accept
+users;dmz;tcp:80,443,3128,8080;accept
+users;admin;all;reject
+servers;*;all;accept
