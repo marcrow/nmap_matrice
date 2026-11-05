@@ -29,7 +29,7 @@ function viewNodes(D) {
   const set = groupSet(), out = [];
   for (const t of D.nodes) {
     let links = t.links || [{to: 'S', verdict: t.verdict, ports: t.ports, cross: t.cross}];
-    if (set) links = links.flatMap(l => { const ports = l.verdict === 'OPEN' ? l.ports.filter(p => inRanges(p.l, set)) : [];
+    if (set) links = links.flatMap(l => { if (l.keep) return [l]; const ports = l.verdict === 'OPEN' ? l.ports.filter(p => inRanges(p.l, set)) : [];
       return ports.length ? [{...l, ports}] : []; });
     if (!links.length) continue;
     const by = {};
@@ -42,7 +42,7 @@ function viewNodes(D) {
 // Flow Policy status of a node or link: its worst port; without a Flow Policy every cross-zone OPEN flow is undeclared.
 const status = t => t.ports.reduce((w, p) => (RANK[p.st] || 0) > (RANK[w] || 0) ? p.st : w, null)
   || (t.cross && t.verdict === 'OPEN' ? 'undeclared' : null);
-const edgeCol = t => t.verdict !== 'OPEN' ? REACH_COL : COL[status(t)] || GREY;
+const edgeCol = t => t.col || (t.verdict !== 'OPEN' ? REACH_COL : COL[status(t)] || GREY);
 const portsIn = () => O.edges === 'zone' || O.ports === 'nodes';
 
 // Port tokens wrapped to maxW: admin bold, denied red. Returns lines of [{t, x, b, c}] and the widest line.
@@ -63,19 +63,19 @@ const portText = (lines, x0, y0, size, lh) => lines.map((l, i) => l.map(k =>
 
 // An Interface drawn as an SVG image (a Cytoscape label is plain text: no bold or red inside one label).
 function card(t, mcol) {
-  const P = 7, B = mcol ? 4 : 0, ic = status(t), name = t.name || t.ip;
+  const P = 7, B = mcol ? 4 : 0, ic = status(t), name = t.name || t.ip, sub = t.sub ?? (t.name ? t.ip : '');
   const w1 = (ic ? 17 : 0) + tw(name, 12.5, 600);
   const pp = portsIn() && t.ports.length ? wrapPorts(t, 11.5, 170) : {lines: [], wmax: 0};
-  const word = {REACHABLE: 'reachable', ALIVE: 'alive'}[t.verdict] || '';
-  const W = Math.ceil(Math.max(w1, t.name ? tw(t.ip, 10.5) : 0, pp.wmax, word ? tw(word, 11) : 0)) + 2 * P + B;
-  const H = P * 2 + 14 + (t.name ? 13 : 0) + pp.lines.length * 14 + (word ? 14 : 0);
+  const word = t.note || {REACHABLE: 'reachable', ALIVE: 'alive'}[t.verdict] || '';
+  const W = Math.ceil(Math.max(w1, sub ? tw(sub, 10.5) : 0, pp.wmax, word ? tw(word, 11, 700) : 0)) + 2 * P + B;
+  const H = P * 2 + 14 + (sub ? 13 : 0) + pp.lines.length * 14 + (word ? 14 : 0);
   const x = P + B; let y = P + 11, s = mcol ? `<rect width="${W}" height="${H}" fill="${mcol}" opacity=".07"/><rect width="${B}" height="${H}" fill="${mcol}"/>` : '';
   if (ic) { const [g, bg, fg] = ICON[ic];
     s += `<circle cx="${x + 6}" cy="${y - 4}" r="6" fill="${bg}"/><text x="${x + 6}" y="${y - 0.8}" font-size="9" font-weight="800" fill="${fg}" text-anchor="middle">${g}</text>`; }
   s += `<text x="${x + (ic ? 17 : 0)}" y="${y}" font-size="12.5" font-weight="600" fill="${NAVY}">${gesc(name)}</text>`;
-  if (t.name) { y += 13; s += `<text x="${x}" y="${y}" font-size="10.5" fill="${SLATE}">${gesc(t.ip)}</text>`; }
+  if (sub) { y += 13; s += `<text x="${x}" y="${y}" font-size="10.5" fill="${SLATE}">${gesc(sub)}</text>`; }
   if (pp.lines.length) { s += portText(pp.lines, x, y + 14, 11.5, 14); y += pp.lines.length * 14; }
-  if (word) s += `<text x="${x}" y="${y + 14}" font-size="11" font-style="italic" fill="${SLATE}">${word}</text>`;
+  if (word) s += `<text x="${x}" y="${y + 14}" font-size="11" ${t.note ? 'font-weight="700"' : 'font-style="italic"'} fill="${t.noteCol || SLATE}">${gesc(word)}</text>`;
   return {w: W, h: H, img: svgUri(W, H, s)};
 }
 // Ports on the edge, just before the target ("ports on the edges"): a small tag, same marks as in the node.
@@ -109,7 +109,7 @@ function elements(g) {
     els.push({data: {id: t.ip, parent: 'z:' + t.zone, t, ...c, bc: m || '#c3cfdc'}, classes: 'tgt'});
     if (O.edges === 'zone') continue;
     for (const l of t.links) els.push({data: {id: `e:${t.ip}>${l.to}`, source: linkEnd(l.to), target: t.ip, col: edgeCol(l), z: RANK[status(l)] || 0},
-      classes: (l.verdict === 'OPEN' ? 'flow' : 'flow dash') + dir});
+      classes: (l.verdict === 'OPEN' && !l.dash ? 'flow' : 'flow dash') + ((l.inward ?? D.inward) ? ' in' : '')});
     if (tags && t.ports.length) { const lr = tag(t, 150), tb = tag(t, Math.max(c.w - 10, 110));  // beside the node / over or under it
       els.push({data: {id: 'p:' + t.ip, of: t.ip, zone: t.zone, col, lr, tb, ...lr}, classes: 'tag'}); }
   }
@@ -195,7 +195,8 @@ const midOrder = (bs, size) => { const o = []; [...bs].sort((p, q) => size(q) - 
 function around(g, dirs) {
   const zs = visibleZones(g), S = g.cy.$id('S'), box = g.cy.container().getBoundingClientRect();
   const allowed = zs.map(z => { const n = z.data('name'), a = arrOf(g, z);
-    if (g.pin && g.pin[n] && dirs.includes(g.pin[n]) && (a === 'auto' || (a[0] === 'c') === 'RL'.includes(g.pin[n]))) return [g.pin[n]];
+    const pin = (g.pin && g.pin[n]) || (g.D.sides && g.D.sides[n]);  // pinned by a right-click, or by the diagram
+    if (pin && dirs.includes(pin) && (a === 'auto' || (a[0] === 'c') === 'RL'.includes(pin))) return [pin];
     const ok = [...dirs].filter(d => a === 'auto' || (a[0] === 'c') === 'RL'.includes(d));
     return ok.length ? ok : [...dirs]; });
   const B = zs.map((z, i) => Object.fromEntries(allowed[i].map(d => [d, block(g, z, d)])));
@@ -368,13 +369,14 @@ function zoneMenu(g, z, ev) {
 
 function showTip(g, t, ev) {
   const tip = g.el.querySelector('.gtip'), st = status(t);
+  if (t.tip) { tip.innerHTML = t.tip; } else {
   const pol = st ? `<i class="pg pg-${st}">${ICON[st][0]}</i>${WORD[st]}` : '<span class="k">no Flow Policy status</span>';
   const ports = t.ports.map(p => `<span style="${p.admin ? 'font-weight:700;' : ''}${p.st === 'deny' ? 'color:#dc2626' : ''}">${gesc(p.l)}</span>`).join(', ');
   const sib = g.cy.nodes('.tgt').filter(n => n.data('t').machine === t.machine).length;
   tip.innerHTML = `<h4>${gesc(t.name || t.ip)} · ${gesc(t.ip)}</h4><div><span class="k">Zone</span> ${gesc(t.zone)} · <span class="k">type</span> ${gesc(t.type)}</div>`
     + (t.multi ? `<div><span class="k">Machine</span> ${gesc(t.machine)}, ${sib} of its Interfaces here</div>` : '')
     + `<div><span class="k">verdict</span> <b>${t.verdict}</b></div>` + (t.ports.length ? `<div><span class="k">open ports</span> ${ports}</div>` : '')
-    + `<div><span class="k">Flow Policy</span> ${pol}</div>`;
+    + `<div><span class="k">Flow Policy</span> ${pol}</div>`; }
   const r = g.cy.container().getBoundingClientRect(), {x, y} = ev.renderedPosition || ev.target.renderedPosition();
   tip.style.display = 'block'; tip.style.left = Math.min(x + 16, r.width - 350) + 'px'; tip.style.top = (y + 16) + 'px';
 }

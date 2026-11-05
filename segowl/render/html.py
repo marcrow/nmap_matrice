@@ -11,7 +11,16 @@ from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable
 from pathlib import Path
 
-from segowl.analysis import Analysis, Matrix, Row, ZoneAgg, ZoneMatrix, aggregate_zones
+from segowl.analysis import (
+    Analysis,
+    Matrix,
+    Rebound,
+    Row,
+    ZoneAgg,
+    ZoneMatrix,
+    aggregate_zones,
+    rebounds,
+)
 from segowl.inventory import Host, Inventory, extra_columns, ordered_ips
 from segowl.policy import ALLOW, DENY, UNDECLARED
 from segowl.ports import Port, count_ports, format_ranges, port_label, ports_text
@@ -354,28 +363,164 @@ def _zone_tag(z: str) -> str:
     return f'<span class="tag">{html.escape(z)}</span>'
 
 
-def _pivots_html(a: Analysis) -> str:
-    inv, blocks = a.inv, []
-    for machine, hits in sorted(a.pivots.items()):
-        zones = sorted({h.zone for h in inv.values() if h.machine == machine})
-        by_zone = defaultdict(list)
-        for s, d, ports in hits:
-            by_zone[inv[s].zone].append((s, d, ports))
-        groups = []
-        for z, rows in sorted(by_zone.items()):
-            onward = ", ".join(_zone_tag(x) for x in zones if x != z)
-            items = "".join(
-                f"<li{_ports_attr(ports, a.highlight)}>"
-                f"{html.escape(inv[s].short)} &rarr; {html.escape(d)} {_zone_tag(inv[d].zone)}: "
-                f'<span class="pl">{_ports_html(ports, a.highlight)}</span></li>'
-                for s, d, ports in rows
+FROM, INTO = "Source Zones", "its other Zones"  # the two frames of a Pivot Machine diagram
+REBOUND, BYPASS = "#FFB020", POLICY_COLORS[DENY]  # rebound: brand amber (user's choice); bypass: red
+
+
+def _names(a: Analysis, ips: list[str], cap: int = 5) -> str:
+    txt = ", ".join(html.escape(a.inv[i].short) for i in ips[:cap])
+    return txt + (f" +{len(ips) - cap}" if len(ips) > cap else "")
+
+
+def _pivot_graph(a: Analysis, machine: str, hits: list, rbs: list[Rebound]) -> dict:
+    """In: each Source Zone -> the Interfaces its Sources reach (ports). Out: each rebound Interface -> its
+    Zone."""
+    inv, multi = a.inv, set(machine_palette(a.inv))
+    ifaces = [ip for ip in ordered_ips(inv) if inv[ip].machine == machine]
+    nodes = []
+    for z in sorted({inv[s].zone for s, _, _ in hits}):
+        srcs = sorted({s for s, _, _ in hits if inv[s].zone == z})
+        links = []
+        for d in sorted({d for s, d, _ in hits if inv[s].zone == z}):
+            ports: dict[str, dict] = {}
+            for s in srcs:
+                if d in a.matrix[s] and a.matrix[s][d].verdict == OPEN:
+                    for p in _link(a, s, d)["ports"]:
+                        if p["l"] not in ports or p["st"] == DENY:
+                            ports[p["l"]] = p
+            links.append(
+                {"to": d, "verdict": "OPEN", "ports": list(ports.values()), "cross": z != inv[d].zone}
             )
-            groups.append(f"<div>from {_zone_tag(z)} &rarr; leads to {onward}<ul>{items}</ul></div>")
-        blocks.append(
-            f'<div class="card"><b>{html.escape(machine)}</b> spans {", ".join(_zone_tag(z) for z in zones)}'
-            f"{''.join(groups)}</div>"
+        names = ", ".join(html.escape(inv[x].short) for x in srcs)
+        tip = f"<h4>{html.escape(z)}</h4>Sources: {names}<br>reach {', '.join(lk['to'] for lk in links)}"
+        nodes.append({"ip": f"from:{z}", "name": z, "sub": "", "zone": FROM, "links": links, "tip": tip})
+    for r in rbs:
+        best = max(r.gain.values(), key=len)
+        bypass = any(r.bypass(z) for z in r.gain)
+        note = (
+            "bypass, all of it" if bypass else f"+{len(best)} not reached directly" if best else "nothing new"
         )
-    return "".join(blocks) or "<p>None: no machine spanning several zones is reached OPEN.</p>"
+        nodes.append(
+            {
+                "ip": f"into:{r.into}",
+                "name": r.into,
+                "zone": INTO,
+                "sub": f"through {r.through}",
+                "note": note,
+                "noteCol": BYPASS if bypass else "#6B7C93",
+                "links": [
+                    {
+                        "to": r.through,
+                        "verdict": "OPEN",
+                        "ports": [],
+                        "cross": False,
+                        "keep": True,
+                        "inward": False,
+                    }
+                    | {"col": BYPASS if bypass else REBOUND, "dash": True}
+                ],
+                "tip": f"<h4>into {html.escape(r.into)}</h4>"
+                + "<br>".join(
+                    f"from {html.escape(z)}: {'bypass, ' if r.bypass(z) else ''}"
+                    f"+{len(add)} of the {len(r.others)} other Interface(s)"
+                    for z, add in r.gain.items()
+                ),
+            }
+        )
+    return {
+        "file": f"pivot-{machine}",
+        "center": {"machine": machine, "ifaces": [_node(a, d, multi) for d in ifaces]},
+        "zones": {
+            **zone_palette(inv),
+            FROM: ("#f4f7fa", "#6B7C93", "#2b3743"),
+            INTO: ("#fffaf0", REBOUND, "#7a4a00"),
+        },
+        "machines": {},
+        "nodes": nodes,
+        "inward": True,
+        "sides": {FROM: "L", INTO: "R"},
+    }
+
+
+def _pivots_html(a: Analysis) -> str:
+    """One card per Pivot Machine: who reaches it (In) and, for each of its other Zones, what the rebound
+    adds to what each Source Zone already reaches directly (Out). Bypasses first; nothing new: folded."""
+    inv, st, e = a.inv, a.pair_status(a.matrix), html.escape
+    cards = []
+    for machine, hits in a.pivots.items():
+        rbs = rebounds(a.matrix, inv, machine, hits)
+        n_bypass = sum(any(r.bypass(z) for z in r.gain) for r in rbs)
+        gains = sum(max(len(g) for g in r.gain.values()) for r in rbs)
+        out_rows = []
+        for r in rbs:
+            parts = []
+            for z, add in r.gain.items():
+                if not r.others:
+                    parts.append(f"{_zone_tag(z)} nothing else in this Zone")
+                elif r.bypass(z):
+                    parts.append(
+                        f'{_zone_tag(z)} <span class="byp">bypass</span> +{len(add)}, all of it: '
+                        + _names(a, add)
+                    )
+                elif add:
+                    parts.append(f"{_zone_tag(z)} <b>+{len(add)}</b>: {_names(a, add)}")
+                else:
+                    parts.append(
+                        f'{_zone_tag(z)} <span class="muted">nothing new, already reaches all '
+                        f"{len(r.others)}</span>"
+                    )
+            out_rows.append(
+                f"<tr><th>{_zone_tag(r.into)}</th><td>{e(r.through)}<br>"
+                f'<small class="muted">{len(r.others)} other '
+                f"Interface(s) in {e(r.into)}</small></td><td>{'<br>'.join(parts)}</td></tr>"
+            )
+        in_rows = "".join(
+            f"<tr><th>{e(inv[s].short)} {_zone_tag(inv[s].zone)}</th><td>{e(d)} {_zone_tag(inv[d].zone)}</td>"
+            f"<td{_ports_attr(ports, a.highlight)}>{_pg(st.get((s, d)))}"
+            f'<span class="pl">{_ports_html(ports, a.highlight)}</span></td></tr>'
+            for s, d, ports in sorted(hits, key=lambda h: (inv[h[0]].zone, h[0], h[1]))
+        )
+        zones = " ".join(_zone_tag(inv[i].zone) for i in ordered_ips(inv) if inv[i].machine == machine)
+        badge = (
+            f'<span class="byp">{n_bypass} bypass</span>'
+            if n_bypass
+            else ""
+            if gains
+            else '<span class="tag">nothing new</span>'
+        )
+        tables = (
+            '<div class="pv"><div><h4>In: who reaches it</h4><table class="pd"><thead><tr><th>Source</th>'
+            "<th>Interface reached</th><th>open ports</th></tr></thead>"
+            f"<tbody>{in_rows}</tbody></table></div>"
+            '<div><h4>Out: what the rebound adds</h4><table class="pd"><thead><tr><th>into</th>'
+            "<th>through</th>"
+            "<th>per Source Zone, the Interfaces it does not reach directly</th></tr></thead><tbody>"
+            + (
+                "".join(out_rows)
+                or "<tr><td colspan=3>Nowhere: no Source lands in another Zone through it.</td></tr>"
+            )
+            + "</tbody></table></div></div>"
+        )
+        body = _graph(_pivot_graph(a, machine, hits, rbs)) + tables
+        if not gains:
+            body = (
+                f'<details ontoggle="renderVisible(this)"><summary>{len(hits)} flow(s), the rebound adds '
+                "nothing to "
+                f"what the Source Zones already reach</summary>{body}</details>"
+            )
+        head = f'<div class="ph"><b class="pm">{e(machine)}</b> {zones} {badge}</div>'
+        cards.append(
+            (
+                -n_bypass,
+                -gains,
+                machine,
+                f'<div class="sec pivot{"" if gains else " calm"}">{head}{body}</div>',
+            )
+        )
+    return (
+        "".join(c[-1] for c in sorted(cards))
+        or "<p>None: no Machine spanning several Zones is reached OPEN.</p>"
+    )
 
 
 def _diagram(base: str, variants: list[str]) -> str:
@@ -414,9 +559,21 @@ def _global_tab(a: Analysis) -> str:
 
 
 def _pivots_tab(a: Analysis) -> str:
+    rebound = (
+        f"<span>{_line(REBOUND, True)} rebound: from this Machine, its other Zones</span>"
+        f"<span>{_line(BYPASS, True)} bypass: the Source Zone reaches nothing else there directly</span>"
+        "</div>"
+    )
     return (
-        '<p class="hint">Machines spanning several zones and reached OPEN: from the source zone, '
-        "a one-hop path to the machine's other zones.</p>" + _pivots_html(a)
+        '<div class="explain">A <b>Pivot Machine</b> has Interfaces in several Zones and a Source reaches it '
+        "OPEN: whoever holds it lands in all its Zones at once (a rebound). Each card shows who reaches it "
+        "(In) and, for each of its other Zones, which Interfaces the rebound adds to what the Source Zone "
+        "reaches directly (Out). Adds everything: a <b>bypass</b> of the segmentation. Bypasses first."
+        "<br><small>Machines are grouped by inventory name: a device known under two names is not detected, "
+        "so this list is not exhaustive.</small></div>"
+        + _diagram_legend(a.policy is not None, graph=True).removesuffix("</div>")
+        + rebound
+        + _pivots_html(a)
     )
 
 

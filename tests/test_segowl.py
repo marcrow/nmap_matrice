@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from segowl.analysis import aggregate_zones, analyze, build_matrix, restrict
+from segowl.analysis import aggregate_zones, analyze, build_matrix, pivot_machines, rebounds, restrict
 from segowl.cli import main
 from segowl.inventory import Host, load_inventory
 from segowl.nmap import HostRecord, Scan, discover_declared, discover_excluded, discover_scans, parse_scan
@@ -302,3 +302,19 @@ def test_nmap_ports_lists_tcp_plainly_and_prefixes_protocols_when_mixed():
     assert _nmap_ports([(443, "tcp"), (22, "tcp"), (22, "tcp")]) == "22,443"
     assert _nmap_ports([(53, "udp"), (22, "tcp"), (161, "udp")]) == "T:22,U:53,161"
     assert _nmap_ports([]) == ""
+
+
+def test_rebound_gain_bypass_nothing_new_and_partial():
+    """From zone A, a Source reaches the Machine m OPEN on its B Interface; m also sits in C, D and E."""
+    hosts = [("10.0.0.1", "A", ""), ("10.0.1.9", "B", "m"), ("10.0.2.9", "C", "m"), ("10.0.3.9", "D", "m")]
+    hosts += [("10.0.4.9", "E", "m"), ("10.0.2.1", "C", ""), ("10.0.2.2", "C", ""), ("10.0.3.1", "D", "")]
+    hosts += [("10.0.4.1", "E", "")]
+    inv = {ip: Host(ip, z, "vm", name) for ip, z, name in hosts}
+    opened = {"10.0.1.9", "10.0.2.1", "10.0.4.1"}  # m on B, one of C's two, all of E's one
+    matrix = {"10.0.0.1": {ip: Cell(OPEN, [(22, "tcp")]) if ip in opened else Cell() for ip in inv}}
+    hits = pivot_machines(matrix, inv)["m"]
+    by_zone = {r.into: r for r in rebounds(matrix, inv, "m", hits)}
+    assert set(by_zone) == {"C", "D", "E"}  # B is where the Source lands: no rebound into it
+    assert by_zone["C"].gain["A"] == ["10.0.2.2"] and not by_zone["C"].bypass("A")  # partial: +1 of 2
+    assert by_zone["D"].gain["A"] == ["10.0.3.1"] and by_zone["D"].bypass("A")  # adds everything
+    assert by_zone["E"].gain["A"] == [] and not by_zone["E"].bypass("A")  # nothing new

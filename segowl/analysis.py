@@ -157,6 +157,48 @@ def pivot_machines(matrix: Matrix, inv: Inventory) -> Pivots:
     return dict(out)
 
 
+@dataclass
+class Rebound:
+    """From a Pivot Machine into one of its Zones: what a Source Zone landing there gains by the rebound."""
+
+    into: str  # the Zone
+    through: str  # the Machine's Interface in that Zone
+    others: list[str]  # the other Interfaces of that Zone
+    gain: dict[str, list[str]]  # Source Zone -> Interfaces of `others` it does not reach OPEN directly
+
+    def bypass(self, zone: str) -> bool:
+        """The rebound adds everything: that Source Zone reaches nothing else in this Zone directly."""
+        return bool(self.others) and len(self.gain[zone]) == len(self.others)
+
+
+def rebounds(
+    matrix: Matrix, inv: Inventory, machine: str, hits: list[tuple[str, str, list[Port]]]
+) -> list[Rebound]:
+    """For each Interface of a Pivot Machine, the Source Zones that land in its Zone through another Interface
+    of the Machine, and the Interfaces of that Zone the rebound adds to what they reach directly."""
+    out = []
+    for ip in ordered_ips(inv):
+        if inv[ip].machine != machine:
+            continue
+        x = inv[ip].zone
+        froms = sorted({inv[s].zone for s, d, _ in hits if inv[d].zone != x} - {x})
+        if not froms:
+            continue
+        others = [i for i in ordered_ips(inv) if inv[i].zone == x and inv[i].machine != machine]
+        gain = {}
+        for z in froms:
+            direct = {
+                d
+                for s, row in matrix.items()
+                if inv[s].zone == z
+                for d, c in row.items()
+                if c.verdict == OPEN
+            }
+            gain[z] = [i for i in others if i not in direct]
+        out.append(Rebound(x, ip, others, gain))
+    return out
+
+
 def _comparable(a: Cell, b: Cell) -> bool:
     """Both directions tested some common ports (or a non-XML Scan leaves it unknown)."""
     if not (a.coverage_known and b.coverage_known):
