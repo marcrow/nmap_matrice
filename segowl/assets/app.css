@@ -12,6 +12,7 @@ nav{background:var(--navy2);display:flex;gap:2px;padding:0 10px}
 nav a{color:#cbd5e6;text-decoration:none;padding:10px 14px;font-size:13px;border-bottom:3px solid transparent}
 nav a:hover{color:#fff}nav a.on{color:#fff;border-bottom-color:var(--amber);font-weight:600}
 main{padding:16px 18px}
+main.narrow{max-width:1280px;margin-inline:auto} /* Overview: diagrams and text stop growing on wide screens */
 h2{margin:0 0 4px;font-size:18px}.sub{color:var(--slate);font-size:13px;margin:0 0 12px}
 .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:12px}
 .err{background:#fde8e8;border:1px solid #f5b5b5;color:#8a1a1a;border-radius:8px;padding:8px 12px;font-size:13px;margin:6px 0;white-space:pre-wrap}

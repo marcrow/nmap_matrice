@@ -979,7 +979,7 @@ def overview_body(m: Mission) -> str:
         for s in ov["steps"]
     )
     lead = f"Next: <b>{nxt['title']}</b>." if nxt else "Every step is done: the report is ready to share."
-    return f"""<main><h2>Overview</h2><p class="sub">{lead} The states are computed from the Mission folder;
+    return f"""<main class="narrow"><h2>Overview</h2><p class="sub">{lead} The states are computed from the Mission folder;
 nothing else is stored.</p>
 <div class="card" style="padding:6px 12px"><table class="steps">{rows}</table></div>
 {CLIENT_EXCHANGE}
