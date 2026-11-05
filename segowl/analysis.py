@@ -61,7 +61,7 @@ def build_matrix(
 ) -> tuple[Matrix, list[str], list[str], int]:
     """Source Views of every scanned Source.
 
-    Returns (matrix, sources without scan, reachable IPs outside the inventory, -Pn Scan count).
+    Returns (matrix, reachable IPs outside the inventory, -Pn Scan count).
     """
     matrix: Matrix = {}
     unknown: set[str] = set()
@@ -79,9 +79,8 @@ def build_matrix(
             for dst in inv
             if dst not in self_ips
         }
-    missing = sorted(ip for ip in inv if ip not in scans)
     pn_count = sum(1 for src in matrix for sc in scans[src] if force_pn or sc.pn)
-    return matrix, missing, sorted(unknown), pn_count
+    return matrix, sorted(unknown), pn_count
 
 
 @dataclass
@@ -184,7 +183,7 @@ class Analysis:
     scans: dict[str, list[Scan]]  # source ip -> its Scans, oldest first
     orphan: list[str]  # ignored scans: source folder / file name that is not an inventory IP
     matrix: Matrix
-    missing: list[str]  # inventory IPs without any Scan
+    missing: list[str]  # declared Sources (a scans/<ip>/ folder) without any Scan
     unknown: list[str]  # reachable IPs outside the inventory
     pn_count: int
     agg: ZoneMatrix
@@ -193,6 +192,7 @@ class Analysis:
     force_pn: bool = False
     policy: list[Rule] | None = None  # None = no Flow Policy: no Findings, no policy colouring
     excluded: dict[str, list[str]] = field(default_factory=dict)  # source ip -> parked scan files, not read
+    labels: list[tuple[str, ...]] = field(default_factory=list)  # Port Labels (scan_profiles.load_labels)
 
     @property
     def sources(self) -> list[str]:
@@ -293,15 +293,18 @@ def analyze(
     port_groups: PortGroups | None = None,
     policy: list[Rule] | None = None,
     excluded: dict[str, list[str]] | None = None,
+    declared: list[str] | None = None,
+    labels: list[tuple[str, ...]] | None = None,
 ) -> Analysis:
+    """declared: the Sources the Mission declares (nmap.discover_declared); those without a Scan are a gap."""
     scans = {src: sorted(v, key=lambda sc: (sc.start_ts, sc.name)) for src, v in scans.items()}
-    matrix, missing, unknown, pn_count = build_matrix(inv, scans, force_pn)
+    matrix, unknown, pn_count = build_matrix(inv, scans, force_pn)
     return Analysis(
         inv=inv,
         scans=scans,
         orphan=orphan,
         matrix=matrix,
-        missing=missing,
+        missing=sorted(set(declared or []) - set(scans)),
         unknown=unknown,
         pn_count=pn_count,
         agg=aggregate_zones(matrix, inv),
@@ -310,4 +313,5 @@ def analyze(
         force_pn=force_pn,
         policy=policy,
         excluded=excluded or {},
+        labels=labels or [],
     )

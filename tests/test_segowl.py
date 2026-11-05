@@ -7,7 +7,7 @@ import pytest
 from segowl.analysis import aggregate_zones, analyze, build_matrix, restrict
 from segowl.cli import main
 from segowl.inventory import Host, load_inventory
-from segowl.nmap import HostRecord, Scan, discover_excluded, discover_scans, parse_scan
+from segowl.nmap import HostRecord, Scan, discover_declared, discover_excluded, discover_scans, parse_scan
 from segowl.policy import load_policy
 from segowl.port_groups import load_port_groups
 from segowl.ports import in_port_set
@@ -278,3 +278,16 @@ def test_missing_port_groups_file_is_an_error_with_a_mission(tmp_path, monkeypat
     monkeypatch.setattr("sys.argv", argv)
     with pytest.raises(SystemExit, match="Port Groups file not found"):
         main()
+
+
+def test_sources_without_scan_are_the_declared_folders_only(tmp_path):
+    """A scans/<ip>/ folder declares a Source: empty, it is a gap; an Interface with no folder is none."""
+    scans = tmp_path / "scans"
+    shutil.copytree(MISSION / "scans", scans)
+    (scans / "172.31.250.20").mkdir()  # declared, no Scan yet
+    inv = load_inventory(str(MISSION / "inventory.csv"))
+    files = discover_scans(str(scans))
+    a = analyze(
+        inv, {SRC: [parse_scan(p, SRC) for p in files[SRC]]}, [], declared=discover_declared(str(scans))
+    )
+    assert a.missing == ["172.31.250.20"]  # 172.31.250.10 and .30: no folder, not listed

@@ -82,6 +82,11 @@ def discover_scans(scan_dir: str) -> dict[str, list[str]]:
     return {src: picked for src, paths in found.items() if (picked := _best_formats(paths))}
 
 
+def discover_declared(scan_dir: str) -> list[str]:
+    """Declared Sources: the `<scan_dir>/<source_ip>/` folders, made before the first Scan."""
+    return sorted(e for e in os.listdir(scan_dir) if os.path.isdir(os.path.join(scan_dir, e)))
+
+
 def discover_excluded(scan_dir: str) -> dict[str, list[str]]:
     """Scan files parked in a sub-folder of a source folder (e.g. `scans/<source_ip>/excluded/`).
 

@@ -38,13 +38,15 @@ input[type=checkbox]{accent-color:var(--navy);width:14px;height:14px;vertical-al
 .hint{font-size:12px;color:var(--slate);margin:4px 0 10px}
 .muted{color:var(--slate)}.small{font-size:12px}
 h2{font-size:16px;margin:22px 0 8px;}
-h3{font-size:14px;margin:16px 0 6px;color:#6B7C93;}
+h3{font-size:13.5px;margin:18px 0 6px;color:var(--slate);}
+.sec>h2 span[id]{scroll-margin-top:170px;}
 .legend{font-size:12px;color:#5a6678;margin:6px 0 14px;}
 .tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px;max-height:72vh;background:#fff;}
 table{border-collapse:collapse;font-size:12px;width:max-content;}
-th,td{border:1px solid #e7eaf0;padding:5px 8px;text-align:center;white-space:nowrap;}
-thead th{position:sticky;top:0;background:var(--mist);z-index:2;}
-tbody th{position:sticky;left:0;background:#f3f5f9;text-align:left;z-index:1;}
+th,td{border-bottom:1px solid #edf1f5;padding:6px 9px;text-align:left;white-space:nowrap;vertical-align:top;}
+thead th{position:sticky;top:0;background:var(--mist);z-index:2;font-weight:600;color:#33415c;}
+tbody th{position:sticky;left:0;background:#fff;z-index:1;font-weight:600;}
+tbody tr:hover>td:not([class*="v-"]),tbody tr:hover>th{background:#f6fbff;}
 .mermaid{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0;overflow:auto;font-family:inherit;}  /* pre is monospace otherwise: labels measured in sans-serif then truncated */
 .err{color:#c0392b;font-size:12px;white-space:pre-wrap;}
 .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:8px 0;font-size:13px;}
@@ -103,3 +105,22 @@ td b{font-weight:800}
 .lg svg{flex:none}.lg .sep{width:1px;height:16px;background:var(--line)}
 .lt{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:22px;padding:0 17px 0 7px;font-style:normal}
 .lt .pg{margin-right:3px}
+/* tables: search and sort (report.js enhanceTables) */
+thead th[data-s]{cursor:pointer;user-select:none}thead th[data-s]:hover{color:#0369a1}
+thead th[data-s="asc"]::after{content:" ▲";font-size:9px}thead th[data-s="desc"]::after{content:" ▼";font-size:9px}
+/* Target details that unfold */
+tr.row-more{cursor:pointer}tr.row-more:hover th{color:#0369a1}
+tr.more>td{background:#f8fafc;padding:8px 14px 12px}
+table.pd{border-collapse:collapse;font-size:11.5px;background:#fff;border:1px solid var(--line)}
+table.pd th,table.pd td{padding:4px 8px;position:static}
+table.pd thead th{background:#f1f5f9}
+td.st-open{color:#fff;background:var(--v-open);font-weight:600;text-align:center}
+td.st-conf{background:#fff4e6;color:#8a5200;text-align:center}
+td.lab{white-space:normal;max-width:380px}
+.tg{display:inline-block;background:#eef1f6;border-radius:9px;padding:0 6px;font-size:10.5px;color:#33415c}
+/* Flow Policy counters */
+.tiles{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0 6px}
+.tile{flex:1 1 180px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 14px;color:var(--ink);text-decoration:none;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:4px;cursor:pointer}
+.tile b{font-size:22px;margin-right:4px}.tile small{flex-basis:100%;color:var(--slate);font-size:11.5px}
+.tile.t-deny{border-left:4px solid var(--deny)}.tile.t-undeclared{border-left:4px solid var(--undeclared)}.tile.t-allow{border-left:4px solid var(--allow);cursor:default}
+a.tile[onclick*="scroll"]:hover{border-color:var(--cyan)}

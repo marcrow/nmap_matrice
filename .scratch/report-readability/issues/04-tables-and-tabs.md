@@ -1,6 +1,6 @@
 # Tables (search + sort), Target details, Flow Policy counters, Scans and Anomalies
 
-Status: ready-for-agent
+Status: done
 Blocked by: 02
 Spec: ../spec.md
 
@@ -18,3 +18,7 @@ Reference: branch `prototype/report-readability`, `report.js` `filterRows`, `sor
 - on the demo, searching "ilo" in any table keeps only matching rows; sorting by a port column orders 22 before 443
 - a Mission with an empty `scans/10.0.0.9/` folder lists 10.0.0.9 under Sources without scan; an inventory Interface with no folder is not listed
 - `tests/` cover the declared-Sources rule
+
+## Comments
+
+**2026-11-05, done.** Search and sort: `report.js` `enhanceTables` adds the search field and the header sort to every non-matrix table with 2 rows or more (the Python `_filter_box` calls are gone, one place instead of each table; the Diff tables are enhanced after each run); `filterRows` and `sortBy` keep a `tr.more` detail with its row; numbers and IPs sort numerically (`localeCompare` numeric). Flow Policy: `_policy_tab` counter tiles (click scrolls to Findings, undeclared, Rules), each table in its own section card. Target details: `_source_table_html(src, a)` unfolds `_port_detail` (state per Scan, disputed states in amber, Port Labels from `Analysis.labels`, the Mission's `port_labels.csv` over the shipped ones, passed by `cli.run`). Declared Sources: `nmap.discover_declared` (the `scans/<ip>/` folders), `analyze(declared=…)`, `Analysis.missing = declared − scanned`; `build_matrix` no longer returns `missing`; a declared folder outside the inventory is listed as such. Checked headless on the demo: "ilo" keeps ilo-01, ilo-02, 10.40.0.23; sorting the Findings by port gives 22 before 443. Test: `test_sources_without_scan_are_the_declared_folders_only`.

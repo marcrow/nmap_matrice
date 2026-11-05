@@ -5,10 +5,11 @@ from __future__ import annotations
 import argparse
 import os
 import sys
+from pathlib import Path
 
 from segowl.analysis import analyze
 from segowl.inventory import load_inventory
-from segowl.nmap import SCAN_EXT_PRIORITY, discover_excluded, discover_scans, parse_scan
+from segowl.nmap import SCAN_EXT_PRIORITY, discover_declared, discover_excluded, discover_scans, parse_scan
 from segowl.policy import load_policy
 from segowl.port_groups import load_port_groups
 from segowl.render.common import write_output
@@ -21,6 +22,7 @@ from segowl.render.markdown import (
     write_zone_matrix_md,
 )
 from segowl.render.mermaid import mermaid_hosts, mermaid_source, mermaid_zone
+from segowl.scan_profiles import load_labels
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -93,7 +95,17 @@ def run(args: argparse.Namespace) -> list[str]:
     groups = load_port_groups(args.port_groups)
     policy = load_policy(args.policy, inv, groups) if args.policy else None
     excluded = discover_excluded(args.scans)
-    a = analyze(inv, scans, orphan, force_pn=args.pn, port_groups=groups, policy=policy, excluded=excluded)
+    a = analyze(
+        inv,
+        scans,
+        orphan,
+        force_pn=args.pn,
+        port_groups=groups,
+        policy=policy,
+        excluded=excluded,
+        declared=discover_declared(args.scans),
+        labels=load_labels(Path(args.mission, "port_labels.csv") if getattr(args, "mission", None) else None),
+    )
     matrix, missing, unknown, agg, exp = a.matrix, a.missing, a.unknown, a.agg, a.exp
 
     write_host_matrix_md(matrix, inv, args.out)
@@ -128,7 +140,7 @@ def run(args: argparse.Namespace) -> list[str]:
     if excluded:
         lines.append(f"[+] {sum(map(len, excluded.values()))} excluded scan(s) in sub-folders, not read")
     if missing:
-        lines.append(f"[!] {len(missing)} source(s) without scan: {', '.join(missing)}")
+        lines.append(f"[!] {len(missing)} declared Source(s) without scan: {', '.join(missing)}")
     if unknown:
         lines.append(f"[!] {len(unknown)} host(s) outside inventory: {', '.join(unknown)}")
     if policy is not None:

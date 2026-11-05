@@ -192,23 +192,71 @@ def _tested_html(c: Cell) -> str:
     return "<br>".join(parts)
 
 
-def _source_table_html(src: str, row: Row, inv: Inventory, highlight: Highlight = _no_highlight) -> str:
+def _labels(a: Analysis) -> dict[str, list[tuple[str, str]]]:
+    """Port label ('22', 'udp:161') -> [(product, tags)] of its Port Labels."""
+    out: dict[str, list[tuple[str, str]]] = defaultdict(list)
+    for r in a.labels:
+        out[r[0].lower()].append((r[1], r[2]))
+    return out
+
+
+def _port_detail(src: str, d: str, a: Analysis, labels: dict[str, list[tuple[str, str]]]) -> str:
+    """Per port open in a Scan of the Source (or disputed): the state each Scan saw, and its Port Labels."""
+    scans = [(sc.name, a.scan_row(sc).get(d)) for sc in a.scans[src]]
+    conf = a.matrix[src][d].conflicts
+    ports = sorted({p for _, c in scans if c for p in c.open_ports} | set(conf))
+    head = "".join(f"<th>{html.escape(n)}</th>" for n, _ in scans)
+    rows = []
+    for p in ports:
+        cells = []
+        for n, c in scans:
+            if c and p in c.open_ports:
+                cells.append('<td class="st-open">open</td>')
+            elif n in conf.get(p, {}):
+                cells.append(f'<td class="st-conf">{html.escape(conf[p][n])}</td>')
+            elif c and c.is_tested(*p):
+                cells.append('<td class="muted">not open</td>')
+            else:
+                cells.append('<td class="muted">not tested</td>')
+        desc = "<br>".join(
+            html.escape(prod)
+            + "".join(f' <span class="tg">{html.escape(t)}</span>' for t in tags.split(",") if t)
+            for prod, tags in labels.get(port_label(p).lower(), [])[:3]
+        )
+        desc = desc or '<span class="muted">no Port Label</span>'
+        rows.append(
+            f'<tr><th>{_ports_html([p], a.highlight)}</th>{"".join(cells)}<td class="lab">{desc}</td></tr>'
+        )
+    return (
+        f'<table class="pd"><thead><tr><th>port</th>{head}<th>Port Label</th></tr></thead>'
+        f"<tbody>{''.join(rows)}</tbody></table>"
+    )
+
+
+def _source_table_html(src: str, a: Analysis) -> str:
+    """Target details of a Source; a row with open ports unfolds what each Scan saw per port."""
+    inv, row, labels = a.inv, a.matrix[src], _labels(a)
     extras = extra_columns(inv)
     rows = []
     for d in ordered_ips(inv):
         if inv[d].machine == inv[src].machine:
             continue
         c = row.get(d, Cell())
+        more = bool(c.open_ports or c.conflicts)
         rows.append(
-            f"<tr><th>{html.escape(inv[d].short)}</th>"
+            ('<tr class="row-more" onclick="toggleMore(this)"><th>▸ ' if more else "<tr><th>")
+            + f"{html.escape(inv[d].short)}</th>"
             f"<td>{html.escape(inv[d].zone)}</td><td>{html.escape(inv[d].htype)}</td>"
             f"<td>{_vb(c.verdict)}</td>"
-            f"<td{_ports_attr(c.open_ports, highlight)}>{_ports_html(c.open_ports, highlight)}</td>"
+            f"<td{_ports_attr(c.open_ports, a.highlight)}>{_ports_html(c.open_ports, a.highlight)}</td>"
             f"<td>{_tested_html(c)}</td>"
             f"<td>{html.escape(', '.join(c.scans))}</td>"
             + "".join(f"<td>{html.escape(inv[d].extra.get(k, ''))}</td>" for k in extras)
             + "</tr>"
         )
+        if more:
+            detail = _port_detail(src, d, a, labels)
+            rows.append(f'<tr class="more" hidden><td colspan="{7 + len(extras)}">{detail}</td></tr>')
     return (
         '<div class="tablewrap"><table class="fit"><thead><tr><th>target</th><th>zone</th><th>type</th>'
         "<th>verdict</th><th>open ports</th><th>tested ports</th><th>scans</th>"
@@ -430,16 +478,13 @@ def _persource_tab(a: Analysis) -> str:
                 [mermaid_source(s, m[s], inv, a.highlight, st, a.denied) for m, st in group_views],
             )
             + _diagram_legend(a.policy is not None)
-            + f"<h3>Target details</h3>{_source_table_html(s, matrix[s], inv, a.highlight)}</div>"
+            + '<h3>Target details</h3><p class="hint">Click a row with open ports: what each Scan saw on '
+            f"each port, and its Port Label.</p>{_source_table_html(s, a)}</div>"
         )
     return (
         f'<label class="pick">Source <select id="srcsel" onchange="showSource(this.value)">{options}</select>'
         "</label>" + "".join(panes)
     )
-
-
-def _filter_box() -> str:
-    return '<input class="filter" type="search" placeholder="Search this table…" oninput="filterRows(this)">'
 
 
 def _scans_tab(a: Analysis) -> str:
@@ -467,7 +512,7 @@ def _scans_tab(a: Analysis) -> str:
                 f'<td class="cmd"><code>{html.escape(sc.command)}</code></td></tr>'
             )
     scans_table = (
-        f'{_filter_box()}<div class="tablewrap"><table class="fit"><thead><tr>'
+        f'<div class="tablewrap"><table class="fit"><thead><tr>'
         "<th>source</th><th>zone</th><th>file</th><th>started</th><th>tested ports</th>"
         "<th>hosts in output</th><th>conflicts</th><th>command</th></tr>"
         f"</thead><tbody>{''.join(rows)}</tbody></table></div>"
@@ -489,7 +534,7 @@ def _scans_tab(a: Analysis) -> str:
                     f"<td><b>{html.escape(kept)}</b> <small>from {html.escape(from_)}</small></td></tr>"
                 )
     conflicts_table = (
-        f'{_filter_box()}<div class="tablewrap"><table class="fit"><thead><tr><th>source</th><th>target</th>'
+        f'<div class="tablewrap"><table class="fit"><thead><tr><th>source</th><th>target</th>'
         "<th>zone</th><th>port</th><th>state per Scan</th><th>kept (most permissive)</th></tr></thead>"
         f"<tbody>{''.join(conf_rows)}</tbody></table></div>"
         if conf_rows
@@ -524,7 +569,7 @@ def _scans_tab(a: Analysis) -> str:
             f'<tr><th title="{_host_title(inv[d])}">{html.escape(inv[d].short)}</th>{"".join(cells)}</tr>'
         )
     coverage_table = (
-        f'{_filter_box()}<div class="tablewrap"><table><thead>'
+        f'<div class="tablewrap"><table><thead>'
         f"<tr><th>target \\ source</th>{head}</tr></thead>"
         f"<tbody>{''.join(cov_rows)}</tbody></table></div>"
     )
@@ -557,14 +602,20 @@ def _scans_tab(a: Analysis) -> str:
 def _anomalies_tab(a: Analysis) -> str:
     inv = a.inv
     missing = "".join(
-        f"<li>{html.escape(ip)} — {html.escape(inv[ip].short)} "
-        f'<span class="tag">{html.escape(inv[ip].zone)}</span></li>'
+        f"<li>{html.escape(ip)} — {html.escape(inv[ip].short)} {_zone_tag(inv[ip].zone)}</li>"
+        if ip in inv
+        else f'<li>{html.escape(ip)} <span class="warn">not in the inventory</span></li>'
         for ip in a.missing
     )
     unknown = "".join(f'<li class="warn">{html.escape(ip)}</li>' for ip in a.unknown)
     orphan = "".join(f'<li class="warn">{html.escape(ip)}</li>' for ip in a.orphan)
     return (
-        _sec("Sources without scan", f"<ul>{missing or '<li>None</li>'}</ul>")
+        _sec(
+            "Sources without scan",
+            '<p class="hint">Declared Sources (a <code>scans/&lt;ip&gt;/</code> folder) that hold no Scan '
+            "yet.</p>"
+            f"<ul>{missing or '<li>None: every declared Source has a Scan.</li>'}</ul>",
+        )
         + _sec("Reachable hosts outside the inventory", f"<ul>{unknown or '<li>None</li>'}</ul>")
         + _sec(
             "Ignored scans",
@@ -599,7 +650,7 @@ def _asymmetry_html(a: Analysis) -> str:
     return (
         '<div class="tablewrap"><table><thead><tr><th>passes from zone</th><th>to zone</th>'
         f"<th>interface pairs</th></tr></thead><tbody>{summary}</tbody></table></div>"
-        f"<h3>Detail</h3>{_filter_box()}"
+        f"<h3>Detail</h3>"
         '<div class="tablewrap"><table class="mx"><thead><tr><th>A</th><th>zone</th><th>B</th><th>zone</th>'
         f"<th>A &rarr; B</th><th>B &rarr; A</th></tr></thead><tbody>{detail}</tbody></table></div>"
     )
@@ -664,7 +715,7 @@ def _mermaid_script() -> str:
 def _flows_table(rows: list[list[str]], head: list[str]) -> str:
     body = "".join("<tr>" + "".join(f"<td>{c}</td>" for c in r) + "</tr>" for r in rows)
     return (
-        f'{_filter_box()}<div class="tablewrap"><table><thead><tr>{"".join(f"<th>{h}</th>" for h in head)}'
+        f'<div class="tablewrap"><table><thead><tr>{"".join(f"<th>{h}</th>" for h in head)}'
         f"</tr></thead><tbody>{body or '<tr><td>None.</td></tr>'}</tbody></table></div>"
     )
 
@@ -675,7 +726,13 @@ def _policy_tab(a: Analysis) -> str:
     side = ["source", "src zone", "target", "dst zone", "port"]
 
     def flow(s: str, d: str, p: Port) -> list[str]:
-        return [e(inv[s].short), e(inv[s].zone), e(inv[d].short), e(inv[d].zone), port_label(p)]
+        return [
+            e(inv[s].short),
+            e(inv[s].zone),
+            e(inv[d].short),
+            e(inv[d].zone),
+            _ports_html([p], a.highlight),
+        ]
 
     def zkey(t: tuple) -> tuple:
         return inv[t[0]].zone, inv[t[1]].zone, t
@@ -688,22 +745,33 @@ def _policy_tab(a: Analysis) -> str:
         for r in a.policy or []
     ]
     allowed = len(a.decisions) - len(findings) - len(undeclared)
-    return _sec(
-        "Flow Policy",
-        f'<div class="legend"><span class="p-deny v-open">{len(findings)} Finding(s)</span>'
-        f'<span class="p-undeclared v-open">{len(undeclared)} undeclared</span>'
-        f'<span class="p-allow v-open">{allowed} allowed</span> '
-        f"OPEN flows · {len(a.policy or [])} rule(s)</div>"
-        '<p class="legend">Evaluated on OPEN ports. The most specific rule wins '
-        "(src Machine &gt; Zone &gt; *, "
+    never = sum(1 for r in a.policy or [] if not hits[r.line])
+
+    def tile(target: str, cls: str, icon: str, n: int, what: str, sub: str) -> str:
+        go = f"document.getElementById('{target}').scrollIntoView({{behavior:'smooth'}})" if target else ""
+        return f'<a class="tile {cls}" onclick="{go}">{icon}<b>{n}</b> {what}<small>{sub}</small></a>'
+
+    return (
+        '<div class="tiles">'
+        + tile("pf", "t-deny", _pg(DENY), len(findings), "Finding(s)", "OPEN flows the Flow Policy denies")
+        + tile(
+            "pu", "t-undeclared", _pg(UNDECLARED), len(undeclared), "undeclared", "OPEN flows no rule covers"
+        )
+        + tile("", "t-allow", _pg(ALLOW), allowed, "allowed", "OPEN flows a rule allows")
+        + tile("pr", "", "", len(a.policy or []), "rule(s)", f"{never} never matched")
+        + "</div>"
+        '<p class="hint">Evaluated on OPEN ports. The most specific rule wins (src Machine &gt; Zone &gt; *, '
         "then dst, then listed ports &gt; *); at equal specificity deny wins. A flow no rule covers is "
         "undeclared, never a Finding.</p>"
-        "<h3>Findings: OPEN flows explicitly denied</h3>"
-        + _flows_table(findings, side + ["rule", "comment"])
-        + "<h3>Undeclared flows</h3>"
-        + _flows_table(undeclared, side)
-        + "<h3>Rules</h3>"
-        + _flows_table(rules, ["line", "src", "dst", "ports", "action", "comment", "flows decided", ""]),
+        + _sec(
+            '<span id="pf">Findings: OPEN flows explicitly denied</span>',
+            _flows_table(findings, side + ["rule", "comment"]),
+        )
+        + _sec('<span id="pu">Undeclared flows</span>', _flows_table(undeclared, side))
+        + _sec(
+            '<span id="pr">Rules</span>',
+            _flows_table(rules, ["line", "src", "dst", "ports", "action", "comment", "flows decided", ""]),
+        )
     )
 
 
