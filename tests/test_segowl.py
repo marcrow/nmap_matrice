@@ -15,7 +15,7 @@ from segowl.port_groups import load_port_groups
 from segowl.ports import in_port_set
 from segowl.render.common import zone_cell
 from segowl.render.exports import write_observed_zone_flows
-from segowl.render.html import write_html
+from segowl.render.html import _nmap_ports, write_html
 from segowl.render.mermaid import mermaid_zone, zid
 from segowl.verdict import ALIVE, BLOCK, NODATA, OPEN, REACH, Cell, classify
 
@@ -296,3 +296,9 @@ def test_sources_without_scan_are_the_declared_folders_only(tmp_path):
         inv, {SRC: [parse_scan(p, SRC) for p in files[SRC]]}, [], declared=discover_declared(str(scans))
     )
     assert a.missing == ["172.31.250.20"]  # 172.31.250.10 and .30: no folder, not listed
+
+
+def test_nmap_ports_lists_tcp_plainly_and_prefixes_protocols_when_mixed():
+    assert _nmap_ports([(443, "tcp"), (22, "tcp"), (22, "tcp")]) == "22,443"
+    assert _nmap_ports([(53, "udp"), (22, "tcp"), (161, "udp")]) == "T:22,U:53,161"
+    assert _nmap_ports([]) == ""

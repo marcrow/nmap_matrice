@@ -11,7 +11,7 @@ from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable
 from pathlib import Path
 
-from segowl.analysis import Analysis, Exposure, Matrix, Row, ZoneAgg, ZoneMatrix, aggregate_zones
+from segowl.analysis import Analysis, Matrix, Row, ZoneAgg, ZoneMatrix, aggregate_zones
 from segowl.inventory import Host, Inventory, extra_columns, ordered_ips
 from segowl.policy import ALLOW, DENY, UNDECLARED
 from segowl.ports import Port, count_ports, format_ranges, port_label, ports_text
@@ -195,7 +195,10 @@ def _tested_html(c: Cell) -> str:
     return "<br>".join(parts)
 
 
-def _labels(a: Analysis) -> dict[str, list[tuple[str, str]]]:
+Labels = dict[str, list[tuple[str, str]]]  # port label -> [(product, tags)]
+
+
+def _labels(a: Analysis) -> Labels:
     """Port label ('22', 'udp:161') -> [(product, tags)] of its Port Labels."""
     out: dict[str, list[tuple[str, str]]] = defaultdict(list)
     for r in a.labels:
@@ -203,7 +206,7 @@ def _labels(a: Analysis) -> dict[str, list[tuple[str, str]]]:
     return out
 
 
-def _port_detail(src: str, d: str, a: Analysis, labels: dict[str, list[tuple[str, str]]]) -> str:
+def _port_detail(src: str, d: str, a: Analysis, labels: Labels) -> str:
     """Per port open in a Scan of the Source (or disputed): the state each Scan saw, and its Port Labels."""
     scans = [(sc.name, a.scan_row(sc).get(d)) for sc in a.scans[src]]
     conf = a.matrix[src][d].conflicts
@@ -266,31 +269,6 @@ def _source_table_html(src: str, a: Analysis) -> str:
         + "".join(f"<th>{html.escape(k)}</th>" for k in extras)
         + f"</tr></thead><tbody>{''.join(rows)}</tbody></table></div>"
     )
-
-
-def _exposure_html(exp: Exposure, inv: Inventory, highlight: Highlight = _no_highlight) -> str:
-    blocks = []
-    for d in inv:
-        opens, reach = exp[d]
-        if not opens and not reach:
-            continue
-        items = "".join(
-            f"<li{_ports_attr(ports, highlight)}>{_vb(OPEN)} from "
-            f"<b>{html.escape(inv[s].short)}</b> "
-            f'<span class="tag">{html.escape(inv[s].zone)}</span>: '
-            f'<span class="pl">{_ports_html(ports, highlight)}</span></li>'
-            for s, ports in opens
-        ) + "".join(
-            f'<li data-p="">reachable (closed) from {html.escape(inv[s].short)} '
-            f'<span class="tag">{html.escape(inv[s].zone)}</span></li>'
-            for s in reach
-        )
-        blocks.append(
-            f'<div class="card"><b>{html.escape(inv[d].short)}</b> '
-            f'<span class="tag">{html.escape(inv[d].zone)} · {html.escape(inv[d].htype)}</span>'
-            f"<ul>{items}</ul></div>"
-        )
-    return "".join(blocks) or "<p>No exposure.</p>"
 
 
 def _vb(verdict: int) -> str:
@@ -442,8 +420,132 @@ def _pivots_tab(a: Analysis) -> str:
     )
 
 
+def _nmap_ports(ports: Iterable[Port]) -> str:
+    """Ports ready for nmap -p: '22,443', or 'T:22,443,U:53' as soon as another protocol is in."""
+    by = {pr: ",".join(str(n) for n, q in sorted(set(ports)) if q == pr) for pr in ("tcp", "udp", "sctp")}
+    if not by["udp"] and not by["sctp"]:
+        return by["tcp"]
+    return ",".join(f"{pr[0].upper()}:{v}" for pr, v in by.items() if v)
+
+
+def _copy_btn(ports: set[Port], what: str) -> str:
+    v = _nmap_ports(ports)
+    btn = f'<button class="btn copy" data-ports="{v}" title="nmap -p {v}" onclick="copyPorts(this)">'
+    return f"{btn}Copy {what}</button>" if ports else ""
+
+
+def _iface_ports(a: Analysis, d: str, labels: Labels) -> tuple[str, set[Port]]:
+    """One Interface: every port open from some Source × each Source (open with its Flow Policy mark / not
+    open / not tested, from Coverage), with the Port Label. Returns the HTML and the open ports."""
+    inv = a.inv
+    srcs = [s for s in a.sources if inv[s].machine != inv[d].machine]
+    cells = {s: a.matrix[s].get(d) for s in srcs}
+    ports = sorted({p for c in cells.values() if c for p in c.open_ports})
+    title = f"<h4>{html.escape(d)} {_zone_tag(inv[d].zone)}"
+    if not ports:
+        return f'<div>{title} <span class="muted small">no port open from any Source</span></h4></div>', set()
+    head = "".join(f"<th>{html.escape(inv[s].short)} {_zone_tag(inv[s].zone)}</th>" for s in srcs)
+    rows = []
+    for p in ports:
+        tds = []
+        for s in srcs:
+            c = cells[s]
+            if c and p in c.open_ports:
+                mark = _pg(a.flow_status(s, d, p) if a.policy is not None else None)
+                tds.append(f'<td class="st-open">{mark}open</td>')
+            elif c and c.is_tested(*p):
+                tds.append('<td class="st-closed">not open</td>')
+            else:
+                tds.append('<td class="muted">not tested</td>')
+        desc = ", ".join(html.escape(prod) for prod, _ in labels.get(port_label(p).lower(), [])[:2])
+        desc = desc or '<span class="muted">–</span>'
+        rows.append(
+            f'<tr data-pr="{port_label(p)}"><th>{_ports_html([p], a.highlight)}</th>{"".join(tds)}'
+            f'<td class="lab">{desc}</td></tr>'
+        )
+    return (
+        f'<div>{title} <span class="muted small">{len(ports)} open port(s)</span> '
+        f"{_copy_btn(set(ports), 'its open ports')}</h4>"
+        f'<table class="pd pm-ports"><thead><tr><th>port</th>{head}<th>Port Label</th></tr></thead>'
+        f"<tbody>{''.join(rows)}</tbody></table></div>",
+        set(ports),
+    )
+
+
+def _flow_row(a: Analysis, s: str, d: str, c: Cell, st: dict) -> str:
+    """Cells shared by the Per target tables: verdict, open ports with the Flow Policy mark."""
+    return (
+        f"<td>{_vb(c.verdict)}</td>"
+        f"<td{_ports_attr(c.open_ports, a.highlight)}>{_pg(st.get((s, d)))}"
+        f'<span class="pl">{_ports_html(c.open_ports, a.highlight)}</span></td>'
+    )
+
+
 def _pertarget_tab(a: Analysis) -> str:
-    return _sec("Exposure per target", _exposure_html(a.exp, a.inv, a.highlight))
+    """Mirror of Per source, per Machine: pick it (name, IP or Zone), see who reaches each Interface."""
+    inv, st, labels = a.inv, a.pair_status(a.matrix), _labels(a)
+    machines = defaultdict(list)
+    for d in ordered_ips(inv):
+        machines[inv[d].machine].append(d)
+    reached = {
+        m: ips
+        for m, ips in machines.items()
+        if any(d in r and r[d].verdict >= ALIVE for r in a.matrix.values() for d in ips)
+    }
+    e = html.escape
+    opts = "".join(
+        f'<option value="{e(m)} · {e(", ".join(ips))} · {e(", ".join(sorted({inv[i].zone for i in ips})))}" '
+        f'data-k="tgt_{hid(ips[0])}">'
+        for m, ips in reached.items()
+    )
+    panes = []
+    for i, (m, ips) in enumerate(reached.items()):
+        seen = "".join(
+            f"<tr><th>{e(inv[s].short)}</th><td>{e(inv[s].zone)}</td><td>{e(d)}</td><td>{e(inv[d].zone)}</td>"
+            f"{_flow_row(a, s, d, c, st)}<td>{_tested_html(c)}</td></tr>"
+            for d in ips
+            for s in a.sources
+            if (c := a.matrix[s].get(d)) is not None
+        )
+        parts = [_iface_ports(a, d, labels) for d in ips]
+        total = set().union(*(p for _, p in parts))
+        zones = ", ".join(sorted({inv[x].zone for x in ips}))
+        copy_all = _copy_btn(total, "all the Machine’s open ports") if len(ips) > 1 else ""
+        panes.append(
+            f'<div class="tgtpane sec" id="tgt_{hid(ips[0])}" style="display:{"none" if i else "block"}">'
+            f'<h2>{e(m)} <span class="tag">{len(ips)} Interface(s) · {e(zones)}</span>'
+            f'<span class="tag">{len(total)} port(s) open on the Machine</span></h2>'
+            + _graph(_target_graph(a, m, ips))
+            + _diagram_legend(a.policy is not None, graph=True)
+            + f"<h3>Open ports per Interface, and from which Source {copy_all}</h3>"
+            '<div class="pmgrid">' + "".join(h for h, _ in parts) + "</div>"
+            "<h3>Seen from each Source</h3>"
+            '<div class="tablewrap"><table class="fit"><thead><tr><th>source</th><th>zone</th>'
+            "<th>Interface</th><th>its zone</th><th>verdict</th><th>open ports</th><th>tested ports</th></tr>"
+            f"</thead><tbody>{seen}</tbody></table></div></div>"
+        )
+    allrows = "".join(
+        f"<tr><th>{e(inv[d].short)}</th><td>{e(inv[d].zone)}</td>"
+        f"<td>{e(inv[s].short)}</td><td>{e(inv[s].zone)}</td>"
+        f"{_flow_row(a, s, d, c, st)}<td>{FLOW[st[(s, d)]][1] if (s, d) in st else ''}</td></tr>"
+        for d in ordered_ips(inv)
+        for s in a.sources
+        if (c := a.matrix[s].get(d)) is not None and c.verdict >= ALIVE
+    )
+    overview = (
+        '<details class="sec"><summary><b>All targets</b> · every target a Source reaches, one row per '
+        "target × Source</summary>"
+        '<div class="tablewrap"><table class="fit"><thead><tr><th>target</th><th>zone</th>'
+        "<th>source</th><th>src zone</th><th>verdict</th><th>open ports</th><th>Flow Policy</th></tr></thead>"
+        f"<tbody>{allrows}</tbody></table></div></details>"
+    )
+    return (
+        overview + '<label class="pick">Machine <input id="tgtq" type="search" list="tgtlist" '
+        'placeholder="name, IP or zone…" '
+        'oninput="pickTarget(this.value)" autocomplete="off"></label>'
+        f'<datalist id="tgtlist">{opts}</datalist>'
+        f'<span class="hint"> {len(reached)} Machines reached by at least one Source</span>' + "".join(panes)
+    )
 
 
 def _json(data: object) -> str:
@@ -456,9 +558,9 @@ def _graph(data: dict) -> str:
     return f'<div class="graph"><script type="application/json">{_json(data)}</script></div>'
 
 
-def _target_node(a: Analysis, s: str, d: str, multi: set[str]) -> dict:
-    """An Interface reached from Source s: what its card shows (ports with admin and Flow Policy marks)."""
-    h, c = a.inv[d], a.matrix[s][d]
+def _link(a: Analysis, s: str, d: str) -> dict:
+    """The flow Source s -> Interface d in a diagram: verdict, open ports with admin and Flow Policy marks."""
+    c = a.matrix[s][d]
     ports = [
         {
             "l": port_label(p),
@@ -468,28 +570,56 @@ def _target_node(a: Analysis, s: str, d: str, multi: set[str]) -> dict:
         for p in (c.open_ports if c.verdict == OPEN else [])
     ]
     ports.sort(key=lambda p: (p["st"] != DENY, not p["admin"]))  # what matters first
+    return {"verdict": VERDICT_NAME[c.verdict], "ports": ports, "cross": a.inv[s].zone != a.inv[d].zone}
+
+
+def _node(a: Analysis, ip: str, multi: set[str]) -> dict:
+    """An Interface as a diagram node: what its card and tooltip name."""
+    h = a.inv[ip]
     return {
-        "ip": d,
+        "ip": ip,
         "name": h.name,
         "zone": h.zone,
         "type": h.htype,
         "machine": h.machine,
         "multi": h.machine in multi,
-        "verdict": VERDICT_NAME[c.verdict],
-        "ports": ports,
-        "cross": h.zone != a.inv[s].zone,
     }
+
+
+def _palettes(a: Analysis) -> dict:
+    return {"zones": zone_palette(a.inv), "machines": {m: c[1] for m, c in machine_palette(a.inv).items()}}
 
 
 def _source_graph(a: Analysis, s: str) -> dict:
     """Per source diagram: the Source in the centre, the Interfaces it reaches in their Zone frames."""
-    inv, mpal = a.inv, machine_palette(a.inv)
+    inv, multi = a.inv, set(machine_palette(a.inv))
     return {
         "file": f"per-source-{inv[s].short}".replace(" · ", "-"),
-        "center": {"ip": s, "name": inv[s].name, "zone": inv[s].zone},
-        "zones": zone_palette(inv),
-        "machines": {m: c[1] for m, c in mpal.items()},
-        "nodes": [_target_node(a, s, d, set(mpal)) for d, c in a.matrix[s].items() if c.verdict >= ALIVE],
+        "center": _node(a, s, multi),
+        **_palettes(a),
+        "nodes": [
+            {**_node(a, d, multi), **_link(a, s, d)} for d, c in a.matrix[s].items() if c.verdict >= ALIVE
+        ],
+    }
+
+
+def _target_graph(a: Analysis, machine: str, ips: list[str]) -> dict:
+    """Per target diagram: the Machine as a frame holding its Interfaces, the Sources reaching them around it
+    in their Zone frames (arrows towards the Machine)."""
+    multi = set(machine_palette(a.inv))
+    nodes = []
+    for s in a.sources:
+        links = [
+            {"to": d, **_link(a, s, d)} for d in ips if d in a.matrix[s] and a.matrix[s][d].verdict >= ALIVE
+        ]
+        if links:
+            nodes.append({**_node(a, s, multi), "links": links})
+    return {
+        "file": f"per-target-{machine}",
+        "center": {"machine": machine, "ifaces": [_node(a, d, multi) for d in ips]},
+        **_palettes(a),
+        "nodes": nodes,
+        "inward": True,
     }
 
 

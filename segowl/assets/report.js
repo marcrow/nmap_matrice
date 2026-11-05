@@ -70,6 +70,7 @@ function filterPorts(set){
     else if(/\bv-/.test(el.dataset.cls)){el.innerHTML='<span class="pl">–</span>'; el.className=el.dataset.cls.replace(/\b[vp]-\w+/g,'')+' v-none';}
     else{pl.textContent=''; if(el.tagName==='LI') el.style.display='none';}
   });
+  document.querySelectorAll('[data-pr]').forEach(r=>{r.style.display=!set||inRanges(r.dataset.pr, set)?'':'none';});
   document.querySelectorAll('.card').forEach(c=>{
     const li=[...c.querySelectorAll('li[data-p]')];
     if(li.length) c.style.display=li.some(l=>l.style.display!=='none')?'':'none';
@@ -172,3 +173,16 @@ window.addEventListener('DOMContentLoaded',()=>{
   b.selectedIndex=Math.min(1, b.options.length-1);
   runDiff();
 });
+// Per target: the search names a Machine (name · IPs · zones, from the datalist); show its pane, draw it then.
+function pickTarget(v){
+  const o=[...document.querySelectorAll('#tgtlist option')].find(o=>o.value===v); if(!o) return;
+  document.querySelectorAll('.tgtpane').forEach(p=>p.style.display='none');
+  const el=document.getElementById(o.dataset.k); el.style.display='block'; renderVisible(el);
+}
+// Copies open ports ready for nmap -p; where the clipboard API is missing or refused: textarea fallback.
+function copyPorts(btn){
+  const t=btn.dataset.ports, o=btn.textContent;
+  const done=()=>{btn.textContent='Copied ✓'; btn.classList.add('ok'); setTimeout(()=>{btn.textContent=o; btn.classList.remove('ok');},1400);};
+  const fallback=()=>{const a=document.createElement('textarea'); a.value=t; document.body.appendChild(a); a.select(); document.execCommand('copy'); a.remove(); done();};
+  if(navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).then(done, fallback); else fallback();
+}

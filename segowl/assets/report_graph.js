@@ -21,14 +21,25 @@ try { Object.assign(O, JSON.parse(localStorage.getItem('segowl.graph') || '{}'))
 const saveO = () => { try { localStorage.setItem('segowl.graph', JSON.stringify(O)); } catch (e) { /* not stored */ } };
 const GRAPHS = [];  // every drawn diagram: {el, D, cy, arr, pin, side, hidden}
 
-// The Port Group filter (report.js groupSet): only the group's OPEN flows stay, with their Flow Policy status.
+// The nodes around the centre, each with its links (flows to the centre; one implicit link to the Source when a
+// node is a target of it). The Port Group filter (report.js groupSet) keeps only the group's OPEN flows. A node
+// shows what its links carry: every open port (worst Flow Policy status per port) and the most open verdict.
+const VORDER = ['ALIVE', 'REACHABLE', 'OPEN'];
 function viewNodes(D) {
-  const set = groupSet();
-  if (!set) return D.nodes;
-  return D.nodes.flatMap(t => { const ports = t.verdict === 'OPEN' ? t.ports.filter(p => inRanges(p.l, set)) : [];
-    return ports.length ? [{...t, ports}] : []; });
+  const set = groupSet(), out = [];
+  for (const t of D.nodes) {
+    let links = t.links || [{to: 'S', verdict: t.verdict, ports: t.ports, cross: t.cross}];
+    if (set) links = links.flatMap(l => { const ports = l.verdict === 'OPEN' ? l.ports.filter(p => inRanges(p.l, set)) : [];
+      return ports.length ? [{...l, ports}] : []; });
+    if (!links.length) continue;
+    const by = {};
+    links.forEach(l => l.ports.forEach(p => { if (!by[p.l] || (RANK[p.st] || 0) > (RANK[by[p.l].st] || 0)) by[p.l] = p; }));
+    out.push({...t, links, ports: Object.values(by), cross: links.some(l => l.cross && l.verdict === 'OPEN'),
+      verdict: links.map(l => l.verdict).reduce((a, b) => VORDER.indexOf(b) > VORDER.indexOf(a) ? b : a)});
+  }
+  return out;
 }
-// Flow Policy status of a target: its worst port; without a Flow Policy every cross-zone OPEN flow is undeclared.
+// Flow Policy status of a node or link: its worst port; without a Flow Policy every cross-zone OPEN flow is undeclared.
 const status = t => t.ports.reduce((w, p) => (RANK[p.st] || 0) > (RANK[w] || 0) ? p.st : w, null)
   || (t.cross && t.verdict === 'OPEN' ? 'undeclared' : null);
 const edgeCol = t => t.verdict !== 'OPEN' ? REACH_COL : COL[status(t)] || GREY;
@@ -79,9 +90,17 @@ function sourceCard(S) {
   return {w: W, h: H, img: svgUri(W, H, s)};
 }
 
+// The centre: the Source card, or a Machine as a frame holding its Interfaces (bordered with their Zone colour).
+function centre(D) {
+  if (!D.center.ifaces) return [{data: {id: 'S', ...sourceCard(D.center)}, classes: 'source'}];
+  return [{data: {id: 'S', label: D.center.machine}, classes: 'mframe'}].concat(D.center.ifaces.map(i =>
+    ({data: {id: 'i:' + i.ip, parent: 'S', ...card({name: i.name || i.ip, ip: `${i.ip} · ${i.zone}`, ports: [], verdict: ''}), bc: D.zones[i.zone][1]}, classes: 'iface'})));
+}
+const linkEnd = to => to === 'S' ? 'S' : 'i:' + to;
+
 function elements(g) {
-  const D = g.D, rows = viewNodes(D), tags = !portsIn();
-  const els = [{data: {id: 'S', ...sourceCard(D.center)}, classes: 'source'}];
+  const D = g.D, rows = viewNodes(D), tags = !portsIn(), dir = D.inward ? ' in' : '';
+  const els = centre(D);
   const zones = [...new Set(rows.map(t => t.zone))].sort();
   for (const z of zones) { const [f, s, c] = D.zones[z];
     els.push({data: {id: 'z:' + z, name: z, label: `${z} · ${rows.filter(t => t.zone === z).length}`, fill: f, stroke: s, text: c}, classes: 'zone'}); }
@@ -89,7 +108,8 @@ function elements(g) {
     const m = O.mcol && t.multi ? D.machines[t.machine] : null, c = card(t, m), col = edgeCol(t);
     els.push({data: {id: t.ip, parent: 'z:' + t.zone, t, ...c, bc: m || '#c3cfdc'}, classes: 'tgt'});
     if (O.edges === 'zone') continue;
-    els.push({data: {id: 'e:' + t.ip, source: 'S', target: t.ip, col, z: RANK[status(t)] || 0}, classes: t.verdict === 'OPEN' ? 'flow' : 'flow dash'});
+    for (const l of t.links) els.push({data: {id: `e:${t.ip}>${l.to}`, source: linkEnd(l.to), target: t.ip, col: edgeCol(l), z: RANK[status(l)] || 0},
+      classes: (l.verdict === 'OPEN' ? 'flow' : 'flow dash') + dir});
     if (tags && t.ports.length) { const lr = tag(t, 150), tb = tag(t, Math.max(c.w - 10, 110));  // beside the node / over or under it
       els.push({data: {id: 'p:' + t.ip, of: t.ip, zone: t.zone, col, lr, tb, ...lr}, classes: 'tag'}); }
   }
@@ -97,7 +117,7 @@ function elements(g) {
     const ts = rows.filter(t => t.zone === z), open = ts.filter(t => t.verdict === 'OPEN');
     const st = ['deny', 'undeclared', 'allow'].find(k => open.some(t => status(t) === k));
     els.push({data: {id: 'ez:' + z, source: 'S', target: 'z:' + z, col: !open.length ? REACH_COL : COL[st] || GREY, z: RANK[st] || 0},
-      classes: open.length ? 'flow zedge' : 'flow zedge dash'});
+      classes: (open.length ? 'flow zedge' : 'flow zedge dash') + dir});
   }
   const byM = {};
   rows.filter(t => t.multi).forEach(t => (byM[t.machine] = byM[t.machine] || []).push(t.ip));
@@ -112,6 +132,11 @@ const STYLE = [
     'border-color': 'data(stroke)', 'border-width': 2, label: 'data(label)', color: 'data(text)', 'font-weight': 700, 'font-size': 12.5,
     'text-valign': 'top', 'text-halign': 'center', 'text-margin-y': -5, padding: 12, 'font-family': FONT,
     'text-background-color': 'data(stroke)', 'text-background-opacity': 0.14, 'text-background-padding': 4, 'text-background-shape': 'round-rectangle'}},
+  {selector: 'node.mframe', style: {shape: 'round-rectangle', 'corner-radius': 6, 'background-color': '#f4f7fb', 'border-color': NAVY,
+    'border-width': 2, label: 'data(label)', color: NAVY, 'font-weight': 700, 'font-size': 13, 'text-valign': 'top', 'text-halign': 'center',
+    'text-margin-y': -5, padding: 12, 'font-family': FONT}},
+  {selector: 'node.iface', style: {shape: 'round-rectangle', 'corner-radius': 3, width: 'data(w)', height: 'data(h)', 'background-color': '#ffffff',
+    'border-color': 'data(bc)', 'border-width': 2, 'background-image': 'data(img)', 'background-fit': 'contain'}},
   {selector: 'node.tgt', style: {shape: 'round-rectangle', 'corner-radius': 3, width: 'data(w)', height: 'data(h)', 'background-color': '#ffffff',
     'border-color': 'data(bc)', 'border-width': 1, 'background-image': 'data(img)', 'background-fit': 'contain'}},
   {selector: 'node.tag', style: {shape: 'round-rectangle', 'corner-radius': 3, width: 'data(w)', height: 'data(h)', 'background-color': '#ffffff',
@@ -119,6 +144,7 @@ const STYLE = [
   {selector: 'edge.flow', style: {width: 1.2, 'line-color': 'data(col)', 'target-arrow-color': 'data(col)', 'target-arrow-shape': 'triangle',
     'arrow-scale': 0.6, 'z-index': 'data(z)'}},
   {selector: 'edge.zedge', style: {width: 2.2, 'arrow-scale': 0.9}},
+  {selector: 'edge.in', style: {'target-arrow-shape': 'none', 'source-arrow-shape': 'triangle', 'source-arrow-color': 'data(col)'}},
   {selector: 'edge.dash', style: {'line-style': 'dashed', 'line-dash-pattern': [5, 4]}},
   {selector: 'edge.tie', style: {'curve-style': 'straight', width: 1.2, 'line-color': GREY, 'line-style': 'dotted'}},
   {selector: 'node.sib', style: {'underlay-color': '#00C8FF', 'underlay-padding': 5, 'underlay-opacity': 0.35, 'underlay-shape': 'round-rectangle'}},
@@ -226,6 +252,10 @@ const END = {R: ['50% 0%', '-50% 0%'], L: ['-50% 0%', '50% 0%'], T: ['0% -50%', 
 function shapeEdges(g, side) {
   const cy = g.cy, box = {}, sb = cy.$id('S').boundingBox();  // read the bounds before the batch: inside it they are stale
   cy.nodes('.zone').forEach(z => { box[z.id()] = z.boundingBox(); });
+  // Edges towards a Machine come from several Sources: each Source gets its own trunk, so they stay apart.
+  const lane = {};
+  if (g.D.inward) for (const d of 'RLTB') cy.nodes('.tgt').filter(n => side[n.parent().id()] === d)
+    .sort((a, b) => 'RL'.includes(d) ? a.position('y') - b.position('y') : a.position('x') - b.position('x')).forEach((n, i) => { lane[n.id()] = i * 10; });
   cy.batch(() => {
     cy.nodes('.zone').forEach(z => z.style(side[z.id()] === 'B' ? {'text-valign': 'bottom', 'text-margin-y': 5} : {'text-valign': 'top', 'text-margin-y': -5}));
     cy.edges('.flow').forEach(e => {
@@ -233,9 +263,10 @@ function shapeEdges(g, side) {
       e.data('side', d);
       const st = d ? {'source-endpoint': END[d][0], 'target-endpoint': END[d][1]} : {'source-endpoint': 'outside-to-node', 'target-endpoint': 'outside-to-node'};
       if (d) {
-        const bb = box[z.id()], v = d === 'T' || d === 'B';  // with node-position, the turn counts from the Source centre
+        const bb = box[z.id()], v = d === 'T' || d === 'B', p = e.source().position();  // with node-position, the turn counts from the centre end
         const hang = v ? Math.max(0, ...cy.nodes('.tag').filter(k => k.data('zone') === z.data('name')).map(k => k.data('tb').h + 7 - PAD)) : 0;
-        const turn = !v ? (sb.x2 - sb.x1) / 2 + 28 : d === 'T' ? (sb.y1 + sb.y2) / 2 - bb.y2 - 14 - hang : bb.y1 - (sb.y1 + sb.y2) / 2 - 14 - hang;
+        const k = lane[e.target().id()] || 0;
+        const turn = d === 'R' ? sb.x2 - p.x + 28 + k : d === 'L' ? p.x - sb.x1 + 28 + k : d === 'T' ? p.y - bb.y2 - 14 - hang - k : bb.y1 - p.y - 14 - hang - k;
         Object.assign(st, {'curve-style': 'round-taxi', 'edge-distances': 'node-position', 'taxi-direction': v ? 'vertical' : 'horizontal',
           'taxi-turn': turn, 'taxi-turn-min-distance': 4, 'taxi-radius': 6});
       } else st['curve-style'] = 'straight';
@@ -247,7 +278,7 @@ function shapeEdges(g, side) {
 function placeTags(g) {
   const cy = g.cy, Sn = cy.$id('S'), S = Sn.position(), U = {R: [-1, 0], L: [1, 0], T: [0, 1], B: [0, -1]};
   cy.batch(() => cy.nodes('.tag').forEach(k => {
-    const n = cy.$id(k.data('of')), d = cy.$id('e:' + k.data('of')).data('side'), p = n.position(), w = n.width() / 2, h = n.height() / 2;
+    const n = cy.$id(k.data('of')), d = n.connectedEdges('.flow').data('side'), p = n.position(), w = n.width() / 2, h = n.height() / 2;
     k.data(d === 'T' || d === 'B' ? k.data('tb') : k.data('lr'));
     let u;
     if (d) u = {x: U[d][0], y: U[d][1]};
@@ -256,12 +287,26 @@ function placeTags(g) {
     k.position({x: p.x + u.x * (ext(w, h) + 7 + ext(k.width() / 2, k.height() / 2)), y: p.y + u.y * (ext(w, h) + 7 + ext(k.width() / 2, k.height() / 2))});
   }));
 }
+// A Machine centre: its Interfaces in one column (edges leave them sideways, so the Zones go beside it).
+function stackCentre(g) {
+  const S = g.cy.$id('S'), kids = S.children(), pos = {};
+  if (!kids.nonempty()) return pos;
+  const H = kids.reduce((h, k) => h + k.data('h'), 0) + 12 * (kids.length - 1), W = Math.max(...kids.map(k => k.data('w')));
+  let y = -H / 2 + TITLE / 2;
+  kids.forEach(k => { pos[k.id()] = {x: 0, y: y + k.data('h') / 2}; y += k.data('h') + 12; });
+  S.data({w: W + 2 * PAD, h: H + 2 * PAD + TITLE});
+  return pos;
+}
 function runLayout(g) {
-  const {pos, side} = (LAYOUT[O.lay] || LAYOUT.sides)(g);
+  const inner = stackCentre(g), lay = g.D.center.ifaces && O.lay === 'sides' ? 'lr' : O.lay;
+  const {pos, side} = (LAYOUT[lay] || LAYOUT.sides)(g);
+  Object.assign(pos, inner);
+  if (g.D.center.ifaces) delete pos.S;  // a frame's position follows its Interfaces
   g.side = Object.fromEntries(Object.entries(side).map(([id, d]) => [id.slice(2), d]));
   g.cy.elements().not('.tie, .tag, .off').layout({name: 'preset', positions: n => pos[n.id()], fit: false}).run();
   shapeEdges(g, side); placeTags(g);
   g.cy.fit(g.cy.elements(':visible'), 24);
+  if (g.cy.zoom() > 1.1) { g.cy.zoom(1.1); g.cy.center(g.cy.elements(':visible')); }  // a small diagram is not blown up
 }
 
 function hideZone(g, z, off) {
