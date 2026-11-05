@@ -1,0 +1,2 @@
+name;ports;options;description
+demo;@admin,@directory,@db,@web,@file,25,143,587,993,3128,9100,10000,udp:123;-sS -Pn -T4 --max-retries 1;Demo: admin, directory, database, web and file ports plus a few the lab runs (mail, proxy, printer, backup)

@@ -1,0 +1,12 @@
+src;dst;ports;action;comment
+audit;*;*;allow;The audit VLAN may reach everything
+admin;*;*;allow;The administration tier manages every Zone
+admin;*;23;deny;Telnet is forbidden, even for administration
+dmz;servers;53,udp:53,88,389,8080;allow;Front ends: DNS, Kerberos, LDAP, application back end
+dmz;servers;@db;deny;No database access from the DMZ
+dmz;admin;*;deny;The DMZ never reaches the administration tier
+dmz;users;*;deny;The DMZ never reaches the workstations
+users;servers;@directory,@file,8080;allow;Workstations: Active Directory, file shares, intranet
+users;servers;@db;deny;No direct database access from the workstations
+users;dmz;@web,3128;allow;Web and proxy
+users;admin;*;deny;Workstations never reach the administration tier

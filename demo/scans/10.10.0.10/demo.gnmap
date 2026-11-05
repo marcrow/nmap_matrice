@@ -1,0 +1,82 @@
+# Nmap 7.95 scan initiated Thu Nov  5 09:36:14 2026 as: nmap -sS -Pn -T4 --max-retries 1 -sU -p T:20-23,25,53,69,80,88,111,135,139,143,389,443,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017,U:53,69,88,111,123,161,389,464,623,2049 -iL targets/10.10.0.10-demo.txt -oA scans/10.10.0.10/demo
+Host: 10.10.0.254 (fw-01.corp.local)	Status: Up
+Host: 10.10.0.254 (fw-01.corp.local)	Ports: 22/open/tcp//ssh///, 443/open/tcp//https///, 53/open|filtered/udp//domain///, 88/open|filtered/udp//kerberos-sec///, 123/open|filtered/udp//ntp///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///	Ignored State: closed (64)
+Host: 10.20.0.254 (fw-01.corp.local)	Status: Up
+Host: 10.20.0.254 (fw-01.corp.local)	Ports: 22/open/tcp//ssh///, 443/open/tcp//https///, 53/open|filtered/udp//domain///, 69/open|filtered/udp//tftp///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///, 123/open|filtered/udp//ntp///, 161/open|filtered/udp//snmp///, 389/open|filtered/udp//ldap///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///	Ignored State: closed (60)
+Host: 10.30.0.254 (fw-01.corp.local)	Status: Up
+Host: 10.30.0.254 (fw-01.corp.local)	Ports: 22/open/tcp//ssh///, 443/open/tcp//https///, 53/open|filtered/udp//domain///, 69/open|filtered/udp//tftp///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///, 123/open|filtered/udp//ntp///, 161/open|filtered/udp//snmp///, 389/open|filtered/udp//ldap///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///, 2049/open|filtered/udp//nfs///	Ignored State: closed (59)
+Host: 10.40.0.254 (fw-01.corp.local)	Status: Up
+Host: 10.40.0.254 (fw-01.corp.local)	Ports: 22/open/tcp//ssh///, 443/open/tcp//https///, 53/open|filtered/udp//domain///, 69/open|filtered/udp//tftp///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///, 123/open|filtered/udp//ntp///, 161/open|filtered/udp//snmp///, 389/open|filtered/udp//ldap///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///, 2049/open|filtered/udp//nfs///	Ignored State: closed (59)
+Host: 10.50.0.254 (fw-01.corp.local)	Status: Up
+Host: 10.50.0.254 (fw-01.corp.local)	Ports: 22/open/tcp//ssh///, 443/open/tcp//https///, 53/open|filtered/udp//domain///, 69/open|filtered/udp//tftp///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///, 161/open|filtered/udp//snmp///, 389/open|filtered/udp//ldap///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///, 2049/open|filtered/udp//nfs///	Ignored State: closed (60)
+Host: 10.20.0.50 (jump-dmz.corp.local)	Status: Up
+Host: 10.20.0.50 (jump-dmz.corp.local)	Ports: 22/open/tcp//ssh///, 53/open|filtered/udp//domain///, 123/open|filtered/udp//ntp///, 464/open|filtered/udp//kpasswd5///	Ignored State: closed (67)
+Host: 10.40.0.10 (bastion-01.corp.local)	Status: Up
+Host: 10.40.0.10 (bastion-01.corp.local)	Ports: 53/open|filtered/udp//domain///, 69/open|filtered/udp//tftp///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///, 123/open|filtered/udp//ntp///, 161/open|filtered/udp//snmp///, 389/filtered/udp//ldap///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///, 2049/open|filtered/udp//nfs///	Ignored State: closed (61)
+Host: 10.20.0.11 (web-01.corp.local)	Status: Up
+Host: 10.20.0.11 (web-01.corp.local)	Ports: 80/open/tcp//http///, 443/open/tcp//https///, 69/open|filtered/udp//tftp///, 111/open|filtered/udp//rpcbind///, 123/open|filtered/udp//ntp///, 161/open|filtered/udp//snmp///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///	Ignored State: closed (63)
+Host: 10.30.0.80 (web-01-be.corp.local)	Status: Up
+Host: 10.30.0.80 (web-01-be.corp.local)	Ports: 80/open/tcp//http///, 443/open/tcp//https///, 69/open|filtered/udp//tftp///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///, 123/open|filtered/udp//ntp///, 161/open|filtered/udp//snmp///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///	Ignored State: closed (62)
+Host: 10.20.0.12 (web-02.corp.local)	Status: Up
+Host: 10.20.0.12 (web-02.corp.local)	Ports: 80/open/tcp//http///, 443/open/tcp//https///, 8080/open/tcp//http-proxy///, 53/open|filtered/udp//domain///, 88/open|filtered/udp//kerberos-sec///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///	Ignored State: closed (64)
+Host: 10.20.0.20 (proxy.corp.local)	Status: Up
+Host: 10.20.0.20 (proxy.corp.local)	Ports: 3128/open/tcp//squid-http///, 8080/open/tcp//http-proxy///, 53/open|filtered/udp//domain///, 88/open|filtered/udp//kerberos-sec///, 123/open|filtered/udp//ntp///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///	Ignored State: closed (64)
+Host: 10.20.0.25 (mail-01.corp.local)	Status: Up
+Host: 10.20.0.25 (mail-01.corp.local)	Ports: 25/open/tcp//smtp///, 143/open/tcp//imap///, 587/open/tcp//submission///, 993/open/tcp//imaps///, 53/open|filtered/udp//domain///, 88/open|filtered/udp//kerberos-sec///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///	Ignored State: closed (63)
+Host: 10.20.0.30 (vpn-01.corp.local)	Status: Up
+Host: 10.20.0.30 (vpn-01.corp.local)	Ports: 443/open/tcp//https///, 8443/open/tcp//https-alt///, 53/open|filtered/udp//domain///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///, 123/open|filtered/udp//ntp///	Ignored State: closed (65)
+Host: 10.30.0.53 (dns-01.corp.local)	Status: Up
+Host: 10.30.0.53 (dns-01.corp.local)	Ports: 53/open/tcp//domain///, 53/open/udp//domain///, 88/open|filtered/udp//kerberos-sec///, 123/open|filtered/udp//ntp///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///	Ignored State: closed (65)
+Host: 10.30.0.10 (ad-01.corp.local)	Status: Up
+Host: 10.30.0.10 (ad-01.corp.local)	Ports: 53/open/tcp//domain///, 88/open/tcp//kerberos-sec///, 135/open/tcp//msrpc///, 139/open/tcp//netbios-ssn///, 389/open/tcp//ldap///, 445/open/tcp//microsoft-ds///, 464/open/tcp//kpasswd5///, 636/open/tcp//ldapssl///, 3268/open/tcp//globalcatLDAP///, 3269/open/tcp//globalcatLDAPssl///, 3389/open/tcp//ms-wbt-server///, 5985/open/tcp//wsman///, 53/open|filtered/udp//domain///, 88/open|filtered/udp//kerberos-sec///, 123/open/udp//ntp///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///	Ignored State: closed (54)
+Host: 10.30.0.11 (ad-02.corp.local)	Status: Up
+Host: 10.30.0.11 (ad-02.corp.local)	Ports: 53/open/tcp//domain///, 88/open/tcp//kerberos-sec///, 135/open/tcp//msrpc///, 139/open/tcp//netbios-ssn///, 389/open/tcp//ldap///, 445/open/tcp//microsoft-ds///, 464/open/tcp//kpasswd5///, 636/open/tcp//ldapssl///, 3268/open/tcp//globalcatLDAP///, 3269/open/tcp//globalcatLDAPssl///, 3389/open/tcp//ms-wbt-server///, 5985/open/tcp//wsman///, 53/open|filtered/udp//domain///, 88/open|filtered/udp//kerberos-sec///, 123/open/udp//ntp///, 464/open|filtered/udp//kpasswd5///	Ignored State: closed (55)
+Host: 10.30.0.20 (db-01.corp.local)	Status: Up
+Host: 10.30.0.20 (db-01.corp.local)	Ports: 22/open/tcp//ssh///, 5432/open/tcp//postgresql///, 53/open|filtered/udp//domain///, 88/open|filtered/udp//kerberos-sec///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///	Ignored State: closed (65)
+Host: 10.30.0.21 ()	Status: Up
+Host: 10.30.0.21 ()	Ports: 1433/open/tcp//ms-sql-s///, 53/open|filtered/udp//domain///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///, 123/open|filtered/udp//ntp///	Ignored State: closed (66)
+Host: 10.30.0.30 (file-01.corp.local)	Status: Up
+Host: 10.30.0.30 (file-01.corp.local)	Ports: 135/open/tcp//msrpc///, 139/open/tcp//netbios-ssn///, 445/open/tcp//microsoft-ds///, 53/open|filtered/udp//domain///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///, 464/open|filtered/udp//kpasswd5///	Ignored State: closed (64)
+Host: 10.30.0.40 (app-01.corp.local)	Status: Up
+Host: 10.30.0.40 (app-01.corp.local)	Ports: 22/open/tcp//ssh///, 8080/open/tcp//http-proxy///, 8443/open/tcp//https-alt///, 53/open|filtered/udp//domain///, 88/open|filtered/udp//kerberos-sec///, 123/open|filtered/udp//ntp///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///	Ignored State: closed (63)
+Host: 10.30.0.41 (app-02.corp.local)	Status: Up
+Host: 10.30.0.41 (app-02.corp.local)	Ports: 22/open/tcp//ssh///, 8080/open/tcp//http-proxy///, 53/open|filtered/udp//domain///, 88/open|filtered/udp//kerberos-sec///, 464/open|filtered/udp//kpasswd5///	Ignored State: closed (66)
+Host: 10.30.0.60 (monitor-01.corp.local)	Status: Up
+Host: 10.30.0.60 (monitor-01.corp.local)	Ports: 22/open/tcp//ssh///, 9100/open/tcp//jetdirect///, 53/open|filtered/udp//domain///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///	Ignored State: closed (66)
+Host: 10.40.0.60 (monitor-01.corp.local)	Status: Up
+Host: 10.40.0.60 (monitor-01.corp.local)	Ports: 53/open|filtered/udp//domain///, 69/open|filtered/udp//tftp///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///, 123/open|filtered/udp//ntp///, 161/open|filtered/udp//snmp///, 389/open|filtered/udp//ldap///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///, 2049/open|filtered/udp//nfs///	Ignored State: closed (61)
+Host: 10.30.0.70 (backup-01.corp.local)	Status: Up
+Host: 10.30.0.70 (backup-01.corp.local)	Ports: 22/open/tcp//ssh///, 10000/open/tcp//snet-sensor-mgmt///, 53/open|filtered/udp//domain///, 111/open|filtered/udp//rpcbind///, 623/open|filtered/udp//asf-rmcp///	Ignored State: closed (66)
+Host: 10.40.0.70 (backup-adm.corp.local)	Status: Up
+Host: 10.40.0.70 (backup-adm.corp.local)	Ports: 53/open|filtered/udp//domain///, 69/open|filtered/udp//tftp///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///, 123/open|filtered/udp//ntp///, 161/open|filtered/udp//snmp///, 389/open|filtered/udp//ldap///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///, 2049/open|filtered/udp//nfs///	Ignored State: closed (61)
+Host: 10.30.0.99 (legacy-01.corp.local)	Status: Up
+Host: 10.30.0.99 (legacy-01.corp.local)	Ports: 53/open|filtered/udp//domain///, 69/open|filtered/udp//tftp///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///, 123/open|filtered/udp//ntp///, 161/open|filtered/udp//snmp///, 389/open|filtered/udp//ldap///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///, 2049/open|filtered/udp//nfs///	Ignored State: filtered (61)
+Host: 10.40.0.21 (ilo-01.corp.local)	Status: Up
+Host: 10.40.0.21 (ilo-01.corp.local)	Ports: 443/open/tcp//https///, 53/open|filtered/udp//domain///, 69/open|filtered/udp//tftp///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///, 123/open|filtered/udp//ntp///, 161/open|filtered/udp//snmp///, 389/filtered/udp//ldap///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///, 2049/open|filtered/udp//nfs///	Ignored State: closed (60)
+Host: 10.40.0.22 ()	Status: Up
+Host: 10.40.0.22 ()	Ports: 443/open/tcp//https///, 53/filtered/udp//domain///, 69/open|filtered/udp//tftp///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///, 123/open|filtered/udp//ntp///, 161/open|filtered/udp//snmp///, 389/open|filtered/udp//ldap///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///, 2049/open|filtered/udp//nfs///	Ignored State: closed (60)
+Host: 10.40.0.23 (ilo-03.corp.local)	Status: Up
+Host: 10.40.0.23 (ilo-03.corp.local)	Ports: 443/open/tcp//https///, 53/open|filtered/udp//domain///, 69/open|filtered/udp//tftp///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///, 123/open|filtered/udp//ntp///, 161/open|filtered/udp//snmp///, 389/open|filtered/udp//ldap///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///, 2049/open|filtered/udp//nfs///	Ignored State: closed (60)
+Host: 10.40.0.30 (hv-01.corp.local)	Status: Up
+Host: 10.40.0.30 (hv-01.corp.local)	Ports: 443/open/tcp//https///, 53/open|filtered/udp//domain///, 69/open|filtered/udp//tftp///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///, 123/open|filtered/udp//ntp///, 161/open|filtered/udp//snmp///, 389/open|filtered/udp//ldap///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///, 2049/open|filtered/udp//nfs///	Ignored State: closed (60)
+Host: 10.40.0.40 (switch-01.corp.local)	Status: Up
+Host: 10.40.0.40 (switch-01.corp.local)	Ports: 53/open|filtered/udp//domain///, 69/open|filtered/udp//tftp///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///, 123/filtered/udp//ntp///, 161/open|filtered/udp//snmp///, 389/open|filtered/udp//ldap///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///, 2049/open|filtered/udp//nfs///	Ignored State: closed (61)
+Host: 10.50.0.101 (ws-01.corp.local)	Status: Up
+Host: 10.50.0.101 (ws-01.corp.local)	Ports: 135/open/tcp//msrpc///, 139/open/tcp//netbios-ssn///, 445/open/tcp//microsoft-ds///, 53/open|filtered/udp//domain///, 88/open|filtered/udp//kerberos-sec///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///	Ignored State: closed (64)
+Host: 10.50.0.102 (ws-02.corp.local)	Status: Up
+Host: 10.50.0.102 (ws-02.corp.local)	Ports: 135/open/tcp//msrpc///, 139/open/tcp//netbios-ssn///, 445/open/tcp//microsoft-ds///, 3389/open/tcp//ms-wbt-server///, 53/open|filtered/udp//domain///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///, 464/open|filtered/udp//kpasswd5///	Ignored State: closed (63)
+Host: 10.50.0.103 (pc-compta-03.corp.local)	Status: Up
+Host: 10.50.0.103 (pc-compta-03.corp.local)	Ports: 135/open/tcp//msrpc///, 139/open/tcp//netbios-ssn///, 445/open/tcp//microsoft-ds///, 53/open|filtered/udp//domain///, 111/open|filtered/udp//rpcbind///, 123/open|filtered/udp//ntp///	Ignored State: closed (65)
+Host: 10.50.0.104 (ws-04.corp.local)	Status: Up
+Host: 10.50.0.104 (ws-04.corp.local)	Ports: 135/open/tcp//msrpc///, 139/open/tcp//netbios-ssn///, 445/open/tcp//microsoft-ds///, 5985/open/tcp//wsman///, 53/open|filtered/udp//domain///, 88/open|filtered/udp//kerberos-sec///, 123/open|filtered/udp//ntp///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///	Ignored State: closed (62)
+Host: 10.50.0.105 (ws-05.corp.local)	Status: Up
+Host: 10.50.0.105 (ws-05.corp.local)	Ports: 135/open/tcp//msrpc///, 139/open/tcp//netbios-ssn///, 445/open/tcp//microsoft-ds///, 8000/open/tcp//http-alt///, 53/open|filtered/udp//domain///, 88/open|filtered/udp//kerberos-sec///, 464/open|filtered/udp//kpasswd5///, 623/open|filtered/udp//asf-rmcp///	Ignored State: closed (63)
+Host: 10.50.0.106 ()	Status: Up
+Host: 10.50.0.106 ()	Ports: 135/open/tcp//msrpc///, 139/open/tcp//netbios-ssn///, 445/open/tcp//microsoft-ds///, 53/open|filtered/udp//domain///, 111/open|filtered/udp//rpcbind///, 123/open|filtered/udp//ntp///	Ignored State: closed (65)
+Host: 10.50.0.107 (ws-07.corp.local)	Status: Up
+Host: 10.50.0.107 (ws-07.corp.local)	Ports: 135/open/tcp//msrpc///, 139/open/tcp//netbios-ssn///, 445/open/tcp//microsoft-ds///, 3389/open/tcp//ms-wbt-server///, 53/open|filtered/udp//domain///, 111/open|filtered/udp//rpcbind///, 123/open|filtered/udp//ntp///	Ignored State: closed (64)
+Host: 10.50.0.108 (ws-08.corp.local)	Status: Up
+Host: 10.50.0.108 (ws-08.corp.local)	Ports: 135/open/tcp//msrpc///, 139/open/tcp//netbios-ssn///, 445/open/tcp//microsoft-ds///, 53/open|filtered/udp//domain///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///, 464/open|filtered/udp//kpasswd5///	Ignored State: closed (64)
+Host: 10.50.0.200 (printer-01.corp.local)	Status: Up
+Host: 10.50.0.200 (printer-01.corp.local)	Ports: 80/open/tcp//http///, 443/open/tcp//https///, 9100/open/tcp//jetdirect///, 53/open|filtered/udp//domain///, 88/open|filtered/udp//kerberos-sec///, 111/open|filtered/udp//rpcbind///, 464/open|filtered/udp//kpasswd5///	Ignored State: closed (64)
+# Nmap done at Thu Nov  5 09:36:35 2026 -- 40 IP addresses (40 hosts up) scanned in 20.57 seconds

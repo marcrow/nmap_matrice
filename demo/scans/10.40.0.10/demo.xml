@@ -1,0 +1,880 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Nmap 7.95 scan initiated Thu Nov  5 09:37:02 2026 as: nmap -sS -Pn -T4 -&#45;max-retries 1 -sU -p T:20-23,25,53,69,80,88,111,135,139,143,389,443,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017,U:53,69,88,111,123,161,389,464,623,2049 -iL targets/10.40.0.10-demo.txt -oA scans/10.40.0.10/demo -->
+<nmaprun scanner="nmap" args="nmap -sS -Pn -T4 -&#45;max-retries 1 -sU -p T:20-23,25,53,69,80,88,111,135,139,143,389,443,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017,U:53,69,88,111,123,161,389,464,623,2049 -iL targets/10.40.0.10-demo.txt -oA scans/10.40.0.10/demo" start="1793871422" startstr="Thu Nov  5 09:37:02 2026" version="7.95" xmloutputversion="1.05">
+<scaninfo type="syn" protocol="tcp" numservices="61" services="20-23,25,53,69,80,88,111,135,139,143,389,443,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<scaninfo type="udp" protocol="udp" numservices="10" services="53,69,88,111,123,161,389,464,623,2049"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<hosthint><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="10.40.0.22" addrtype="ipv4"/>
+<address addr="CE:70:58:CF:8A:A6" addrtype="mac"/>
+<hostnames>
+</hostnames>
+</hosthint>
+<hosthint><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="10.40.0.23" addrtype="ipv4"/>
+<address addr="3A:30:A3:1B:C4:00" addrtype="mac"/>
+<hostnames>
+</hostnames>
+</hosthint>
+<hosthint><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="10.40.0.30" addrtype="ipv4"/>
+<address addr="7A:69:70:EF:95:3D" addrtype="mac"/>
+<hostnames>
+</hostnames>
+</hosthint>
+<hosthint><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="10.40.0.40" addrtype="ipv4"/>
+<address addr="92:EF:35:BC:DF:A7" addrtype="mac"/>
+<hostnames>
+</hostnames>
+</hosthint>
+<hosthint><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="10.40.0.60" addrtype="ipv4"/>
+<address addr="86:BA:24:F4:BA:E0" addrtype="mac"/>
+<hostnames>
+</hostnames>
+</hosthint>
+<hosthint><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="10.40.0.70" addrtype="ipv4"/>
+<address addr="4E:93:E3:EB:FA:41" addrtype="mac"/>
+<hostnames>
+</hostnames>
+</hosthint>
+<hosthint><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="10.40.0.254" addrtype="ipv4"/>
+<address addr="F2:93:90:CF:4F:99" addrtype="mac"/>
+<hostnames>
+</hostnames>
+</hosthint>
+<hosthint><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="10.40.0.21" addrtype="ipv4"/>
+<address addr="BE:27:5C:9F:75:06" addrtype="mac"/>
+<hostnames>
+</hostnames>
+</hosthint>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.10.0.254" addrtype="ipv4"/>
+<hostnames>
+<hostname name="fw-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="60">
+<extrareasons reason="reset" count="59" proto="tcp" ports="20-21,23,25,53,69,80,88,111,135,139,143,389,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="1" proto="udp" ports="623"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" method="table" conf="3"/></port>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="https" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="111"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="rpcbind" method="table" conf="3"/></port>
+<port protocol="udp" portid="123"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="ntp" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="389"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="ldap" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="12" rttvar="6" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.20.0.254" addrtype="ipv4"/>
+<hostnames>
+<hostname name="fw-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="60">
+<extrareasons reason="reset" count="59" proto="tcp" ports="20-21,23,25,53,69,80,88,111,135,139,143,389,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="1" proto="udp" ports="623"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" method="table" conf="3"/></port>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="https" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="111"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="rpcbind" method="table" conf="3"/></port>
+<port protocol="udp" portid="123"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="ntp" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="389"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="ldap" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="18" rttvar="12" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.30.0.254" addrtype="ipv4"/>
+<hostnames>
+<hostname name="fw-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="60">
+<extrareasons reason="reset" count="59" proto="tcp" ports="20-21,23,25,53,69,80,88,111,135,139,143,389,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="1" proto="udp" ports="623"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" method="table" conf="3"/></port>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="https" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="111"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="rpcbind" method="table" conf="3"/></port>
+<port protocol="udp" portid="123"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="ntp" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="389"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="ldap" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="20" rttvar="15" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.50.0.254" addrtype="ipv4"/>
+<hostnames>
+<hostname name="fw-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="59">
+<extrareasons reason="reset" count="59" proto="tcp" ports="20-21,23,25,53,69,80,88,111,135,139,143,389,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" method="table" conf="3"/></port>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="https" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="111"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="rpcbind" method="table" conf="3"/></port>
+<port protocol="udp" portid="123"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="ntp" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="389"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="ldap" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+<port protocol="udp" portid="623"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="asf-rmcp" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="37" rttvar="55" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.10.0.10" addrtype="ipv4"/>
+<hostnames>
+</hostnames>
+<ports><extraports state="closed" count="66">
+<extrareasons reason="reset" count="61" proto="tcp" ports="20-23,25,53,69,80,88,111,135,139,143,389,443,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="5" proto="udp" ports="111,123,389,623,2049"/>
+</extraports>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+</ports>
+<times srtt="37" rttvar="37" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.20.0.50" addrtype="ipv4"/>
+<hostnames>
+<hostname name="jump-dmz.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="66">
+<extrareasons reason="reset" count="60" proto="tcp" ports="20-21,23,25,53,69,80,88,111,135,139,143,389,443,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="6" proto="udp" ports="53,88,111,123,389,623"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="ssh" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="22" rttvar="11" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.20.0.11" addrtype="ipv4"/>
+<hostnames>
+<hostname name="web-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="62">
+<extrareasons reason="reset" count="59" proto="tcp" ports="20-23,25,53,69,88,111,135,139,143,389,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="3" proto="udp" ports="161,389,623"/>
+</extraports>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="http" method="table" conf="3"/></port>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="https" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="111"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="rpcbind" method="table" conf="3"/></port>
+<port protocol="udp" portid="123"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="ntp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="29" rttvar="22" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.30.0.80" addrtype="ipv4"/>
+<hostnames>
+<hostname name="web-01-be.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="61">
+<extrareasons reason="reset" count="59" proto="tcp" ports="20-23,25,53,69,88,111,135,139,143,389,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="2" proto="udp" ports="389,623"/>
+</extraports>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="http" method="table" conf="3"/></port>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="https" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="111"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="rpcbind" method="table" conf="3"/></port>
+<port protocol="udp" portid="123"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="ntp" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="42" rttvar="53" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.20.0.12" addrtype="ipv4"/>
+<hostnames>
+<hostname name="web-02.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="63">
+<extrareasons reason="reset" count="58" proto="tcp" ports="20-23,25,53,69,88,111,135,139,143,389,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="5" proto="udp" ports="111,123,389,623,2049"/>
+</extraports>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="http" method="table" conf="3"/></port>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="https" method="table" conf="3"/></port>
+<port protocol="tcp" portid="8080"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="http-proxy" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+</ports>
+<times srtt="25" rttvar="16" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.20.0.20" addrtype="ipv4"/>
+<hostnames>
+<hostname name="proxy.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="65">
+<extrareasons reason="reset" count="59" proto="tcp" ports="20-23,25,53,69,80,88,111,135,139,143,389,443,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="6" proto="udp" ports="53,111,123,389,464,623"/>
+</extraports>
+<port protocol="tcp" portid="3128"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="squid-http" method="table" conf="3"/></port>
+<port protocol="tcp" portid="8080"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="http-proxy" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="22" rttvar="13" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.20.0.25" addrtype="ipv4"/>
+<hostnames>
+<hostname name="mail-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="63">
+<extrareasons reason="reset" count="57" proto="tcp" ports="20-23,53,69,80,88,111,135,139,389,443,445,464,512-514,623,636,873,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="6" proto="udp" ports="69,111,123,389,464,623"/>
+</extraports>
+<port protocol="tcp" portid="25"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="smtp" method="table" conf="3"/></port>
+<port protocol="tcp" portid="143"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="imap" method="table" conf="3"/></port>
+<port protocol="tcp" portid="587"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="submission" method="table" conf="3"/></port>
+<port protocol="tcp" portid="993"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="imaps" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="29" rttvar="16" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.20.0.30" addrtype="ipv4"/>
+<hostnames>
+<hostname name="vpn-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="65">
+<extrareasons reason="reset" count="59" proto="tcp" ports="20-23,25,53,69,80,88,111,135,139,143,389,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="6" proto="udp" ports="88,111,123,389,464,623"/>
+</extraports>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="https" method="table" conf="3"/></port>
+<port protocol="tcp" portid="8443"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="https-alt" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="52" rttvar="60" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.30.0.53" addrtype="ipv4"/>
+<hostnames>
+<hostname name="dns-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="65">
+<extrareasons reason="reset" count="60" proto="tcp" ports="20-23,25,69,80,88,111,135,139,143,389,443,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="5" proto="udp" ports="88,111,123,389,623"/>
+</extraports>
+<port protocol="tcp" portid="53"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open" reason="udp-response" reason_ttl="63"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="49" rttvar="66" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.30.0.10" addrtype="ipv4"/>
+<hostnames>
+<hostname name="ad-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="54">
+<extrareasons reason="reset" count="49" proto="tcp" ports="20-23,25,69,80,111,143,443,512-514,587,623,873,993,1433,1521,2049,2222,3128,3306,5432,5900-5903,5984,5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="5" proto="udp" ports="111,123,389,623,2049"/>
+</extraports>
+<port protocol="tcp" portid="53"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="tcp" portid="88"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="tcp" portid="135"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="msrpc" method="table" conf="3"/></port>
+<port protocol="tcp" portid="139"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="netbios-ssn" method="table" conf="3"/></port>
+<port protocol="tcp" portid="389"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="ldap" method="table" conf="3"/></port>
+<port protocol="tcp" portid="445"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="microsoft-ds" method="table" conf="3"/></port>
+<port protocol="tcp" portid="464"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="kpasswd5" method="table" conf="3"/></port>
+<port protocol="tcp" portid="636"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="ldapssl" method="table" conf="3"/></port>
+<port protocol="tcp" portid="3268"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="globalcatLDAP" method="table" conf="3"/></port>
+<port protocol="tcp" portid="3269"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="globalcatLDAPssl" method="table" conf="3"/></port>
+<port protocol="tcp" portid="3389"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="ms-wbt-server" method="table" conf="3"/></port>
+<port protocol="tcp" portid="5985"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="wsman" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+</ports>
+<times srtt="38" rttvar="30" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.30.0.11" addrtype="ipv4"/>
+<hostnames>
+<hostname name="ad-02.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="55">
+<extrareasons reason="reset" count="49" proto="tcp" ports="20-23,25,69,80,111,143,443,512-514,587,623,873,993,1433,1521,2049,2222,3128,3306,5432,5900-5903,5984,5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="6" proto="udp" ports="69,111,123,389,464,623"/>
+</extraports>
+<port protocol="tcp" portid="53"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="tcp" portid="88"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="tcp" portid="135"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="msrpc" method="table" conf="3"/></port>
+<port protocol="tcp" portid="139"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="netbios-ssn" method="table" conf="3"/></port>
+<port protocol="tcp" portid="389"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="ldap" method="table" conf="3"/></port>
+<port protocol="tcp" portid="445"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="microsoft-ds" method="table" conf="3"/></port>
+<port protocol="tcp" portid="464"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="kpasswd5" method="table" conf="3"/></port>
+<port protocol="tcp" portid="636"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="ldapssl" method="table" conf="3"/></port>
+<port protocol="tcp" portid="3268"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="globalcatLDAP" method="table" conf="3"/></port>
+<port protocol="tcp" portid="3269"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="globalcatLDAPssl" method="table" conf="3"/></port>
+<port protocol="tcp" portid="3389"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="ms-wbt-server" method="table" conf="3"/></port>
+<port protocol="tcp" portid="5985"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="wsman" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="49" rttvar="51" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.30.0.20" addrtype="ipv4"/>
+<hostnames>
+<hostname name="db-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="65">
+<extrareasons reason="reset" count="59" proto="tcp" ports="20-21,23,25,53,69,80,88,111,135,139,143,389,443,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="6" proto="udp" ports="69,111,123,389,464,623"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="ssh" method="table" conf="3"/></port>
+<port protocol="tcp" portid="5432"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="postgresql" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="22" rttvar="12" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.30.0.21" addrtype="ipv4"/>
+<hostnames>
+</hostnames>
+<ports><extraports state="closed" count="65">
+<extrareasons reason="reset" count="60" proto="tcp" ports="20-23,25,53,69,80,88,111,135,139,143,389,443,445,464,512-514,587,623,636,873,993,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="5" proto="udp" ports="111,123,389,623,2049"/>
+</extraports>
+<port protocol="tcp" portid="1433"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="ms-sql-s" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+</ports>
+<times srtt="23" rttvar="11" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.30.0.30" addrtype="ipv4"/>
+<hostnames>
+<hostname name="file-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="63">
+<extrareasons reason="reset" count="58" proto="tcp" ports="20-23,25,53,69,80,88,111,143,389,443,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="5" proto="udp" ports="88,111,123,389,623"/>
+</extraports>
+<port protocol="tcp" portid="135"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="msrpc" method="table" conf="3"/></port>
+<port protocol="tcp" portid="139"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="netbios-ssn" method="table" conf="3"/></port>
+<port protocol="tcp" portid="445"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="microsoft-ds" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="23" rttvar="14" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.30.0.40" addrtype="ipv4"/>
+<hostnames>
+<hostname name="app-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="64">
+<extrareasons reason="reset" count="58" proto="tcp" ports="20-21,23,25,53,69,80,88,111,135,139,143,389,443,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8081,8086,8291,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="6" proto="udp" ports="53,111,123,389,623,2049"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="ssh" method="table" conf="3"/></port>
+<port protocol="tcp" portid="8080"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="http-proxy" method="table" conf="3"/></port>
+<port protocol="tcp" portid="8443"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="https-alt" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+</ports>
+<times srtt="23" rttvar="12" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.30.0.41" addrtype="ipv4"/>
+<hostnames>
+<hostname name="app-02.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="65">
+<extrareasons reason="reset" count="59" proto="tcp" ports="20-21,23,25,53,69,80,88,111,135,139,143,389,443,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="6" proto="udp" ports="69,111,123,389,623,2049"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="ssh" method="table" conf="3"/></port>
+<port protocol="tcp" portid="8080"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="http-proxy" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+</ports>
+<times srtt="24" rttvar="12" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.30.0.60" addrtype="ipv4"/>
+<hostnames>
+<hostname name="monitor-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="65">
+<extrareasons reason="reset" count="59" proto="tcp" ports="20-21,23,25,53,69,80,88,111,135,139,143,389,443,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="6" proto="udp" ports="53,111,123,161,389,623"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" method="table" conf="3"/></port>
+<port protocol="tcp" portid="9100"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="jetdirect" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="22" rttvar="16" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.30.0.70" addrtype="ipv4"/>
+<hostnames>
+<hostname name="backup-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="65">
+<extrareasons reason="reset" count="59" proto="tcp" ports="20-21,23,25,53,69,80,88,111,135,139,143,389,443,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,11211,27017"/>
+<extrareasons reason="port-unreach" count="6" proto="udp" ports="53,111,123,161,389,623"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" method="table" conf="3"/></port>
+<port protocol="tcp" portid="10000"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="snet-sensor-mgmt" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="21" rttvar="10" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.30.0.99" addrtype="ipv4"/>
+<hostnames>
+<hostname name="legacy-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="filtered" count="61">
+<extrareasons reason="no-response" count="61" proto="tcp" ports="20-23,25,53,69,80,88,111,135,139,143,389,443,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+</extraports>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="111"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="rpcbind" method="table" conf="3"/></port>
+<port protocol="udp" portid="123"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="ntp" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="389"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="ldap" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+<port protocol="udp" portid="623"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="asf-rmcp" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.50.0.101" addrtype="ipv4"/>
+<hostnames>
+<hostname name="ws-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="63">
+<extrareasons reason="reset" count="58" proto="tcp" ports="20-23,25,53,69,80,88,111,143,389,443,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="5" proto="udp" ports="111,123,389,623,2049"/>
+</extraports>
+<port protocol="tcp" portid="135"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="msrpc" method="table" conf="3"/></port>
+<port protocol="tcp" portid="139"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="netbios-ssn" method="table" conf="3"/></port>
+<port protocol="tcp" portid="445"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="microsoft-ds" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+</ports>
+<times srtt="36" rttvar="21" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.50.0.102" addrtype="ipv4"/>
+<hostnames>
+<hostname name="ws-02.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="62">
+<extrareasons reason="reset" count="57" proto="tcp" ports="20-23,25,53,69,80,88,111,143,389,443,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="5" proto="udp" ports="111,123,389,623,2049"/>
+</extraports>
+<port protocol="tcp" portid="135"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="msrpc" method="table" conf="3"/></port>
+<port protocol="tcp" portid="139"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="netbios-ssn" method="table" conf="3"/></port>
+<port protocol="tcp" portid="445"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="microsoft-ds" method="table" conf="3"/></port>
+<port protocol="tcp" portid="3389"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="ms-wbt-server" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+</ports>
+<times srtt="21" rttvar="10" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.50.0.103" addrtype="ipv4"/>
+<hostnames>
+<hostname name="pc-compta-03.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="63">
+<extrareasons reason="reset" count="58" proto="tcp" ports="20-23,25,53,69,80,88,111,143,389,443,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="5" proto="udp" ports="111,123,389,623,2049"/>
+</extraports>
+<port protocol="tcp" portid="135"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="msrpc" method="table" conf="3"/></port>
+<port protocol="tcp" portid="139"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="netbios-ssn" method="table" conf="3"/></port>
+<port protocol="tcp" portid="445"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="microsoft-ds" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+</ports>
+<times srtt="22" rttvar="10" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.50.0.104" addrtype="ipv4"/>
+<hostnames>
+<hostname name="ws-04.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="62">
+<extrareasons reason="reset" count="57" proto="tcp" ports="20-23,25,53,69,80,88,111,143,389,443,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984,5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="5" proto="udp" ports="111,123,389,623,2049"/>
+</extraports>
+<port protocol="tcp" portid="135"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="msrpc" method="table" conf="3"/></port>
+<port protocol="tcp" portid="139"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="netbios-ssn" method="table" conf="3"/></port>
+<port protocol="tcp" portid="445"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="microsoft-ds" method="table" conf="3"/></port>
+<port protocol="tcp" portid="5985"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="wsman" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+</ports>
+<times srtt="21" rttvar="7" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.50.0.105" addrtype="ipv4"/>
+<hostnames>
+<hostname name="ws-05.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="62">
+<extrareasons reason="reset" count="57" proto="tcp" ports="20-23,25,53,69,80,88,111,143,389,443,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="5" proto="udp" ports="111,123,389,623,2049"/>
+</extraports>
+<port protocol="tcp" portid="135"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="msrpc" method="table" conf="3"/></port>
+<port protocol="tcp" portid="139"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="netbios-ssn" method="table" conf="3"/></port>
+<port protocol="tcp" portid="445"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="microsoft-ds" method="table" conf="3"/></port>
+<port protocol="tcp" portid="8000"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="http-alt" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+</ports>
+<times srtt="21" rttvar="8" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.50.0.106" addrtype="ipv4"/>
+<hostnames>
+</hostnames>
+<ports><extraports state="closed" count="63">
+<extrareasons reason="reset" count="58" proto="tcp" ports="20-23,25,53,69,80,88,111,143,389,443,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="5" proto="udp" ports="111,123,389,623,2049"/>
+</extraports>
+<port protocol="tcp" portid="135"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="msrpc" method="table" conf="3"/></port>
+<port protocol="tcp" portid="139"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="netbios-ssn" method="table" conf="3"/></port>
+<port protocol="tcp" portid="445"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="microsoft-ds" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+</ports>
+<times srtt="19" rttvar="7" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.50.0.107" addrtype="ipv4"/>
+<hostnames>
+<hostname name="ws-07.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="62">
+<extrareasons reason="reset" count="57" proto="tcp" ports="20-23,25,53,69,80,88,111,143,389,443,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="5" proto="udp" ports="111,123,389,623,2049"/>
+</extraports>
+<port protocol="tcp" portid="135"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="msrpc" method="table" conf="3"/></port>
+<port protocol="tcp" portid="139"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="netbios-ssn" method="table" conf="3"/></port>
+<port protocol="tcp" portid="445"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="microsoft-ds" method="table" conf="3"/></port>
+<port protocol="tcp" portid="3389"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="ms-wbt-server" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+</ports>
+<times srtt="18" rttvar="9" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.50.0.108" addrtype="ipv4"/>
+<hostnames>
+<hostname name="ws-08.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="63">
+<extrareasons reason="reset" count="58" proto="tcp" ports="20-23,25,53,69,80,88,111,143,389,443,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="5" proto="udp" ports="111,123,389,623,2049"/>
+</extraports>
+<port protocol="tcp" portid="135"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="msrpc" method="table" conf="3"/></port>
+<port protocol="tcp" portid="139"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="netbios-ssn" method="table" conf="3"/></port>
+<port protocol="tcp" portid="445"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="microsoft-ds" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+</ports>
+<times srtt="19" rttvar="7" to="100000"/>
+</host>
+<host starttime="1793871448" endtime="1793871452"><status state="up" reason="user-set" reason_ttl="0"/>
+<address addr="10.50.0.200" addrtype="ipv4"/>
+<hostnames>
+<hostname name="printer-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="63">
+<extrareasons reason="reset" count="58" proto="tcp" ports="20-23,25,53,69,88,111,135,139,143,389,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="5" proto="udp" ports="53,111,123,389,623"/>
+</extraports>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="http" method="table" conf="3"/></port>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="https" method="table" conf="3"/></port>
+<port protocol="tcp" portid="9100"><state state="open" reason="syn-ack" reason_ttl="63"/><service name="jetdirect" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="17" rttvar="4" to="100000"/>
+</host>
+<host starttime="1793871452" endtime="1793871454"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="10.40.0.254" addrtype="ipv4"/>
+<address addr="F2:93:90:CF:4F:99" addrtype="mac"/>
+<hostnames>
+<hostname name="fw-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="62">
+<extrareasons reason="reset" count="59" proto="tcp" ports="20-21,23,25,53,69,80,88,111,135,139,143,389,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="3" proto="udp" ports="53,88,623"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" method="table" conf="3"/></port>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="https" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="111"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="rpcbind" method="table" conf="3"/></port>
+<port protocol="udp" portid="123"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="ntp" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="389"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="ldap" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="20" rttvar="20" to="100000"/>
+</host>
+<host starttime="1793871452" endtime="1793871454"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="10.40.0.60" addrtype="ipv4"/>
+<address addr="86:BA:24:F4:BA:E0" addrtype="mac"/>
+<hostnames>
+<hostname name="monitor-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="60">
+<extrareasons reason="reset" count="59" proto="tcp" ports="20-21,23,25,53,69,80,88,111,135,139,143,389,443,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="1" proto="udp" ports="464"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" method="table" conf="3"/></port>
+<port protocol="tcp" portid="9100"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="jetdirect" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="111"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="rpcbind" method="table" conf="3"/></port>
+<port protocol="udp" portid="123"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="ntp" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="389"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="ldap" method="table" conf="3"/></port>
+<port protocol="udp" portid="623"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="asf-rmcp" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="26" rttvar="35" to="100000"/>
+</host>
+<host starttime="1793871452" endtime="1793871454"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="10.40.0.70" addrtype="ipv4"/>
+<address addr="4E:93:E3:EB:FA:41" addrtype="mac"/>
+<hostnames>
+<hostname name="backup-adm.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="60">
+<extrareasons reason="reset" count="59" proto="tcp" ports="20-21,23,25,53,69,80,88,111,135,139,143,389,443,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,11211,27017"/>
+<extrareasons reason="port-unreach" count="1" proto="udp" ports="464"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" method="table" conf="3"/></port>
+<port protocol="tcp" portid="10000"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="snet-sensor-mgmt" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="111"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="rpcbind" method="table" conf="3"/></port>
+<port protocol="udp" portid="123"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="ntp" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="389"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="ldap" method="table" conf="3"/></port>
+<port protocol="udp" portid="623"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="asf-rmcp" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="11" rttvar="5" to="100000"/>
+</host>
+<host starttime="1793871452" endtime="1793871454"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="10.40.0.21" addrtype="ipv4"/>
+<address addr="BE:27:5C:9F:75:06" addrtype="mac"/>
+<hostnames>
+<hostname name="ilo-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="64">
+<extrareasons reason="reset" count="59" proto="tcp" ports="20-21,23,25,53,69,80,88,111,135,139,143,389,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="5" proto="udp" ports="69,111,123,389,623"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" method="table" conf="3"/></port>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="https" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="34" rttvar="47" to="100000"/>
+</host>
+<host starttime="1793871452" endtime="1793871454"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="10.40.0.22" addrtype="ipv4"/>
+<address addr="CE:70:58:CF:8A:A6" addrtype="mac"/>
+<hostnames>
+</hostnames>
+<ports><extraports state="closed" count="64">
+<extrareasons reason="reset" count="59" proto="tcp" ports="20-21,23,25,53,69,80,88,111,135,139,143,389,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="5" proto="udp" ports="69,111,123,389,623"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" method="table" conf="3"/></port>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="https" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="22" rttvar="14" to="100000"/>
+</host>
+<host starttime="1793871452" endtime="1793871454"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="10.40.0.23" addrtype="ipv4"/>
+<address addr="3A:30:A3:1B:C4:00" addrtype="mac"/>
+<hostnames>
+<hostname name="ilo-03.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="64">
+<extrareasons reason="reset" count="59" proto="tcp" ports="20-21,23,25,53,69,80,88,111,135,139,143,389,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="5" proto="udp" ports="69,111,123,389,623"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" method="table" conf="3"/></port>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="https" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="16" rttvar="11" to="100000"/>
+</host>
+<host starttime="1793871452" endtime="1793871454"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="10.40.0.30" addrtype="ipv4"/>
+<address addr="7A:69:70:EF:95:3D" addrtype="mac"/>
+<hostnames>
+<hostname name="hv-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="64">
+<extrareasons reason="reset" count="59" proto="tcp" ports="20-21,23,25,53,69,80,88,111,135,139,143,389,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="5" proto="udp" ports="111,123,389,623,2049"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" method="table" conf="3"/></port>
+<port protocol="tcp" portid="443"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="https" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="464"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kpasswd5" method="table" conf="3"/></port>
+</ports>
+<times srtt="17" rttvar="10" to="100000"/>
+</host>
+<host starttime="1793871452" endtime="1793871454"><status state="up" reason="arp-response" reason_ttl="0"/>
+<address addr="10.40.0.40" addrtype="ipv4"/>
+<address addr="92:EF:35:BC:DF:A7" addrtype="mac"/>
+<hostnames>
+<hostname name="switch-01.corp.local" type="PTR"/>
+</hostnames>
+<ports><extraports state="closed" count="63">
+<extrareasons reason="reset" count="58" proto="tcp" ports="20-21,25,53,69,88,111,135,139,143,389,443,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017"/>
+<extrareasons reason="port-unreach" count="5" proto="udp" ports="111,123,389,464,623"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="ssh" method="table" conf="3"/></port>
+<port protocol="tcp" portid="23"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="telnet" method="table" conf="3"/></port>
+<port protocol="tcp" portid="80"><state state="open" reason="syn-ack" reason_ttl="64"/><service name="http" method="table" conf="3"/></port>
+<port protocol="udp" portid="53"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="domain" method="table" conf="3"/></port>
+<port protocol="udp" portid="69"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="tftp" method="table" conf="3"/></port>
+<port protocol="udp" portid="88"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="kerberos-sec" method="table" conf="3"/></port>
+<port protocol="udp" portid="161"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="snmp" method="table" conf="3"/></port>
+<port protocol="udp" portid="2049"><state state="open|filtered" reason="no-response" reason_ttl="0"/><service name="nfs" method="table" conf="3"/></port>
+</ports>
+<times srtt="16" rttvar="10" to="100000"/>
+</host>
+<runstats><finished time="1793871454" timestr="Thu Nov  5 09:37:34 2026" summary="Nmap done at Thu Nov  5 09:37:34 2026; 40 IP addresses (40 hosts up) scanned in 32.41 seconds" elapsed="32.41" exit="success"/><hosts up="40" down="0" total="40"/>
+</runstats>
+</nmaprun>
