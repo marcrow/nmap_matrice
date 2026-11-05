@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import colorsys
 from collections import defaultdict
 from pathlib import Path
 
@@ -11,15 +10,23 @@ from segowl.inventory import Inventory
 from segowl.ports import ports_text
 from segowl.verdict import NODATA, OPEN, REACH, SYM, VCLASS
 
-# Zone palette (fill, stroke, text) — modern, cyclic
+# Red, amber and green belong to the Flow Policy (always with an icon): no Zone or Machine uses them.
+# Zone (fill, stroke, title text): a distinct hue on the border and title, the fill stays pale. The 5 strokes
+# pass the dataviz validator in Zone order (light, adjacent pairs; CVD cyan / orchid 6.1, legal: every
+# Zone carries its title). Beyond 5 Zones the hues repeat and the title alone names the Zone.
 ZONE_COLORS = [
-    ("#eef5ff", "#3b82f6", "#1e3a5f"),  # blue
-    ("#eafaf1", "#22a565", "#14532d"),  # green
-    ("#fff4e6", "#f59e0b", "#7c4a03"),  # amber
-    ("#fdeef4", "#db2777", "#7a1840"),  # pink
-    ("#f1eefe", "#7c3aed", "#3f2a7a"),  # violet
-    ("#e6fbf8", "#14b8a6", "#115e59"),  # teal
-    ("#fef0f0", "#ef4444", "#7f1d1d"),  # red
+    ("#eef4fc", "#2a78d6", "#174276"),  # blue
+    ("#fbf2f7", "#d0609a", "#723555"),  # orchid
+    ("#ecf7f8", "#1597ad", "#0c535f"),  # cyan
+    ("#f2f0fb", "#5b45c9", "#32266f"),  # violet
+    ("#f7f3ee", "#a0662f", "#58381a"),  # brown
+]
+# Machine (fill, stroke, text): the 4 cool hues that pass the validator on all pairs; a 5th does not exist.
+MACHINE_COLORS = [
+    ("#e7eaf3", "#3a4e9d", "#1d274e"),  # indigo
+    ("#f4ecf8", "#a35ec1", "#522f60"),  # purple
+    ("#e9f4f8", "#48a5c7", "#245264"),  # steel cyan
+    ("#f7f3fe", "#bb9af4", "#5e4d7a"),  # lavender
 ]
 
 
@@ -35,19 +42,12 @@ def zone_palette(inv: Inventory) -> dict[str, tuple[str, str, str]]:
 
 
 def machine_palette(inv: Inventory) -> dict[str, tuple[str, str, str]]:
-    """Own colour (fill, stroke, text) per multi-interface machine; golden-angle hues."""
-    count = defaultdict(int)
+    """Own colour (fill, stroke, text) per multi-interface Machine, cycling through MACHINE_COLORS."""
+    count: dict[str, int] = defaultdict(int)
     for h in inv.values():
         count[h.machine] += 1
     multi = sorted(m for m, n in count.items() if n > 1)
-
-    def hexc(hue: float, light: float, sat: float) -> str:
-        return "#" + "".join(f"{round(c * 255):02x}" for c in colorsys.hls_to_rgb(hue, light, sat))
-
-    return {
-        m: (hexc(i * 0.618 % 1, 0.85, 0.75), hexc(i * 0.618 % 1, 0.40, 0.70), hexc(i * 0.618 % 1, 0.20, 0.60))
-        for i, m in enumerate(multi)
-    }
+    return {m: MACHINE_COLORS[i % len(MACHINE_COLORS)] for i, m in enumerate(multi)}
 
 
 def zone_cell(a: ZoneAgg | None) -> tuple[str, str]:

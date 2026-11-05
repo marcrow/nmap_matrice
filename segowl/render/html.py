@@ -22,9 +22,7 @@ from segowl.render.mermaid import (
     SLATE,
     EdgeStatus,
     hid,
-    mermaid_source,
     mermaid_zone,
-    zid,
 )
 from segowl.verdict import ALIVE, BLOCK, NODATA, OPEN, REACH, STATE_RANK, VCLASS, VERDICT_NAME, Cell
 
@@ -33,6 +31,11 @@ ASSETS = Path(__file__).resolve().parent.parent / "assets"
 APP_ROOT = re.search(r":root\{[^}]*\}", (ASSETS / "app.css").read_text(encoding="utf-8")).group()
 HTML_CSS = APP_ROOT + (ASSETS / "report.css").read_text(encoding="utf-8")
 HTML_JS = (ASSETS / "report.js").read_text(encoding="utf-8")
+# Cytoscape (ADR-0005) and the diagram code, inlined: report.html stays offline
+GRAPH_JS = "\n".join(
+    (ASSETS / f).read_text(encoding="utf-8") for f in ("cytoscape.min.js", "report_graph.js")
+)
+GRAPH_JS = GRAPH_JS.replace("</script", "<\\/script")
 LOGO_SVG = (ASSETS / "logo.svg").read_text(encoding="utf-8")
 FAVICON = "data:image/svg+xml;base64," + base64.b64encode(LOGO_SVG.encode()).decode()
 MERMAID_JS = ASSETS / "mermaid.min.js"  # bundled -> inlined in report.html (offline)
@@ -301,8 +304,9 @@ def _line(col: str, dash: bool = False) -> str:
     return f'<svg width="28" height="10">{line}</svg>'
 
 
-def _diagram_legend(policy: bool) -> str:
-    """What the diagrams use, and only that: edge colours, dashed edge, port marks."""
+def _diagram_legend(policy: bool, graph: bool = False) -> str:
+    """What the diagrams use, and only that: edge colours, dashed edge, port marks (and, in a Cytoscape
+    diagram, the Machine colour bar)."""
     if policy:
         edges = (
             f"<span>{_line(POLICY_COLORS[DENY])}{_pg(DENY)} open, denied: <b>Finding</b></span>"
@@ -320,9 +324,15 @@ def _diagram_legend(policy: bool) -> str:
             f"<span>{_line(GREY)} open inside a zone</span>"
         )
         ports = "port numbers: <b>bold</b> = admin port"
+    machine = (
+        '<span class="sep"></span><span><i class="mbar"></i> same colour bar: Interfaces of one Machine'
+        "</span>"
+        if graph
+        else ""
+    )
     return (
         f'<div class="lg">{edges}<span>{_line(SLATE, True)} reachable, no open port</span>'
-        f'<span class="sep"></span><span>{ports}</span></div>'
+        f'<span class="sep"></span><span>{ports}</span>{machine}</div>'
     )
 
 
@@ -436,10 +446,55 @@ def _pertarget_tab(a: Analysis) -> str:
     return _sec("Exposure per target", _exposure_html(a.exp, a.inv, a.highlight))
 
 
+def _json(data: object) -> str:
+    """JSON safe inside a <script> element."""
+    return json.dumps(data).replace("<", "\\u003c")
+
+
+def _graph(data: dict) -> str:
+    """A Cytoscape diagram, drawn by report_graph.js the first time it is shown."""
+    return f'<div class="graph"><script type="application/json">{_json(data)}</script></div>'
+
+
+def _target_node(a: Analysis, s: str, d: str, multi: set[str]) -> dict:
+    """An Interface reached from Source s: what its card shows (ports with admin and Flow Policy marks)."""
+    h, c = a.inv[d], a.matrix[s][d]
+    ports = [
+        {
+            "l": port_label(p),
+            "admin": a.highlight(p),
+            "st": a.flow_status(s, d, p) if a.policy is not None else None,
+        }
+        for p in (c.open_ports if c.verdict == OPEN else [])
+    ]
+    ports.sort(key=lambda p: (p["st"] != DENY, not p["admin"]))  # what matters first
+    return {
+        "ip": d,
+        "name": h.name,
+        "zone": h.zone,
+        "type": h.htype,
+        "machine": h.machine,
+        "multi": h.machine in multi,
+        "verdict": VERDICT_NAME[c.verdict],
+        "ports": ports,
+        "cross": h.zone != a.inv[s].zone,
+    }
+
+
+def _source_graph(a: Analysis, s: str) -> dict:
+    """Per source diagram: the Source in the centre, the Interfaces it reaches in their Zone frames."""
+    inv, mpal = a.inv, machine_palette(a.inv)
+    return {
+        "file": f"per-source-{inv[s].short}".replace(" · ", "-"),
+        "center": {"ip": s, "name": inv[s].name, "zone": inv[s].zone},
+        "zones": zone_palette(inv),
+        "machines": {m: c[1] for m, c in mpal.items()},
+        "nodes": [_target_node(a, s, d, set(mpal)) for d, c in a.matrix[s].items() if c.verdict >= ALIVE],
+    }
+
+
 def _persource_tab(a: Analysis) -> str:
-    inv, matrix = a.inv, a.matrix
-    status = a.pair_status(matrix)
-    group_views = [(m, a.pair_status(m)) for m in a.group_matrices.values()]
+    inv = a.inv
     by_m = defaultdict(list)
     for s in a.sources:
         by_m[inv[s].machine].append(s)
@@ -454,30 +509,14 @@ def _persource_tab(a: Analysis) -> str:
     )
     panes = []
     for i, s in enumerate(a.sources):
-        disp = "block" if i == 0 else "none"
-        zs = sorted({inv[d].zone for d, c in matrix[s].items() if c.verdict >= ALIVE})
-        boxes = "".join(
-            f'<label class="chk"><input type="checkbox" checked value="{zid(z)}" onchange="refilter(this)"> '
-            f"{html.escape(z)}</label>"
-            for z in zs
-        )
-        bar = (
-            f'<div class="srcbar" data-name="{html.escape(inv[s].short)}"><b>Zones</b>{boxes}'
-            '<span class="exp"><button class="btn" onclick="exportImg(this,\'svg\')">Export SVG</button> '
-            '<button class="btn" onclick="exportImg(this,\'png\')">Export PNG</button></span></div>'
-        )
         panes.append(
-            f'<div class="srcpane sec" id="src_{hid(s)}" style="display:{disp}">'
+            f'<div class="srcpane sec" id="src_{hid(s)}" style="display:{"block" if i == 0 else "none"}">'
             f"<h2>{html.escape(inv[s].short)} "
             f'<span class="tag">{html.escape(inv[s].zone)} · {html.escape(inv[s].htype)} · '
             f"{html.escape(s)}</span>"
             f'<span class="tag">{len(a.scans[s])} scan(s)</span></h2>'
-            + bar
-            + _diagram(
-                mermaid_source(s, matrix[s], inv, a.highlight, status, a.denied),
-                [mermaid_source(s, m[s], inv, a.highlight, st, a.denied) for m, st in group_views],
-            )
-            + _diagram_legend(a.policy is not None)
+            + _graph(_source_graph(a, s))
+            + _diagram_legend(a.policy is not None, graph=True)
             + '<h3>Target details</h3><p class="hint">Click a row with open ports: what each Scan saw on '
             f"each port, and its Port Label.</p>{_source_table_html(s, a)}</div>"
         )
@@ -684,7 +723,7 @@ def _diff_tab(a: Analysis) -> str:
     if len(sets) < 2:
         return _sec("Scan Diff", "<p>Needs at least two Scans.</p>")
     targets = {ip: {"name": h.short, "zone": h.zone} for ip, h in a.inv.items()}
-    data = json.dumps({"sets": sets, "targets": targets}).replace("<", "\\u003c")
+    data = _json({"sets": sets, "targets": targets})
     select = "".join(options)
     return _sec(
         "Scan Diff",
@@ -819,7 +858,7 @@ def _group_filter(a: Analysis) -> str:
             f'<button class="gchip" data-g="{i}" onclick="pickGroup(this)">{html.escape(g)}</button>'
             for i, g in enumerate(names)
         )
-    data = json.dumps(list(a.port_groups.values())).replace("<", "\\u003c")
+    data = _json(list(a.port_groups.values()))
     return (
         f'<div class="groupsel"><span>Port Group</span><div>{picker}</div>'
         '<span class="note">This filter applies to every tab.</span></div>'
@@ -855,5 +894,6 @@ def write_html(a: Analysis, out_dir: str) -> str:
 <div><h1>Network segmentation report</h1><div class="meta">{meta}</div></div></header>
 <div class="rtop"><div class="bigtabs">{buttons}</div>{_group_filter(a)}</div>
 <main>{panes}</main>
+<script>{GRAPH_JS}</script>
 <script>{HTML_JS}</script></body></html>"""
     return write_output(out_dir, "report.html", doc)

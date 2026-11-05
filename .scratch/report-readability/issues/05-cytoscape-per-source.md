@@ -1,6 +1,6 @@
 # Per source diagram in Cytoscape.js
 
-Status: ready-for-agent
+Status: done
 Blocked by: 02
 Spec: ../spec.md
 
@@ -21,3 +21,11 @@ Replace the Per source Mermaid diagram by Cytoscape.js (ADR-0005), from the vali
 - jump-dmz shows its Findings at once (red edges, ✕, red 443)
 - right-click on servers → "one row" redraws only that Zone's arrangement
 - works offline, standalone and inside the app; the report grows by about 0.8 MB at most
+
+## Comments
+
+**2026-11-05, done.** `segowl/assets/cytoscape.min.js` (3.34.4, MIT header kept, 435 KB, no fcose) and `report_graph.js` (layouts, cards, options, Zone menu, hover, PNG) inlined by `html.py` (`GRAPH_JS`); `_source_graph` / `_target_node` emit the JSON, `_graph` the container. The diagram is drawn when first shown (`drawVisibleGraphs` from `renderVisible`) and redrawn on a Port Group change (`graphsChanged`; the filter runs in JS on the per-port data, so no per-group copy is embedded). The POC's straight-edge option and fcose are not ported (right angles always; straight only in "Zones around the Source"). Zone arrangement: a Zone set to columns only goes beside the Source, to rows only above / below; a right-click pins the other Zones to their side (Reset layout clears it). The per-source Mermaid code of `report.js` (zone filter, SVG export) is gone; the `.mmd` exports stay.
+
+Palette (`render/common.py`): Zone strokes `#2a78d6 #d0609a #1597ad #5b45c9 #a0662f` (blue, orchid, cyan, violet, brown) with a pale fill and a tinted title band; `validate_palette.js --mode light` passes (CVD cyan / orchid 6.1, legal: every Zone carries its title). Measured ceiling: no 5 cool hues clear of red / amber / green pass on all pairs (worst blue / cyan 12.0 in normal vision), and the brown is close to the Finding red for deutan readers (frames vs edges with icons, so kept). Machines: the 4 validated hues of the POC.
+
+Checked headless (1600×1100 and 1366×768, standalone and served by the app): the three demo Sources fit their box, jump-dmz shows its Findings at once (red edges, ✕, red 443, red 5432), right-click servers → one row goes from 2 rows to 1 and the other Zones keep their side, node positions identical across reloads, `db` leaves only db-01 5432. The report grows by 0.44 MB.

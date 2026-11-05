@@ -124,3 +124,24 @@ td.lab{white-space:normal;max-width:380px}
 .tile b{font-size:22px;margin-right:4px}.tile small{flex-basis:100%;color:var(--slate);font-size:11.5px}
 .tile.t-deny{border-left:4px solid var(--deny)}.tile.t-undeclared{border-left:4px solid var(--undeclared)}.tile.t-allow{border-left:4px solid var(--allow);cursor:default}
 a.tile[onclick*="scroll"]:hover{border-color:var(--cyan)}
+/* network diagrams (report_graph.js, Cytoscape) */
+.graph{margin:8px 0 4px}
+.gbar{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;font-size:12.5px;margin-bottom:6px}
+.gzones{display:flex;flex-wrap:wrap;gap:6px;align-items:center}.gzones b{color:var(--slate);margin-right:2px}
+.gzones .sw{display:inline-block;width:11px;height:11px;border-radius:3px;border:2px solid;margin-right:5px}
+.gact{margin-left:auto;display:flex;gap:6px;align-items:center}.gact .pick{margin:0;font-weight:600;font-size:12.5px}
+.gopts{border:1px solid var(--line);border-radius:8px;background:#f8fafc;margin-bottom:6px}
+.gopts summary{cursor:pointer;padding:6px 10px;font-size:12px;color:var(--slate);font-weight:600}
+.ggroups{display:flex;flex-wrap:wrap;gap:10px 30px;padding:2px 12px 10px}
+.ggroups fieldset{border:0;margin:0;padding:0;font-size:12.5px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.ggroups legend{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--slate);font-weight:700;margin-bottom:4px;padding:0}
+.ggroups label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.ggroups .hint{font-size:11px;max-width:300px;line-height:1.35;margin:2px 0 0}
+.gwrap{position:relative}
+.gcy{width:100%;height:calc(100vh - 250px);min-height:480px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.gtip{position:absolute;pointer-events:none;background:#fff;border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 16px rgba(11,31,51,.14);padding:8px 10px;font-size:12px;max-width:340px;display:none;z-index:5;line-height:1.45}
+.gtip h4{margin:0 0 4px;font-size:13px;color:var(--navy)}.gtip .k{color:var(--slate)}
+.gmenu{position:absolute;z-index:50;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(11,31,51,.18);padding:6px;display:flex;flex-direction:column;gap:2px;font-size:12.5px;min-width:150px}
+.gmenu b{padding:3px 8px;color:var(--navy)}
+.gmenu button{border:0;text-align:left;padding:5px 8px;border-radius:5px}.gmenu button:hover,.gmenu button.on{background:#f0fbff}
+.mbar{display:inline-block;width:14px;height:12px;border:1px solid #3a4e9d;border-left:4px solid #3a4e9d;border-radius:2px;background:#f3f4fa}

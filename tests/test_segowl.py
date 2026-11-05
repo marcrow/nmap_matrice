@@ -1,4 +1,6 @@
 import csv
+import json
+import re
 import shutil
 from pathlib import Path
 
@@ -63,7 +65,10 @@ def test_self_is_excluded_and_report_renders(tmp_path, inventory_file):
     doc = open(report, encoding="utf-8").read()
     # mermaid bundle inlined without breaking the <script> tag, ignored scan listed
     assert doc.count("<script") == doc.count("</script>") and '<li class="warn">bogus_scan</li>' in doc
-    assert 'value="Z_prod" onchange="refilter(this)"' in doc  # zone filter, per-source tab
+    graph = json.loads(
+        re.search(r'<div class="graph"><script type="application/json">(.*?)</script>', doc)[1]
+    )
+    assert graph["center"]["ip"] == "10.9.0.1" and [n["ip"] for n in graph["nodes"]] == ["10.0.0.2"]
 
 
 def test_duplicate_ip_is_rejected(inventory_file):
