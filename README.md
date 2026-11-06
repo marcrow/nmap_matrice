@@ -21,7 +21,7 @@ Source, set against what the client says should pass.
 
 **Per Source**: everything one Source reaches, grouped by Zone.
 
-<p align="center"><img src="segowl/assets/tutorial/source-view.svg" width="733" alt="Source view"></p>
+<p align="center"><img src="segowl/assets/tutorial/source-view.svg" width="600" alt="Source view"></p>
 
 🟥 ✕ open, denied: Finding · 🟧 ? open, undeclared · 🟩 ✓ open, allowed · dashed: reachable, no open port ·
 port numbers: **bold** = admin port, red = denied by the Flow Policy

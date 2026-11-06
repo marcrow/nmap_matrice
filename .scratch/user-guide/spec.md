@@ -15,6 +15,7 @@ A guide for the auditor (not the developer), with:
 ## Entries noted so far
 
 - Create a Port Group only when it is really useful (reused across profiles, in the Flow Policy or in a kit). To scan the ports of a search once, select the results; do not make a group for it (see `.scratch/select-search-results/`).
+- Flow Policy comments: a rule's comment is edited in the cell popover (click a cell of the Flow Policy matrix: each rule has its comment field); the matrix itself does not show comments. Noted 2026-11-06 while reviewing the report; whether the matrix should show them is left open.
 
 ## Questions for the grilling
 

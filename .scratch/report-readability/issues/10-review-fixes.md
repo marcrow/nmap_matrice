@@ -142,3 +142,14 @@ Done:
 - Checked headless: the sweep, every tile, Pivot sides with every arrangement, on demo and mission-lab.
 
 **2026-11-06, seventh pass.** The user removed the half moon ("ça va pas"): `arcBlock`, the banana drawn under the Zone and its node are gone. The Zone arrangements are now auto, one / two columns, one / two rows, square and circle (cloud).
+
+**2026-11-06, eighth pass (user feedback).**
+
+- **Square of Interfaces for the Machine in the centre** (right-click on the Machine, `MARR.sq`, `stackCentre`): a grid, ⌈√n⌉ columns. The Zones stay beside it. The edges of the inner Interfaces pass behind the outer ones, which the user accepts.
+- **App Overview**: the two diagrams (`tutorial/zone-view.svg`, `tutorial/source-view.svg`) were still in the Mermaid style (ticket 09 only recoloured them). They are now drawn by the report's own code:
+  - `report_graph.js` and Cytoscape on the same fictional data, exported to static SVG from the computed geometry (frames, edge paths, card images, labels);
+  - the Zone circle is flattened to an ellipse to keep the hero's wide shape;
+  - the Source view uses "Zones facing the Source";
+  - both follow the tutorial convention (viewBox from -12 -12, own white background, no script or class);
+  - the generator page lived in the session scratchpad: rebuild it the same way if the diagram style changes again.
+- **User guide**: `.scratch/user-guide/spec.md` gets an entry noting where Flow Policy comments are edited (the cell popover; the matrix does not show them).

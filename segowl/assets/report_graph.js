@@ -13,7 +13,7 @@ const SR = (x, y, w, h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" r
 const ARR_ICON = {auto: SR(3, 3, 28, 18) + '<text x="17" y="15.5" font-size="8" font-weight="700" text-anchor="middle" stroke="none">auto</text>',
   c1: SR(13, 3, 8, 18), c2: SR(8, 3, 8, 18) + SR(18, 3, 8, 18), r1: SR(3, 8, 28, 8), r2: SR(3, 4, 28, 7) + SR(3, 13, 28, 7),
   sq: SR(9, 3, 7, 7) + SR(18, 3, 7, 7) + SR(9, 13, 7, 7) + SR(18, 13, 7, 7), ci: '<circle cx="17" cy="12" r="9"/>', col: SR(13, 3, 8, 18), row: SR(3, 8, 28, 8)};
-const MARR = {col: 'one column', row: 'one row'};  // a Machine in the centre
+const MARR = {col: 'one column', row: 'one row', sq: 'square'};  // a Machine in the centre
 const LAYOUTS = {sides: 'Zones facing the Source', lr: 'Zones on both sides', ring: 'Zones around the Source'};
 const SRC = '<rect x="13.5" y="9.5" width="7" height="5" rx="1" class="src"/>';
 const LAY_ICON = {sides: SR(11, 1.5, 12, 5) + SR(11, 17.5, 12, 5) + SR(2, 7, 7, 10) + SR(25, 7, 7, 10) + SRC,
@@ -374,6 +374,15 @@ function placeTags(g) {
 function stackCentre(g) {
   const S = g.cy.$id('S'), kids = S.children(), pos = {};
   if (!kids.nonempty()) return pos;
+  if (g.marr === 'sq') {  // a grid; the Zones stay beside it, the edges of the inner Interfaces pass behind the outer ones
+    const n = kids.length, cols = Math.ceil(Math.sqrt(n)), rows = Math.ceil(n / cols), gx = 16, gy = 12;
+    const cw = Math.max(...kids.map(k => k.data('w'))), ch = Math.max(...kids.map(k => k.data('h')));
+    const W = cols * cw + (cols - 1) * gx, H = rows * ch + (rows - 1) * gy;
+    kids.forEach((k, i) => { pos[k.id()] = {x: -W / 2 + (i % cols) * (cw + gx) + cw / 2, y: -H / 2 + TITLE / 2 + Math.floor(i / cols) * (ch + gy) + ch / 2}; });
+    S.data({w: W + 2 * PAD, h: H + 2 * PAD + TITLE});
+    S.style({'text-valign': 'top', 'text-halign': 'center', 'text-margin-x': 0, 'text-margin-y': -5});
+    return pos;
+  }
   const row = g.marr === 'row', gap = row ? 16 : 12, al = k => k.data(row ? 'w' : 'h');
   const L = kids.reduce((h, k) => h + al(k), 0) + gap * (kids.length - 1), C = Math.max(...kids.map(k => k.data(row ? 'h' : 'w')));
   let a = -L / 2;
