@@ -46,9 +46,13 @@ def ports(spec: str) -> list[str]:
 
 
 def firewall(hosts: list[dict[str, str]], subnets: dict[str, str]) -> list[str]:
-    sh = ["iptables -P FORWARD DROP", "iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT"]
+    sh = [
+        "iptables -P FORWARD DROP",
+        "iptables -A FORWARD -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT",
+    ]
     for f in rows("flows.csv"):
-        where = "".join(f" -{flag} {subnets[f[col]]}" for flag, col in (("s", "from"), ("d", "to")) if f[col] != "*")
+        ends = (("s", "from"), ("d", "to"))
+        where = "".join(f" -{flag} {subnets[f[col]]}" for flag, col in ends if f[col] != "*")
         if f["ports"] == "all":
             matches = [" -p tcp", ""]
         else:
@@ -124,7 +128,8 @@ def up(mission: str) -> None:
 
 def write_inventory(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    lines = ["ip;zone;type;name"] + [f"{h['ip']};{h['zone']};{h['type']};{h['name']}" for h in rows("hosts.csv")]
+    lines = ["ip;zone;type;name"]
+    lines += [f"{h['ip']};{h['zone']};{h['type']};{h['name']}" for h in rows("hosts.csv")]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"[+] client inventory: {path}")
 
@@ -194,7 +199,9 @@ def main() -> None:
     sub.add_parser("up").add_argument("--mission", default="mission-lab", help="where to write inventory.csv")
     r = sub.add_parser("run")
     r.add_argument("files", nargs="+", help="scripts zip from the app, or .sh files")
-    r.add_argument("--into", default=str(LAB / "out"), help="results go in <into>/scans/<Source>/ (a Mission works)")
+    r.add_argument(
+        "--into", default=str(LAB / "out"), help="results go in <into>/scans/<Source>/ (a Mission works)"
+    )
     sub.add_parser("down")
     sub.add_parser("demo")
     a = ap.parse_args()
