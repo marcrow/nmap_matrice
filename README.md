@@ -250,6 +250,9 @@ the report is regenerated whenever a mission file changes, by hand or from the a
 it only listens on loopback. Menu in audit order: Overview · Inventory & Zones · Auditor Kit (Scan
 Profiles, Port Groups, Port Labels, Kits: the auditor's tooling, carried from Mission to Mission) · Scans
 (build the scan, then run it from each Source) · Flow Policy · Report.
+Editors save as you go; Ctrl+Z / Ctrl+Y (or the bar at the bottom left) undo and redo every change of the page
+until it is reloaded. In the Flow Policy matrix, Shift+click selects a rectangle, Ctrl+click scattered cells or a whole
+row or column, and Ctrl+C / Ctrl+V copy a cell's decision to them (`ports;action;comment` text, so it travels between Missions).
 
 ## Development
 ```bash

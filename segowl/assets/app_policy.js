@@ -12,29 +12,11 @@ const isCell = r => D.zones.includes(r.src) && D.zones.includes(r.dst);
 const err = r => D.errors[D.rules.indexOf(r)] || "";
 const pair = (i, j) => `${D.zones[i]} → ${D.zones[j]}`;
 
-// ---------------------------------------------------------------- history: the rules before each change, in memory
-let hist = [], fut = [], last = "";
-function changed(label = "Edit") {
-  hist.push({rules: last, label}); if (hist.length > 200) hist.shift(); fut = [];
-  last = JSON.stringify(D.rules); persist();
-}
-function persist() { edits++; dirty = true; D.errors = D.rules.map(() => ""); status("Unsaved changes…"); autosave(); draw(); undoUi(); }
-function step(from, to, undoing) {
-  if (!from.length) return toast(undoing ? "Nothing to undo" : "Nothing to redo");
-  const h = from.pop(), before = D.rules;
-  to.push({rules: last, label: h.label});
-  D.rules = JSON.parse(h.rules); last = h.rules; persist();
-  flash(diffCells(before, D.rules)); toast(`${undoing ? "Undone" : "Redone"}: ${h.label}`);
-}
-const undo = () => step(hist, fut, true), redo = () => step(fut, hist, false);
-function undoUi() {
-  const u = hist.at(-1), r = fut.at(-1);
-  $("#ub").disabled = !u; $("#ub").title = u ? `Undo: ${u.label} (Ctrl+Z)` : "Nothing to undo";
-  $("#rb").disabled = !r; $("#rb").title = r ? `Redo: ${r.label} (Ctrl+Y)` : "Nothing to redo";
-  $("#ulab").textContent = u ? "Last change: " + u.label : r ? "Undone: " + r.label : "";
-  $("#undobar").classList.toggle("on", !!(u || r));
-}
-$("#ub").onclick = undo; $("#rb").onclick = redo;
+// ---------------------------------------------------------------- history (undoable, app_common.js): the rules before each change
+let H = null;
+function changed(label = "Edit") { H.changed(label); persist(); }
+function persist() { edits++; dirty = true; D.errors = D.rules.map(() => ""); status("Unsaved changes…"); autosave(); draw(); }
+function restore(rules) { const before = D.rules; D.rules = rules; persist(); flash(diffCells(before, D.rules)); }
 
 // ---------------------------------------------------------------- save
 const autosave = debounce(save, 700);
@@ -286,8 +268,6 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape") { if (popCell) return closePop(); if (copied) { copied = null; drawSel(); } return; }
   if (["Control", "Meta", "Shift"].includes(e.key) && !typing(e.target)) document.body.classList.add("picking");
   if (typing(e.target)) return; // inside a field the browser's own undo / copy / delete apply
-  if (mod && k === "z" && !e.shiftKey) { e.preventDefault(); return undo(); }
-  if (mod && (k === "y" || (k === "z" && e.shiftKey))) { e.preventDefault(); return redo(); }
   const td = e.target.closest && e.target.closest("#pm td[data-i]");
   if (mod && k === "a" && td) { e.preventDefault(); const n = D.zones.length - 1; return select([0, 0], [n, n]); }
   if ((e.key === "Delete" || e.key === "Backspace") && ranges.length && (td || popCell)) { e.preventDefault(); return emptySel(); }
@@ -330,11 +310,11 @@ $("#boot").onclick = () => {
 (async () => {
   try { D = await api("/api/policy"); }
   catch (e) { status("Not loaded: " + e.message, "err"); return; }
-  last = JSON.stringify(D.rules);
+  H = undoable(() => D.rules, restore);
   $("#pl").innerHTML = ["*", ...D.groups.map(g => "@" + g)].map(x => `<option value="${esc(x)}">`).join("");
   $("#xs").innerHTML = ends(); $("#xd").innerHTML = ends();
   if (!D.zones.length) $("#banner").innerHTML = `<div class="warn">No Zone yet: fill the <a href="/inventory">Inventory</a> first.</div>`;
   const n = D.errors.filter(Boolean).length;
   status(n ? `${n} rule(s) the report refuses: fix them` : "Saved ✓", n ? "err" : "ok");
-  draw(); undoUi();
+  draw();
 })();

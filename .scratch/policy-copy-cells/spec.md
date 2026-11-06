@@ -1,6 +1,6 @@
 # Copy cells of the Flow Policy matrix
 
-Status: ready-for-agent
+Status: done
 
 Vocabulary: `GLOSSARY.md` (Flow Policy, Port Group, Zone). Raised by the user on 2026-11-05 while filling the Flow Policy of the lab (`lab/`). Grilled on 2026-11-06.
 
@@ -43,3 +43,7 @@ The same decision comes back in many cells, for example "deny the admin ports, a
 - `issues/01-prototype.md`: throwaway prototype of the Flow Policy selection, copy / paste and undo, validated by the user.
 - `issues/02-policy-copy-paste-undo.md`: the real thing in `/policy`.
 - `issues/03-table-editors-undo.md`: undo / redo in Inventory, Port Groups, Port Labels.
+
+## Done
+
+2026-11-06: tickets 01 (prototype, verdicts recorded), 02 (Flow Policy), 03 (undo in every editor, through a shared `undoable` in `app_common.js` rather than Tabulator's `history`; see the ticket).
