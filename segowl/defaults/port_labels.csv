@@ -1,0 +1,2266 @@
+# Shipped demo Port Labels (descriptive only: tags help search, they filter nothing).
+# A mission/port_labels.csv row with the same port + product replaces the shipped one, other rows are added; its vendor and cleartext columns are optional.
+# Ports: one token per row | 22 (TCP implied) | ranges 5900-5903 | udp:161 | udp:5405-5412
+# Sources: vendor documentation, IETF RFCs and the IANA registry only (never nmap-services).
+# Rows named "<Service> — common alternate port" are convention, not vendor-documented.
+# Rows tagged risky name the risk after the dash: "<Service> — <why it is dangerous>".
+# Columns:
+#   vendor     company or project owning the product; empty for vendor-neutral standards
+#   cleartext  yes = unencrypted by default on this port | no = always encrypted | empty = unknown or mixed
+# Tags (fixed vocabulary, comma-separated):
+#   admin          management interface or protocol (SSH, RDP, web console, API)
+#   oob            out-of-band controller (BMC: iLO, iDRAC, IPMI, XCC, CIMC)
+#   backup         backup software and data movers
+#   virtualization hypervisor, VDI, cluster management
+#   directory      AD, LDAP, Kerberos, DNS, authentication (RADIUS, TACACS+)
+#   db             databases and caches
+#   web            HTTP(S) and application servers
+#   monitoring     supervision, logging, telemetry, SIEM
+#   network        network device and routing/infrastructure protocols
+#   security       firewall/VPN/EDR/scanner/secrets management
+#   devops         CI/CD, orchestration, containers, configuration management
+#   messaging      message brokers and queues
+#   file           file transfer, file sharing, storage
+#   remote-access  remote desktop/control tools
+#   mail           mail protocols
+#   ot             industrial control, SCADA, building automation
+#   voip           telephony, unified communications, video conferencing
+#   iot            cameras, video surveillance, embedded devices
+#   print          printing
+#   risky          often dangerous when reachable: no auth or default credentials, exec API, leak
+port;product;tags;vendor;cleartext
+20;FTP data (RFC 959);file;;yes
+21;FTP control (RFC 959) — PASS in clear text, anonymous access, bounce attack (RFC 2577);file,risky;;yes
+22;SSH (RFC 4253);admin,remote-access;;no
+23;Telnet (RFC 854) — unencrypted: credentials and CLI sessions in clear (CISA TA18-106A);admin,remote-access,risky;;yes
+25;SMTP (RFC 5321) — internal open relay (RFC 2505), VRFY/EXPN user enumeration;mail,risky;;yes
+49;TACACS+ (RFC 8907);directory,network,admin;;
+53;DNS over TCP (RFC 7766) — zone transfer (AXFR) leaks the zone when misconfigured (CISA TA15-103A);directory,network,risky;;yes
+udp:53;DNS (RFC 1035);directory,network;;yes
+udp:67;DHCP server (RFC 2131);network;;yes
+udp:68;DHCP client (RFC 2131);network;;yes
+udp:69;TFTP (RFC 1350) — no login or access control: config and firmware read/write;file,network,risky;;yes
+80;HTTP (RFC 9110);web;;yes
+88;Kerberos (RFC 4120);directory;;no
+udp:88;Kerberos (RFC 4120);directory;;no
+110;POP3 (RFC 1939);mail;;yes
+111;ONC RPC portmapper / rpcbind (RFC 1833);file;;yes
+udp:111;ONC RPC portmapper / rpcbind (RFC 1833) — reflection amplification x7 to x28 (CISA);file,risky;;yes
+udp:123;NTP (RFC 5905) — monlist reflection amplification (ntpd before 4.2.7 by default, CISA);network,risky;;yes
+135;Microsoft RPC endpoint mapper;admin,directory;Microsoft;yes
+udp:137;NetBIOS name service (RFC 1002) — NBT-NS poisoning (CISA AA23-278A), reflection amplification;file,directory,risky;;yes
+udp:138;NetBIOS datagram service (RFC 1002);file;;yes
+139;NetBIOS session service / SMB (RFC 1002) — SMB signing not required by default: NTLM relay (CISA AA23-278A);file,admin,risky;;yes
+143;IMAP (RFC 9051);mail;;yes
+161;SNMP over TCP (RFC 3430);monitoring,network;;yes
+udp:161;SNMP agent (RFC 3411) — v1/v2c community strings sniffable or guessable: read or write config;monitoring,network,risky;;yes
+udp:162;SNMP trap receiver (RFC 3411);monitoring,network;;yes
+179;BGP (RFC 4271);network;;yes
+389;LDAP (RFC 4511) — unsigned binds accepted unless signing is required: relay and MITM;directory,risky;;yes
+udp:389;CLDAP / AD DC locator (RFC 1798) — reflection amplification x56 to x70 (CISA);directory,risky;;yes
+443;HTTPS (RFC 9110);web;;no
+udp:443;HTTP/3 over QUIC (RFC 9114);web;;no
+445;SMB / Microsoft-DS — SMB signing not required by default: NTLM relay (CISA AA23-278A);file,admin,risky;Microsoft;yes
+464;Kerberos password change (RFC 3244);directory;;no
+udp:464;Kerberos password change (RFC 3244);directory;;no
+465;SMTP submission over TLS (RFC 8314);mail;;no
+udp:500;IPsec IKE (RFC 7296);security,network;;no
+512;rexec (BSD r-services) — password and session in clear text;admin,remote-access,risky;;yes
+513;rlogin (RFC 1282) — host-based trust (.rhosts) is spoofable, session in clear;admin,remote-access,risky;;yes
+514;rsh (BSD r-services) — host-based trust (.rhosts), no password, session in clear;admin,remote-access,risky;;yes
+udp:514;Syslog (RFC 5426);monitoring,network;;yes
+515;LPD printing (RFC 1179);print;;yes
+548;Apple Filing Protocol (AFP);file;Apple;yes
+587;SMTP submission (RFC 6409);mail;;yes
+593;Microsoft RPC over HTTP endpoint mapper;admin,directory;Microsoft;yes
+udp:623;IPMI RMCP / RMCP+ (IPMI v2.0 spec) — default or no passwords, cipher 0 auth bypass (CISA TA13-207A);oob,risky;;yes
+631;IPP printing (RFC 8011);print;;yes
+636;LDAPS (RFC 8314);directory;;no
+830;NETCONF over SSH (RFC 6242);network,admin;;no
+853;DNS over TLS (RFC 7858);directory,network;;no
+873;rsync daemon — modules without 'auth users' are anonymous;file,backup,risky;rsync;yes
+989;FTPS data (RFC 4217);file;;no
+990;FTPS control (RFC 4217);file;;no
+993;IMAPS (RFC 8314);mail;;no
+995;POP3S (RFC 8314);mail;;no
+1194;OpenVPN;security,remote-access;OpenVPN;no
+udp:1194;OpenVPN;security,remote-access;OpenVPN;no
+1433;Microsoft SQL Server;db;Microsoft;
+udp:1434;Microsoft SQL Server Browser;db;Microsoft;yes
+1521;Oracle Database listener;db;Oracle;
+1688;Microsoft KMS activation;admin;Microsoft;
+1723;PPTP VPN (RFC 2637) — MS-CHAPv2 credentials recoverable from a captured handshake;security,remote-access,risky;;
+udp:1812;RADIUS authentication (RFC 2865);directory,security,network;;yes
+udp:1813;RADIUS accounting (RFC 2866);directory,security,network;;yes
+udp:1900;SSDP / UPnP discovery — reflection amplification x30 (CISA);network,risky;;yes
+2049;NFS (RFC 7530) — AUTH_SYS trusts client-asserted UIDs (RFC 5531);file,risky;;yes
+udp:2049;NFS (RFC 1813) — AUTH_SYS trusts client-asserted UIDs (RFC 5531);file,risky;;yes
+udp:2055;Cisco NetFlow export (IOS XR default destination port);monitoring,network;Cisco;yes
+2179;Microsoft Hyper-V VMConnect;virtualization,admin;Microsoft;
+2375;Docker Engine API (plain HTTP) — unauthenticated API = root on the host;devops,admin,risky;Docker;yes
+2376;Docker Engine API (TLS);devops,admin;Docker;no
+2377;Docker Swarm cluster management;devops;Docker;no
+2379-2380;etcd client and peer — no TLS client auth or RBAC by default: all keys and secrets readable;devops,db,risky;etcd;
+3260;iSCSI target (RFC 7143);file;;yes
+3268;AD Global Catalog;directory;Microsoft;yes
+3269;AD Global Catalog over TLS;directory;Microsoft;no
+3306;MySQL / MariaDB;db;Oracle / MariaDB;
+3389;Microsoft RDP;remote-access,admin;Microsoft;no
+udp:3389;Microsoft RDP (UDP transport);remote-access,admin;Microsoft;no
+udp:3391;Microsoft RD Gateway (UDP transport);remote-access,security;Microsoft;no
+udp:4500;IPsec NAT traversal (RFC 3948);security,network;;no
+udp:4739;IPFIX (RFC 7011);monitoring,network;;yes
+udp:4789;VXLAN (RFC 7348);network,virtualization;;yes
+udp:5246;CAPWAP control (RFC 5415);network;;no
+udp:5247;CAPWAP data (RFC 5415);network;;yes
+udp:5353;mDNS (RFC 6762) — reflection amplification (CISA);network,risky;;yes
+udp:5355;LLMNR (RFC 4795) — name poisoning to capture credentials (CISA AA23-278A);directory,network,risky;;yes
+5432;PostgreSQL;db;PostgreSQL;
+5900-5903;VNC / RFB (RFC 6143) — 'None' security type or weak DES auth (8-char password);remote-access,risky;;yes
+5985;Microsoft WinRM (HTTP);admin;Microsoft;
+5986;Microsoft WinRM (HTTPS);admin;Microsoft;no
+6000-6063;X11 (X Window System) — host-based access: any client on a listed host controls the display;remote-access,risky;;yes
+6443;Kubernetes API server;devops,admin;Kubernetes;no
+6513;NETCONF over TLS (RFC 7589);network,admin;;no
+6514;Syslog over TLS (RFC 5425);monitoring,network;;no
+udp:6514;Syslog over DTLS (RFC 6012);monitoring,network;;no
+udp:6343;sFlow;monitoring,network;;yes
+8530;Microsoft WSUS (HTTP) — without TLS an attacker can push malicious updates to clients;admin,risky;Microsoft;yes
+8531;Microsoft WSUS (HTTPS);admin;Microsoft;no
+9389;Active Directory Web Services;directory,admin;Microsoft;no
+10000;NDMP (backup of NAS);backup,file;;yes
+49152-65535;Microsoft RPC dynamic ports;admin,directory;Microsoft;
+udp:51820;WireGuard VPN;security,remote-access;WireGuard;no
+udp:520;RIP (RFC 2453) — RIPv1 reflection amplification x131 (CISA);network,risky;;yes
+udp:521;RIPng (RFC 2080);network;;yes
+646;LDP (RFC 5036);network;;yes
+udp:646;LDP discovery (RFC 5036);network;;yes
+udp:3784;BFD single-hop (RFC 5881);network;;yes
+udp:4784;BFD multihop (RFC 5883);network;;yes
+udp:1985;Cisco HSRP;network;Cisco;yes
+udp:3799;RADIUS dynamic authorization / CoA (RFC 5176);directory,security,network;;yes
+2083;RADIUS over TLS (RadSec, RFC 6614);directory,security,network;;no
+601;Syslog reliable delivery (RFC 3195);monitoring,network;;yes
+10161;SNMP over TLS (RFC 6353);monitoring,network;;no
+udp:10161;SNMP over DTLS (RFC 6353);monitoring,network;;no
+udp:10162;SNMP trap over DTLS (RFC 6353);monitoring,network;;no
+443;RESTCONF over HTTPS (RFC 8040);network,admin;;no
+6653;OpenFlow controller;network,admin;;
+udp:6081;Geneve (RFC 8926);network,virtualization;;yes
+udp:1701;L2TP (RFC 2661);security,network;;yes
+3220;Juniper Junos XML protocol over SSL (xnm-ssl);network,admin;Juniper Networks;no
+3221;Juniper Junos XML protocol clear text (xnm-clear-text);network,admin;Juniper Networks;yes
+2001-2016;Cisco IOS reverse Telnet to console lines (2000 + line number);network,admin,remote-access;Cisco;yes
+2222;SSH — common alternate port;admin,remote-access;;no
+2200;SSH — common alternate port;admin,remote-access;;no
+22222;SSH — common alternate port;admin,remote-access;;no
+8022;SSH — common alternate port;admin,remote-access;;no
+2323;Telnet — common alternate port;admin,remote-access;;yes
+3388;Microsoft RDP — common alternate port;remote-access,admin;Microsoft;no
+3390;Microsoft RDP — common alternate port;remote-access,admin;Microsoft;no
+33890;Microsoft RDP — common alternate port;remote-access,admin;Microsoft;no
+8000;HTTP — common alternate port;web;;yes
+8008;HTTP — common alternate port;web;;yes
+8080;HTTP — common alternate port;web;;yes
+8888;HTTP — common alternate port;web;;yes
+8443;HTTPS — common alternate port;web;;no
+4443;HTTPS — common alternate port;web;;no
+9443;HTTPS — common alternate port;web;;no
+10443;HTTPS — common alternate port (often SSL VPN portals);web,security;;no
+2121;FTP — common alternate port;file;;yes
+3307;MySQL / MariaDB — common alternate port;db;Oracle / MariaDB;
+5433;PostgreSQL — common alternate port;db;PostgreSQL;
+443;HPE iLO web interface / Redfish;oob,admin;HPE;no
+17988;HPE iLO virtual media;oob;HPE;
+17990;HPE iLO remote console;oob;HPE;
+443;Dell iDRAC web interface / Redfish — root/calvin on units using the legacy default password;oob,admin,risky;Dell;no
+5900;Dell iDRAC virtual console, virtual media and remote file share (iDRAC9 before 6.00.02.00);oob,remote-access;Dell;no
+5901;Dell iDRAC VNC server (when enabled);oob,remote-access;Dell;
+623;Supermicro BMC virtual media (TCP);oob;Supermicro;
+5900;Supermicro BMC iKVM;oob,remote-access;Supermicro;
+3900;Lenovo XClarity Controller remote presence;oob,remote-access;Lenovo;
+2068;Cisco IMC (CIMC) KVM;oob,remote-access;Cisco;
+443;VMware ESXi host client / API;virtualization,admin;VMware;no
+902;VMware ESXi NFC and VM console (MKS);virtualization,admin;VMware;
+udp:902;VMware ESXi heartbeat to vCenter;virtualization;VMware;
+427;VMware ESXi CIM SLP — OpenSLP heap overflow CVE-2021-21974 (ESXiArgs ransomware);virtualization,risky;VMware;yes
+5988;VMware ESXi CIM server;virtualization,monitoring;VMware;
+2233;VMware vSAN transport;virtualization,file;VMware;yes
+8000;VMware ESXi vMotion;virtualization;VMware;
+8182;VMware vSphere HA (FDM);virtualization;VMware;
+udp:8182;VMware vSphere HA (FDM);virtualization;VMware;
+443;VMware vCenter Server (vSphere Client / API);virtualization,admin;VMware;no
+5480;VMware vCenter appliance management (VAMI);virtualization,admin;VMware;no
+9443;VMware vCenter vSphere Web Client (vSphere 6.x and earlier);virtualization,admin;VMware;no
+7444;VMware vCenter Secure Token Service (vSphere 6.x and earlier);virtualization,directory;VMware;no
+6501;VMware vSphere Auto Deploy;virtualization;VMware;
+6502;VMware vSphere Auto Deploy reverse proxy;virtualization;VMware;
+6600;Microsoft Hyper-V live migration;virtualization;Microsoft;yes
+8006;Proxmox VE web interface / API;virtualization,admin;Proxmox;no
+3128;Proxmox VE SPICE proxy;virtualization,remote-access;Proxmox;no
+5900-5999;Proxmox VE VNC web console;virtualization,remote-access;Proxmox;
+udp:5405-5412;Proxmox VE corosync cluster;virtualization;Proxmox;no
+60000-60050;Proxmox VE live migration;virtualization;Proxmox;
+8007;Proxmox Backup Server web interface / API;backup,admin;Proxmox;no
+9440;Nutanix Prism web console;virtualization,admin;Nutanix;no
+16509;libvirt daemon (TCP);virtualization,admin;libvirt;yes
+16514;libvirt daemon (TLS);virtualization,admin;libvirt;no
+1494;Citrix ICA (HDX);virtualization,remote-access;Citrix;
+2598;Citrix Common Gateway Protocol (session reliability);virtualization,remote-access;Citrix;
+4172;Omnissa (VMware) Horizon PCoIP;virtualization,remote-access;Omnissa;no
+udp:4172;Omnissa (VMware) Horizon PCoIP;virtualization,remote-access;Omnissa;no
+8443;Omnissa (VMware) Horizon Blast Extreme (gateway);virtualization,remote-access;Omnissa;no
+22443;Omnissa (VMware) Horizon Blast Extreme (agent);virtualization,remote-access;Omnissa;no
+9392;Veeam B&R console to backup server (v12 and earlier);backup,admin;Veeam;
+9396;Veeam B&R UI service (v12 and earlier);backup;Veeam;
+9401;Veeam B&R remote console file-level recovery (v12);backup;Veeam;
+9419;Veeam B&R REST API (Swagger);backup,admin;Veeam;no
+9420;Veeam B&R console update / console connection;backup,admin;Veeam;
+10443;Veeam Software Appliance host management;backup,admin;Veeam;no
+6160;Veeam Installer Service;backup;Veeam;
+6161;Veeam vPower NFS Service;backup;Veeam;
+6162;Veeam Data Mover;backup;Veeam;
+2500-3300;Veeam data transmission channels;backup;Veeam;
+6170;Veeam mount service;backup;Veeam;
+9443;Veeam Backup Enterprise Manager web UI (IIS-based releases);backup,admin;Veeam;no
+9394;Veeam Backup Enterprise Manager service;backup;Veeam;
+8400;Commvault Communications Service (GxCVD);backup;Commvault;
+8401;Commvault Event Manager (GxEvMgrS, CommServe);backup;Commvault;
+8403;Commvault firewall tunnel (GxFWD);backup;Commvault;
+1556;Veritas NetBackup PBX;backup;Veritas;
+13724;Veritas NetBackup vnetd;backup;Veritas;
+13782;Veritas NetBackup bpcd;backup;Veritas;
+6101;Veritas Backup Exec agent browser;backup;Veritas;
+9101;Bacula / Bareos director;backup;Bacula / Bareos;
+9102;Bacula / Bareos file daemon;backup;Bacula / Bareos;
+9103;Bacula / Bareos storage daemon;backup;Bacula / Bareos;
+1500;IBM Storage Protect (TSM) server;backup;IBM;
+1581;IBM Storage Protect client acceptor;backup;IBM;
+9877;Acronis Cyber Protect management server (web UI / REST API);backup,admin;Acronis;
+7780;Acronis Cyber Protect management server (agent messages);backup;Acronis;
+11104;NetApp ONTAP SnapMirror intercluster control;backup,file;NetApp;
+11105;NetApp ONTAP SnapMirror data transfer;backup,file;NetApp;
+3009;Dell Data Domain replication peer certificate exchange;backup;Dell;
+5000;Synology DSM (HTTP);file,admin;Synology;yes
+5001;Synology DSM (HTTPS);file,admin;Synology;no
+8080;QNAP QTS web administration;file,admin;QNAP;yes
+443;Fortinet FortiGate administrative GUI;security,admin;Fortinet;no
+541;Fortinet FGFM (FortiGate to FortiManager);security,admin;Fortinet;no
+514;Fortinet OFTP (logs to FortiAnalyzer);security,monitoring;Fortinet;no
+1000;Fortinet FortiGate firewall authentication (HTTP);security,directory;Fortinet;yes
+1003;Fortinet FortiGate firewall authentication (HTTPS);security,directory;Fortinet;no
+8013;Fortinet FortiClient EMS telemetry / endpoint management;security;Fortinet;
+8014;Fortinet FortiClient EMS log and diagnostics upload;security;Fortinet;
+10443;Fortinet FortiClient EMS deployment package download;security;Fortinet;no
+8008;Fortinet FortiGate policy override authentication (HTTP);security,directory;Fortinet;yes
+8010;Fortinet FortiGate policy override authentication (HTTPS);security,directory;Fortinet;no
+703;Fortinet FortiGate HA synchronization;security;Fortinet;
+udp:703;Fortinet FortiGate HA synchronization;security;Fortinet;
+443;Palo Alto Networks PAN-OS web interface;security,admin;Palo Alto Networks;no
+4443;Palo Alto Networks PAN-OS alternative HTTPS;security,admin;Palo Alto Networks;no
+3978;Palo Alto Networks Panorama to firewall;security,admin;Palo Alto Networks;no
+28443;Palo Alto Networks Panorama content updates;security;Palo Alto Networks;
+28769;Palo Alto Networks HA1 control link (firewall and Panorama HA);security;Palo Alto Networks;yes
+28260;Palo Alto Networks HA1 control link (firewall and Panorama HA);security;Palo Alto Networks;yes
+5007;Palo Alto Networks User-ID agent;security,directory;Palo Alto Networks;
+6080;Palo Alto Networks Authentication Portal (NTLM);security,directory;Palo Alto Networks;
+6081;Palo Alto Networks Authentication Portal (HTTP);security,directory;Palo Alto Networks;yes
+6082;Palo Alto Networks Authentication Portal (TLS);security,directory;Palo Alto Networks;no
+udp:4501;Palo Alto Networks GlobalProtect IPsec;security,remote-access;Palo Alto Networks;no
+4786;Cisco Smart Install — unauthenticated management protocol: config theft or replace (CISA TA18-106A);network,admin,risky;Cisco;yes
+8305;Cisco Secure Firewall management (sftunnel FMC-FTD);security,admin;Cisco;no
+8443;Cisco ISE portals;security,directory;Cisco;no
+8905;Cisco ISE posture;security;Cisco;no
+8910;Cisco ISE pxGrid;security;Cisco;no
+udp:1645;Legacy RADIUS authentication (Cisco, Microsoft NPS);directory,security,network;;yes
+udp:1646;Legacy RADIUS accounting (Cisco, Microsoft NPS);directory,security,network;;yes
+18190;Check Point SmartConsole (CPMI);security,admin;Check Point;no
+18191;Check Point CPD;security,admin;Check Point;
+18192;Check Point AMON;security,monitoring;Check Point;
+18264;Check Point ICA (certificate services);security;Check Point;
+256;Check Point FW-1 management;security,admin;Check Point;
+257;Check Point FW-1 log transfer;security,monitoring;Check Point;
+4444;Sophos Firewall web admin console;security,admin;Sophos;no
+8291;MikroTik Winbox;network,admin;MikroTik;
+8728;MikroTik RouterOS API;network,admin;MikroTik;yes
+8729;MikroTik RouterOS API (TLS);network,admin;MikroTik;no
+udp:5678;MikroTik Neighbor Discovery (MNDP);network;MikroTik;yes
+4353;F5 BIG-IP iQuery;network;F5;no
+udp:1026;F5 BIG-IP network failover;network;F5;
+8443;F5 BIG-IP configuration utility (single-NIC);network,admin;F5;no
+8443;Ubiquiti UniFi Network controller;network,admin;Ubiquiti;no
+8080;Ubiquiti UniFi device inform;network;Ubiquiti;
+udp:3478;Ubiquiti UniFi STUN;network;Ubiquiti;yes
+udp:10001;Ubiquiti UniFi device discovery;network;Ubiquiti;yes
+4343;HPE Aruba controller web UI / bootstrap;network,admin;HPE;no
+udp:8211;HPE Aruba PAPI;network;HPE;
+2701;Microsoft Configuration Manager remote control;admin,remote-access;Microsoft;
+10123;Microsoft Configuration Manager client notification;admin;Microsoft;
+udp:4011;Microsoft WDS / PXE;admin;Microsoft;yes
+udp:63000-64000;Microsoft Configuration Manager multicast (PXE / OSD);admin;Microsoft;
+49443;Microsoft AD FS certificate authentication;directory;Microsoft;no
+5022;Microsoft SQL Server mirroring / Always On endpoint (conventional);db;Microsoft;no
+4022;Microsoft SQL Server Service Broker (conventional);db;Microsoft;no
+1630;Oracle Connection Manager (client connections);db;Oracle;
+1830;Oracle Connection Manager (administration);db;Oracle;
+2483;Oracle Database (TCP, IANA);db;Oracle;
+2484;Oracle Database (TLS, IANA);db;Oracle;no
+33060;MySQL X Protocol;db;Oracle;
+50000;IBM Db2 default instance (up to 11.5.5);db;IBM;
+25000;IBM Db2 default instance (11.5.6 and later);db;IBM;
+3050;Firebird;db;Firebird;
+27017;MongoDB — access control not enabled by default;db,risky;MongoDB;
+6379;Redis — trusted clients only, no auth by default, CONFIG can write files and run code;db,risky;Redis;yes
+26379;Redis Sentinel;db;Redis;yes
+11211;Memcached — must not face untrusted users: no auth by default, cache read/write;db,risky;Memcached;yes
+udp:11211;Memcached (UDP, off by default since 1.5.6) — reflection amplification x10,000 to x51,000 (CISA);db,risky;Memcached;yes
+9042;Apache Cassandra CQL — AllowAllAuthenticator by default (no auth), superuser cassandra/cassandra;db,risky;Apache;
+7000;Apache Cassandra inter-node;db;Apache;yes
+7001;Apache Cassandra inter-node (TLS);db;Apache;no
+7199;Apache Cassandra JMX — localhost-only by default, reachable remotely without auth = code exec (MLet);db,admin,risky;Apache;yes
+9200;Elasticsearch REST API — security off by default before 8.0 (basic license): open read/write;db,monitoring,risky;Elastic;
+9300;Elasticsearch transport;db;Elastic;
+5984;Apache CouchDB — Admin Party (everyone is admin) before 3.0;db,risky;Apache;yes
+8091;Couchbase web console;db,admin;Couchbase;yes
+8086;InfluxDB — 1.x: authentication disabled by default, all users have all privileges;db,monitoring,risky;InfluxData;yes
+8123;ClickHouse HTTP — shipped users.xml: 'default' user with empty password;db,risky;ClickHouse;yes
+9000;ClickHouse native — shipped users.xml: 'default' user with empty password;db,risky;ClickHouse;yes
+7474;Neo4j HTTP;db;Neo4j;yes
+7687;Neo4j Bolt;db;Neo4j;
+26257;CockroachDB;db;Cockroach Labs;no
+3200-3299;SAP NetWeaver dispatcher (32NN);db,web;SAP;yes
+3300-3399;SAP NetWeaver gateway (33NN) — default secinfo lets any internal host run OS commands (CISA AA19-122A);db,risky;SAP;yes
+3600-3699;SAP message server (36NN);db;SAP;yes
+30013;SAP HANA SQL system DB (3NN13);db;SAP;
+30015;SAP HANA SQL tenant DB (3NN15);db;SAP;
+8080;Apache Tomcat HTTP connector — Manager app WAR upload = code exec when manager creds are weak;web,risky;Apache;yes
+8009;Apache Tomcat AJP connector — trusts proxy-supplied data: Ghostcat CVE-2020-1938 (KEV);web,risky;Apache;yes
+8005;Apache Tomcat shutdown port;web,admin;Apache;yes
+7001;Oracle WebLogic Server — T3/IIOP unauth deserialization RCE (e.g. CVE-2023-21839, KEV);web,admin,risky;Oracle;yes
+7002;Oracle WebLogic Server (TLS);web,admin;Oracle;no
+9060;IBM WebSphere admin console (HTTP);web,admin;IBM;yes
+9043;IBM WebSphere admin console (HTTPS);web,admin;IBM;no
+9080;IBM WebSphere HTTP transport;web;IBM;yes
+9990;WildFly / JBoss EAP management;web,admin;Red Hat;yes
+4848;Eclipse GlassFish admin;web,admin;Eclipse Foundation;yes
+8983;Apache Solr — no API is meant for untrusted parties, auth only via security.json;web,db,risky;Apache;yes
+8888;Jupyter Notebook server — server access = arbitrary code execution (token auth by default);web,devops,risky;Project Jupyter;yes
+9092;Apache Kafka broker — fresh install: PLAINTEXT on every listener, no authn or authz;messaging,risky;Apache;yes
+2181;Apache ZooKeeper client — client authentication not enforced by default (enforce.auth off);messaging,devops,risky;Apache;yes
+5672;AMQP / RabbitMQ;messaging;VMware;yes
+5671;AMQP over TLS / RabbitMQ;messaging;VMware;no
+15672;RabbitMQ management UI — default guest/guest (loopback-only unless loopback_users is changed);messaging,admin,risky;VMware;yes
+4369;Erlang epmd (RabbitMQ clustering) — lists Erlang nodes, distribution cookie = complete node access;messaging,risky;Ericsson;yes
+25672;RabbitMQ inter-node — Erlang distribution: cookie = complete node access, cleartext by default;messaging,risky;VMware;yes
+1883;MQTT — anonymous clients allowed by default before Mosquitto 2.0;messaging,risky;;yes
+8883;MQTT over TLS;messaging;;no
+61616;Apache ActiveMQ OpenWire — OpenWire unauth remote code execution CVE-2023-46604 (KEV);messaging,risky;Apache;yes
+8161;Apache ActiveMQ web console — default admin/admin;messaging,admin,risky;Apache;yes
+4222;NATS client — no authorization block = anyone can publish and subscribe;messaging,risky;NATS;yes
+6222;NATS cluster;messaging;NATS;yes
+8222;NATS monitoring;messaging,monitoring;NATS;yes
+10250;Kubernetes kubelet API — anonymous auth on and AlwaysAllow by default (flag defaults);devops,admin,risky;Kubernetes;no
+10256;Kubernetes kube-proxy health;devops;Kubernetes;yes
+10257;Kubernetes kube-controller-manager;devops;Kubernetes;no
+10259;Kubernetes kube-scheduler;devops;Kubernetes;no
+30000-32767;Kubernetes NodePort services;devops;Kubernetes;
+udp:30000-32767;Kubernetes NodePort services;devops;Kubernetes;
+7946;Docker Swarm node communication;devops;Docker;no
+udp:7946;Docker Swarm node communication;devops;Docker;no
+5000;Docker Registry (distribution) — no access control unless configured: pull/push images;devops,risky;Docker;yes
+9443;Portainer web UI (HTTPS);devops,admin;Portainer;no
+9001;Portainer agent;devops,admin;Portainer;
+8000;Portainer Edge agent tunnel;devops;Portainer;
+8080;Jenkins web UI — Script Console = arbitrary commands on controller and agents;devops,admin,risky;Jenkins;yes
+50000;Jenkins inbound agents;devops;Jenkins;no
+8111;JetBrains TeamCity;devops,admin;JetBrains;yes
+8085;Atlassian Bamboo;devops,admin;Atlassian;yes
+7990;Atlassian Bitbucket Data Center (HTTP);devops;Atlassian;yes
+7999;Atlassian Bitbucket Data Center (SSH);devops;Atlassian;no
+3000;Gitea web;devops;Gitea;yes
+8081;Sonatype Nexus Repository — default admin/admin123 before 3.17;devops,risky;Sonatype;yes
+8081;JFrog Artifactory (service);devops;JFrog;yes
+8082;JFrog Artifactory (router / UI);devops;JFrog;yes
+9000;SonarQube — default admin/admin until first login;devops,risky;SonarSource;yes
+8140;Puppet server;devops,admin;Puppet;no
+4505;Salt master publish — CVE-2020-11651 auth bypass: commands on every minion (KEV);devops,admin,risky;VMware;no
+4506;Salt master request — CVE-2020-11651 auth bypass: commands on every minion (KEV);devops,admin,risky;VMware;no
+8200;HashiCorp Vault API;security,devops;HashiCorp;no
+8201;HashiCorp Vault cluster;security,devops;HashiCorp;no
+8500;HashiCorp Consul HTTP API — not secure by default, script checks = remote code execution when enabled;devops,risky;HashiCorp;yes
+8600;HashiCorp Consul DNS;devops,directory;HashiCorp;yes
+udp:8600;HashiCorp Consul DNS;devops,directory;HashiCorp;yes
+8300;HashiCorp Consul server RPC;devops;HashiCorp;yes
+8301-8302;HashiCorp Consul Serf LAN/WAN;devops;HashiCorp;yes
+udp:8301-8302;HashiCorp Consul Serf LAN/WAN;devops;HashiCorp;yes
+4646-4648;HashiCorp Nomad HTTP / RPC / Serf — not secure by default (ACLs and mTLS opt-in): job submission;devops,risky;HashiCorp;yes
+9000;MinIO S3 API — default root credentials minioadmin:minioadmin;file,devops,risky;MinIO;yes
+9001;MinIO console (when pinned with --console-address) — default root credentials minioadmin:minioadmin;file,admin,risky;MinIO;yes
+6789;Ceph monitor (msgr1);file;Ceph;yes
+3300;Ceph monitor (msgr2);file;Ceph;
+6800-7568;Ceph OSD / MGR / MDS;file;Ceph;yes
+24007;GlusterFS daemon;file;Gluster;yes
+9870;Apache Hadoop HDFS NameNode web UI — simple auth by default: WebHDFS as any user;devops,file,risky;Apache;yes
+8020;Apache Hadoop HDFS NameNode RPC — simple auth by default: client-asserted user name;devops,file,risky;Apache;yes
+8088;Apache Hadoop YARN ResourceManager web UI — simple auth by default: REST app submission = code exec;devops,risky;Apache;yes
+7077;Apache Spark standalone master — authentication off by default: submit apps = code exec;devops,risky;Apache;yes
+10050;Zabbix agent — unencrypted by default, remote commands (system.run) when enabled;monitoring,risky;Zabbix;yes
+10051;Zabbix server / proxy trapper;monitoring;Zabbix;yes
+5666;Nagios NRPE — command arguments (dont_blame_nrpe) are a security risk, often unencrypted;monitoring,risky;Nagios;
+5667;Nagios NSCA;monitoring;Nagios;yes
+5693;Nagios NCPA;monitoring;Nagios;no
+23560;Paessler PRTG probe connection;monitoring;Paessler;
+6556;Checkmk agent — legacy pull mode: plaintext system info (process table) to any client;monitoring,risky;Checkmk;
+8000;Checkmk agent receiver;monitoring;Checkmk;no
+5665;Icinga 2 API / cluster;monitoring;Icinga;no
+17778;SolarWinds Orion agent;monitoring;SolarWinds;
+3000;Grafana — default admin/admin;monitoring,risky;Grafana Labs;yes
+9090;Prometheus server — no authentication by default: targets, config and labels readable;monitoring,risky;Prometheus;yes
+9093;Prometheus Alertmanager — anyone with HTTP access can create and delete silences;monitoring,risky;Prometheus;yes
+9100;Prometheus node_exporter — unauthenticated host metrics (system information disclosure);monitoring,risky;Prometheus;yes
+19999;Netdata agent — dashboard and metrics open to anyone by default;monitoring,risky;Netdata;yes
+udp:8125;Datadog DogStatsD;monitoring;Datadog;yes
+5601;Kibana — no login when Elasticsearch security is off (pre-8 default);monitoring,risky;Elastic;yes
+5044;Elastic Beats to Logstash;monitoring;Elastic;yes
+9600;Logstash monitoring API;monitoring;Elastic;yes
+8220;Elastic Fleet Server;monitoring,security;Elastic;no
+9000;Graylog web / API;monitoring;Graylog;yes
+12201;Graylog GELF input;monitoring;Graylog;yes
+udp:12201;Graylog GELF input;monitoring;Graylog;yes
+8000;Splunk Web;monitoring;Splunk;yes
+8089;Splunk management (splunkd);monitoring,admin;Splunk;no
+9997;Splunk forwarder receiving;monitoring;Splunk;yes
+8088;Splunk HTTP Event Collector;monitoring;Splunk;no
+1514;Wazuh agent connection;security,monitoring;Wazuh;no
+1515;Wazuh agent enrollment;security,monitoring;Wazuh;no
+1516;Wazuh server cluster daemon;security,monitoring;Wazuh;no
+55000;Wazuh server API;security,admin;Wazuh;no
+9100;HP JetDirect raw printing;print;HP;yes
+8834;Tenable Nessus web UI;security;Tenable;no
+3780;Rapid7 InsightVM console;security;Rapid7;no
+9392;Greenbone GSA web interface;security;Greenbone;
+13000;Kaspersky Security Center (agents, TLS);security;Kaspersky;no
+14000;Kaspersky Security Center (agents);security;Kaspersky;yes
+13291;Kaspersky Security Center console;security,admin;Kaspersky;no
+13299;Kaspersky Security Center Web Console to server;security,admin;Kaspersky;no
+8080;Kaspersky Security Center Web Console;security,admin;Kaspersky;no
+udp:15000;Kaspersky Security Center agent wake-up signals;security;Kaspersky;yes
+2222;ESET PROTECT agent replication;security;ESET;no
+2223;ESET PROTECT Web Console to server;security,admin;ESET;
+8443;Trellix ePolicy Orchestrator console;security,admin;Trellix;no
+8444;Trellix ePO agent-server secure;security;Trellix;no
+8081;Trellix agent wake-up;security;Trellix;
+8443;Symantec Endpoint Protection Manager console;security,admin;Symantec;no
+8014;Symantec Endpoint Protection Manager client communication;security;Symantec;yes
+1858;CyberArk Vault;security,admin;CyberArk;no
+5500;RSA Authentication Manager agent authentication;security,directory;RSA;no
+udp:5500;RSA Authentication Manager agent authentication;security,directory;RSA;no
+7004;RSA Authentication Manager security console;security,admin;RSA;no
+8000;Velociraptor client frontend;security;Rapid7;no
+8889;Velociraptor GUI;security,admin;Rapid7;no
+5938;TeamViewer;remote-access;TeamViewer;no
+udp:5938;TeamViewer;remote-access;TeamViewer;no
+7070;AnyDesk direct connection;remote-access;AnyDesk;no
+21114-21119;RustDesk server;remote-access;RustDesk;
+udp:21116;RustDesk server;remote-access;RustDesk;
+8040;ConnectWise ScreenConnect web;remote-access,admin;ConnectWise;yes
+8041;ConnectWise ScreenConnect relay;remote-access;ConnectWise;no
+4000;NoMachine NX;remote-access;NoMachine;no
+4822;Apache Guacamole guacd — no own authentication (the web app is the auth layer): pivot to RDP/VNC/SSH;remote-access,risky;Apache;yes
+udp:514;Fortinet FortiAnalyzer log reception (default, unencrypted);monitoring,security;Fortinet;yes
+502;Modbus/TCP (MBAP);ot;;yes
+udp:502;Modbus over UDP (MBAP);ot;;yes
+802;Modbus/TCP Security (TLS);ot;;no
+102;Siemens S7comm / S7comm-plus (ISO-on-TCP, RFC 1006);ot,admin;Siemens;
+102;IEC 61850 MMS (ISO 9506 over RFC 1006);ot;;yes
+3782;Secure ISO TP0 / MMS over TLS (IEC 62351-4);ot;;no
+2404;IEC 60870-5-104;ot;;yes
+19998;IEC 60870-5-104 secure (TLS);ot;;no
+20000;DNP3 (IEEE 1815);ot;;yes
+udp:20000;DNP3 over UDP (IEEE 1815);ot;;yes
+19999;DNP3 Secure (IEEE 1815, TLS);ot;;no
+44818;EtherNet/IP explicit messaging (CIP, IEC 61158);ot;;yes
+udp:44818;EtherNet/IP unconnected messaging / ListIdentity (CIP);ot;;yes
+udp:2222;EtherNet/IP implicit I/O (CIP);ot;;yes
+2221;EtherNet/IP over TLS (CIP Security);ot;;no
+udp:2221;EtherNet/IP over DTLS (CIP Security);ot;;no
+udp:34962-34963;PROFINET RT over UDP (unicast / multicast);ot;;yes
+udp:34964;PROFINET context manager (DCE/RPC);ot;;yes
+udp:34965;PROFINET secure connection management;ot;;no
+udp:34966;PROFINET secure real-time over UDP;ot;;no
+4840;OPC UA binary (opc.tcp, IEC 62541);ot;;
+udp:4840;OPC UA PubSub / multicast datagrams (IEC 62541);ot;;
+4843;OPC UA over TLS (IEC 62541);ot;;no
+135;OPC Classic DA / HDA / A&E over DCOM;ot;;yes
+udp:47808;BACnet/IP (ASHRAE 135 Annex J);ot;;yes
+udp:3671;KNXnet/IP (ISO/IEC 14543-3);ot;;yes
+udp:1628-1629;LonTalk over IP (ISO/IEC 14908, normal / urgent);ot;;yes
+5094;HART-IP (FieldComm Group);ot;;
+udp:5094;HART-IP (FieldComm Group);ot;;
+udp:1089-1091;FOUNDATION Fieldbus HSE (annunciation / FMS / system management);ot;;yes
+udp:34980;EtherCAT over UDP / EtherCAT Automation Protocol (IEC 61158);ot;;yes
+udp:3819;Ethernet POWERLINK sequence layer (EPL);ot;;yes
+4059;DLMS/COSEM metering (IEC 62056);ot;;
+1153;ANSI C12.22 metering (RFC 6142);ot;;
+48898;Beckhoff TwinCAT ADS / AMS over TCP;ot,admin;Beckhoff;yes
+udp:48899;Beckhoff TwinCAT ADS discovery (broadcast search);ot;Beckhoff;yes
+8016;Beckhoff TwinCAT Secure ADS (TLS);ot,admin;Beckhoff;no
+48050;Beckhoff TwinCAT OPC UA Gateway (TF6100);ot;Beckhoff;
+2020;Beckhoff TwinCAT HMI server (TF2000 1.14 and later);ot,web;Beckhoff;
+udp:1740-1743;CODESYS runtime / gateway (UDP block driver);ot,admin;CODESYS;
+11740-11743;CODESYS runtime / gateway (TCP block driver);ot,admin;CODESYS;
+1217;CODESYS Gateway;ot,admin;CODESYS;
+8080;CODESYS WebVisu web server;ot,web;CODESYS;yes
+udp:1202;CODESYS network variables;ot;CODESYS;yes
+8088;Inductive Automation Ignition Gateway (HTTP);ot,web,admin;Inductive Automation;yes
+8043;Inductive Automation Ignition Gateway (HTTPS);ot,web,admin;Inductive Automation;no
+8060;Inductive Automation Ignition Gateway Network (TLS);ot;Inductive Automation;no
+62541;Inductive Automation Ignition OPC UA server;ot;Inductive Automation;
+4096;Inductive Automation Ignition OPC UA server (7.9 and earlier);ot;Inductive Automation;
+udp:4445-4446;Inductive Automation Ignition gateway discovery (multicast);ot;Inductive Automation;yes
+1883;Inductive Automation Ignition MQTT Distributor module;ot,messaging;Inductive Automation;yes
+8883;Inductive Automation Ignition MQTT Distributor module (TLS);ot,messaging;Inductive Automation;no
+49320;PTC Kepware KEPServerEX (OPC UA endpoint);ot;PTC;
+9600;Omron FINS/TCP;ot;Omron;yes
+udp:9600;Omron FINS/UDP;ot;Omron;yes
+1911;Tridium Niagara Fox;ot,admin;Tridium;yes
+4911;Tridium Niagara Fox over TLS (foxs);ot,admin;Tridium;no
+3011;Tridium Niagara platform daemon (HTTP);ot,admin;Tridium;yes
+5011;Tridium Niagara platform daemon (TLS);ot,admin;Tridium;no
+443;Tridium Niagara station web UI / Fox over WebSocket (foxwss);ot,web;Tridium;no
+5026;AVEVA System Platform Message Exchange (NmxSvc);ot;AVEVA;
+8090;AVEVA System Platform Galaxy Repository (aaGR);ot,admin;AVEVA;
+30000-30001;AVEVA System Platform local redundancy messaging (WinPlatform);ot;AVEVA;
+udp:30000;AVEVA System Platform local redundancy messaging (WinPlatform);ot;AVEVA;
+48031;AVEVA System Platform OPC UA server (Platform Common Services);ot;AVEVA;
+5413;AVEVA (Wonderware) SuiteLink;ot;AVEVA;
+51218;AVEVA InTouch Alarm Manager;ot,monitoring;AVEVA;
+32568;AVEVA (Wonderware) Historian real-time service / aaEngine;ot,db;AVEVA;
+32565;AVEVA Historian Client Access Point NG;ot,db;AVEVA;
+55559;AVEVA License Server (core service);ot;AVEVA;
+5450;AVEVA (OSIsoft) PI Data Archive (PI Network Manager);ot,db;AVEVA;
+5457;AVEVA (OSIsoft) PI AF Server;ot,db;AVEVA;
+5459;AVEVA (OSIsoft) PI SQL for Asset Framework;ot,db;AVEVA;
+5463;AVEVA (OSIsoft) PI Analysis Service;ot;AVEVA;
+5468;AVEVA (OSIsoft) PI Notifications Service;ot,monitoring;AVEVA;
+2073;AVEVA Plant SCADA (Citect) CtAPI;ot;AVEVA;yes
+3073;AVEVA Plant SCADA (Citect) CtAPI (encrypted);ot;AVEVA;no
+2080;AVEVA Plant SCADA (Citect) alarm server;ot,monitoring;AVEVA;
+2082;AVEVA Plant SCADA (Citect) I/O server;ot;AVEVA;
+2084;AVEVA Plant SCADA (Citect) reports server;ot;AVEVA;
+2085;AVEVA Plant SCADA (Citect) trends server;ot;AVEVA;
+20222;AVEVA Plant SCADA (Citect) ODBC server;ot,db;AVEVA;
+2010;GE Vernova iFIX networking (FIX);ot;GE Vernova;
+14000;GE Vernova Proficy Historian Data Archiver / Client Manager;ot,db;GE Vernova;
+14001-14003;GE Vernova Proficy Historian Enterprise (Data Archiver, Config Manager, Diagnostics Manager);ot,db;GE Vernova;
+13000;GE Vernova Proficy Historian Data Archiver client service;ot,db;GE Vernova;
+32000;GE Vernova CIMPLICITY router (viewer to server);ot;GE Vernova;yes
+udp:32000;GE Vernova CIMPLICITY project announcements;ot;GE Vernova;yes
+32256;GE Vernova CIMPLICITY router (server redundancy);ot;GE Vernova;yes
+32512;GE Vernova CIMPLICITY router (server redundancy);ot;GE Vernova;yes
+32768;GE Vernova CIMPLICITY router (server redundancy);ot;GE Vernova;yes
+9443;GE Vernova CIMPLICITY web server (Webspace / REST);ot,web;GE Vernova;no
+18245;Emerson (GE) PACSystems SRTP;ot,admin;Emerson;yes
+udp:18245;Emerson (GE) PACSystems Remote Station Manager;ot,admin;Emerson;yes
+udp:18246;Emerson (GE) Ethernet Global Data (EGD);ot;Emerson;yes
+udp:7937;Emerson (GE) PACSystems EGD control / Reliable Datagram Service;ot;Emerson;yes
+4410;Siemens Automation License Manager (ALM) remote access;ot;Siemens;
+4999;Siemens WinCC OA process monitor (PMON);ot,admin;Siemens;
+4897;Siemens WinCC OA data manager;ot;Siemens;
+4998;Siemens WinCC OA event manager;ot;Siemens;
+4777;Siemens WinCC OA distribution manager;ot;Siemens;
+4776;Siemens WinCC OA redundancy manager;ot;Siemens;
+4778;Siemens WinCC OA split manager;ot;Siemens;
+5678;Siemens WinCC OA proxy;ot;Siemens;
+4770;Siemens WinCC OA XML-RPC;ot,web;Siemens;
+4444;Schneider Electric EcoStruxure Building Operation server-to-server;ot;Schneider Electric;
+1105;Schneider Electric Machine Expert protocol (Modicon M241 / M251);ot,admin;Schneider Electric;
+udp:27126-27127;Schneider Electric Machine Expert discovery (Modicon M2xx);ot;Schneider Electric;yes
+5481;Schneider Electric EcoStruxure Geo SCADA Expert database server (ViewX, server sync, API);ot;Schneider Electric;
+5500-5509;Schneider Electric Geo SCADA Expert client incoming data (server advise connections);ot;Schneider Electric;
+1330-1332;Rockwell Automation FactoryTalk Services Platform (RNA);ot;Rockwell Automation;
+4241;Rockwell Automation FactoryTalk Linx (RSLinxNG);ot;Rockwell Automation;
+4255;Rockwell Automation Application Services (RsvcHost);ot;Rockwell Automation;
+4990;Rockwell Automation FactoryTalk Linx Gateway OPC UA server;ot;Rockwell Automation;
+27000-27009;Rockwell Automation FactoryTalk Activation (FlexNet lmgrd);ot;Rockwell Automation;
+udp:44818;Rockwell Automation RSLinx Classic unsolicited messages (EtherNet/IP);ot;Rockwell Automation;yes
+2222;Allen-Bradley ABTCP / CSP (TCP, legacy PLC-5 and SLC 500);ot;Rockwell Automation;yes
+22350;Wibu-Systems CodeMeter license server;ot;Wibu-Systems;
+2455;WAGO-I/O-SYSTEM (IANA wago-io-system);ot;WAGO;
+6626;WAGO Service and Update (IANA wago-service);ot,admin;WAGO;
+5060;SIP over TCP (RFC 3261);voip;;yes
+udp:5060;SIP over UDP (RFC 3261);voip;;yes
+5061;SIP over TLS / SIPS (RFC 5630);voip;;no
+1720;H.323 call signaling H.225.0 / Q.931 (ITU-T H.323);voip;;yes
+udp:1719;H.323 RAS gatekeeper signaling (ITU-T H.225.0);voip;;yes
+udp:1718;H.323 multicast gatekeeper discovery (ITU-T H.225.0);voip;;yes
+1300;H.323 secure call signaling over TLS (IANA h323hostcallsc);voip;;no
+11720;H.323 call signaling alternate port (IANA h323callsigalt);voip;;yes
+udp:2427;MGCP gateway (RFC 3435);voip;;yes
+udp:2727;MGCP call agent (RFC 3435);voip;;yes
+2944;Megaco / H.248 text encoding over TCP (ITU-T H.248.1);voip;;yes
+udp:2944;Megaco / H.248 text encoding (ITU-T H.248.1);voip;;yes
+2945;Megaco / H.248 binary encoding over TCP (ITU-T H.248.1);voip;;yes
+udp:2945;Megaco / H.248 binary encoding (ITU-T H.248.1);voip;;yes
+udp:4569;IAX2 Inter-Asterisk eXchange (RFC 5456);voip;;yes
+3478;STUN / TURN over TCP (RFC 8489, RFC 8656);voip,network;;
+udp:3478;STUN / TURN (RFC 8489, RFC 8656);voip,network;;
+5349;STUN / TURN over TLS (RFC 8489, RFC 8656);voip,network;;no
+udp:5349;STUN / TURN over DTLS (RFC 7350);voip,network;;no
+udp:5004;RTP media default port (RFC 3551);voip,iot;;
+udp:5005;RTCP default port (RFC 3551);voip,iot;;
+554;RTSP video streaming (RFC 7826);iot;;yes
+udp:554;RTSP 1.0 over UDP / rtspu (RFC 2326);iot;;yes
+322;RTSPS - RTSP over TLS (RFC 7826);iot;;no
+8554;RTSP alternate port (IANA rtsp-alt);iot;;yes
+80;ONVIF device service (SOAP over HTTP, ONVIF Core);iot,web;;yes
+udp:5683;CoAP (RFC 7252);iot;;yes
+udp:5684;CoAP over DTLS (RFC 7252);iot;;no
+5683;CoAP over TCP (RFC 8323);iot;;yes
+5684;CoAP over TLS (RFC 8323);iot;;no
+631;IPP over HTTPS / IPPS (RFC 7472);print;;no
+5357;WSDAPI Web Services for Devices (HTTP);print,network;Microsoft;yes
+5358;WSDAPI Web Services for Devices (HTTPS);print,network;Microsoft;no
+2000;Cisco SCCP (Skinny) phone and gateway signaling (Unified CM);voip;Cisco;yes
+2443;Cisco SCCP over TLS (SCCPS, Unified CM);voip;Cisco;no
+2445;Cisco Unified CM Trust Verification Service (TVS);voip,security;Cisco;
+3804;Cisco Unified CM CAPF (phone LSC certificate enrollment);voip,security;Cisco;
+6970;Cisco Unified CM TFTP over HTTP (phone firmware and config);voip;Cisco;yes
+6971-6972;Cisco Unified CM TFTP over HTTPS (secure phone config);voip;Cisco;no
+udp:6969;Cisco Unified CM TFTP (alternate port, with udp:69);voip;Cisco;yes
+8080;Cisco Unified CM phone services / XML applications (HTTP);voip,web;Cisco;yes
+8443;Cisco Unified CM administration, AXL / SOAP API and UDS (HTTPS);voip,admin,web;Cisco;no
+9443;Cisco Unified CM phone authenticated contact search;voip;Cisco;
+9444;Cisco Unified CM phone headset management;voip;Cisco;
+2748;Cisco Unified CM CTIManager (JTAPI / TSP applications);voip;Cisco;yes
+2749;Cisco Unified CM CTIManager over TLS;voip;Cisco;no
+2428;Cisco MGCP backhaul (PRI / BRI signaling to Unified CM);voip;Cisco;yes
+udp:16384-32767;Cisco RTP / SRTP media range (phones and gateways, Unified CM uses 24576-32767);voip;Cisco;
+1500-1501;Cisco Unified CM / Unity Connection database (Informix);voip,db;Cisco;
+1515;Cisco Unified CM / Unity Connection database replication;voip,db;Cisco;
+2551;Cisco Unified CM Extended Services (active / backup determination);voip;Cisco;
+2552;Cisco Unified CM database change notification (subscribers);voip,db;Cisco;
+2555-2556;Cisco Unified CM / Unity Connection RIS data collector (server / client);voip,monitoring;Cisco;
+4040;Cisco Unified CM DRS primary agent (disaster recovery);voip,backup;Cisco;
+8001;Cisco Unified CM / Unity Connection database change notification;voip,db;Cisco;
+8002-8003;Cisco Unified CM intracluster SDL (CallManager / CTI);voip;Cisco;
+8500;Cisco Unified CM / Unity Connection cluster manager (IPSec);voip;Cisco;
+udp:8500;Cisco Unified CM / Unity Connection cluster manager (IPSec);voip;Cisco;
+8888-8889;Cisco Unified CM RIS service manager;voip,monitoring;Cisco;
+1090;Cisco Unified CM / Unity Connection AMC (RTMT alerting and data collection);voip,monitoring;Cisco;
+1099;Cisco Unified CM / Unity Connection AMC (RTMT alerting and data collection);voip,monitoring;Cisco;
+20532;Cisco Unity Connection database proxy (CuDbProxy, off-box admin access);voip,db;Cisco;
+22000-22001;Cisco Unity Connection Server Role Manager (cluster RPC / heartbeat);voip;Cisco;
+udp:22000-22001;Cisco Unity Connection Server Role Manager (cluster RPC / heartbeat);voip;Cisco;
+udp:16384-21511;Cisco Unity Connection voice messaging media (CuMixer RTP);voip;Cisco;
+21000-21512;Cisco Unity Connection phone client applications (CuCsMgr);voip;Cisco;
+20500-20502;Cisco Unity Connection Conversation Manager (cluster);voip;Cisco;
+5060-5199;Cisco Unity Connection SIP integration (administrator-defined ports);voip;Cisco;
+udp:5060-5199;Cisco Unity Connection SIP integration (administrator-defined ports);voip;Cisco;
+7001;Cisco Expressway-E SIP traversal zone (next zones 7002+);voip,network;Cisco;
+udp:6001;Cisco Expressway-E H.323 traversal zone RAS (next zones 6002+);voip,network;Cisco;
+5062;Cisco Expressway-E SIP over MTLS;voip;Cisco;no
+2776-2777;Cisco Expressway-E Assent / H.460.18 signaling (H.225 / H.245);voip,network;Cisco;
+udp:2776-2777;Cisco Expressway multiplexed traversal media (RTP / RTCP, small / medium);voip,network;Cisco;
+15000-19999;Cisco Expressway-E H.245 signaling range;voip;Cisco;
+udp:36000-59999;Cisco Expressway RTP / RTCP media range;voip;Cisco;
+3478-3483;Cisco Expressway-E TURN (large systems, 3478 only on small / medium);voip,network;Cisco;
+udp:3478-3483;Cisco Expressway-E TURN (large systems, 3478 only on small / medium);voip,network;Cisco;
+udp:24000-29999;Cisco Expressway-E TURN relay media;voip,network;Cisco;
+24000-29999;Cisco Expressway-E TURN relay media (TCP);voip,network;Cisco;
+udp:8000-48198;Cisco CUBE RTP media range (IOS XE default on ASR / ISR G3);voip;Cisco;
+5004;Cisco Webex Video Mesh node media (Webex App and devices);voip;Cisco;
+udp:5004;Cisco Webex Video Mesh node media (Webex App and devices);voip;Cisco;
+443;Cisco Webex Video Mesh node admin console (HTTPS);voip,admin;Cisco;no
+8443;Cisco Webex Video Mesh intracluster communication;voip;Cisco;
+4442;Cisco Webex Video Mesh cascade signaling between clusters;voip;Cisco;
+udp:10000-40000;Cisco Webex Video Mesh cascade media between nodes;voip;Cisco;
+443;Pexip Infinity Management Node web admin / API (HTTPS);voip,admin;Pexip;no
+8443;Pexip Infinity Conferencing Node provisioning interface (HTTPS);voip,admin;Pexip;no
+33000-39999;Pexip Infinity H.323 H.245 signaling range;voip;Pexip;
+40000-49999;Pexip Infinity media (RTP / RTCP / STUN / TURN over TCP);voip;Pexip;
+udp:40000-49999;Pexip Infinity media (RTP / RTCP / STUN / TURN);voip;Pexip;
+4277;Pexip Teams Connector signaling to Conferencing Node;voip;Pexip;
+5061;Microsoft Skype for Business / Lync Server SIP (TLS / MTLS);voip;Microsoft;no
+444;Microsoft Skype for Business Server inter-server HTTPS (Focus, Director, SBA);voip,web;Microsoft;no
+4443;Microsoft Skype for Business Server web services from reverse proxy (HTTPS);voip,web;Microsoft;no
+4443;Microsoft Skype for Business Edge Central Management store replication (HTTPS);voip;Microsoft;no
+8080;Microsoft Skype for Business Server web components (HTTP);voip,web;Microsoft;yes
+8060-8061;Microsoft Skype for Business Server web server component (MTLS);voip,web;Microsoft;no
+8057-8058;Microsoft Skype for Business Server web conferencing PSOM (TLS);voip;Microsoft;no
+5062-5065;Microsoft Skype for Business Server conferencing SIP (IM / A/V / dial-in / app sharing);voip;Microsoft;
+5062;Microsoft Skype for Business Edge A/V authentication (SIP MTLS);voip;Microsoft;no
+5067;Microsoft Skype for Business Mediation Server SIP from PSTN gateway (TLS);voip;Microsoft;no
+5068;Microsoft Skype for Business Mediation Server SIP from PSTN gateway (TCP);voip;Microsoft;yes
+5070;Microsoft Skype for Business Mediation Server SIP from Front End (MTLS);voip;Microsoft;no
+5071-5073;Microsoft Skype for Business Server SIP (Response Group / Attendant / Announcement);voip;Microsoft;
+5075-5076;Microsoft Skype for Business Server SIP (Call Park / Audio Test);voip;Microsoft;
+5080;Microsoft Skype for Business Server Bandwidth Policy Service (A/V Edge TURN CAC);voip;Microsoft;
+448;Microsoft Skype for Business Server Bandwidth Policy Service (call admission control);voip;Microsoft;
+8404;Microsoft Skype for Business Server Response Group (MTLS);voip;Microsoft;no
+5086-5087;Microsoft Skype for Business Server Mobility Services SIP (MTLS);voip;Microsoft;no
+5041;Microsoft Skype for Business Persistent Chat SIP (MTLS);voip,messaging;Microsoft;no
+881;Microsoft Skype for Business Persistent Chat WCF (TLS / MTLS);voip,messaging;Microsoft;no
+49152-57500;Microsoft Skype for Business Server audio media range (TCP);voip;Microsoft;
+udp:49152-57500;Microsoft Skype for Business Server audio media range;voip;Microsoft;
+57501-65535;Microsoft Skype for Business Server video conferencing media range (TCP);voip;Microsoft;
+udp:57501-65535;Microsoft Skype for Business Server video conferencing media range;voip;Microsoft;
+49152-65535;Microsoft Skype for Business Server application sharing media (TCP);voip;Microsoft;
+23456;Microsoft Skype for Business 2015 Edge XMPP gateway traffic (MTLS);voip,messaging;Microsoft;no
+50001-50003;Microsoft Skype for Business Server Centralized Logging Service (MTLS);voip,monitoring;Microsoft;no
+udp:3478;Microsoft Skype for Business A/V Edge STUN / MSTURN;voip,network;Microsoft;
+50000-59999;Microsoft Skype for Business A/V Edge media relay (TCP);voip;Microsoft;
+udp:50000-59999;Microsoft Skype for Business A/V Edge media relay;voip;Microsoft;
+5269;Microsoft Skype for Business 2015 Edge XMPP proxy (federation);voip,messaging;Microsoft;
+411;Avaya IP Office phone file server (HTTPS: settings, firmware, backup);voip;Avaya;no
+8411;Avaya IP Office phone file server (HTTP, closed by default);voip;Avaya;yes
+7070-7071;Avaya IP Office Web Manager (Server Edition / Linux);voip,admin;Avaya;no
+7444;Avaya IP Office user portal (Server Edition / Linux);voip,web;Avaya;no
+5443;Avaya IP Office secure backup / restore and UC client file server (Linux);voip,backup;Avaya;no
+8000;Avaya IP Office web management upgrade service (HTTP, closed by default);voip,admin;Avaya;yes
+9080;Avaya IP Office web management (HTTP, closed by default);voip,admin;Avaya;yes
+52233;Avaya IP Office WebLM licensing server (closed by default);voip;Avaya;no
+50802;Avaya IP Office Manager discovery (Whois);voip,admin;Avaya;
+50804;Avaya IP Office Manager configuration (proprietary, closed by default in R12.3);voip,admin;Avaya;yes
+50805;Avaya IP Office Manager configuration (TLS);voip,admin;Avaya;no
+50808;Avaya IP Office System Status Application (proprietary);voip,monitoring;Avaya;yes
+50809;Avaya IP Office System Status Application (TLS);voip,monitoring;Avaya;no
+50812;Avaya IP Office security settings (proprietary);voip,admin;Avaya;yes
+50813;Avaya IP Office security settings (TLS);voip,admin;Avaya;no
+50814;Avaya IP Office CTI control for one-X server (proprietary);voip;Avaya;yes
+50794;Avaya IP Office System Monitor (SysMonitor / DevLink);voip,monitoring;Avaya;
+udp:50794;Avaya IP Office System Monitor (SysMonitor / DevLink);voip,monitoring;Avaya;
+udp:50795;Avaya IP Office Voicenet (Small Community Network trunks);voip;Avaya;
+50796;Avaya IP Office contact center CTI link (IPOCC / ACCS, TLS);voip;Avaya;no
+50797;Avaya IP Office TAPI (TAPI clients, CPA, PC Dialler);voip;Avaya;
+udp:40750-50750;Avaya IP Office RTP / SRTP media (IP500 V2 default 46750-50750);voip;Avaya;
+udp:50791;Avaya IP Office Voicemail Pro (signaling / discovery);voip;Avaya;
+50791;Avaya IP Office Voicemail Pro communication (TLS);voip;Avaya;no
+50792-50793;Avaya IP Office Voicemail Pro MAPI proxy;voip,mail;Avaya;
+4560;Avaya one-X Portal Log4j appender;voip,monitoring;Avaya;
+5222;Avaya one-X Portal XMPP client connections;voip,messaging;Avaya;
+5269;Avaya one-X Portal XMPP federation;voip,messaging;Avaya;
+7171;Avaya one-X Portal OpenFire BOSH;voip,messaging;Avaya;
+7443;Avaya one-X Portal OpenFire BOSH;voip,messaging;Avaya;
+8443;Avaya one-X Portal web client (HTTPS);voip,web;Avaya;no
+9443;Avaya one-X Portal web collaboration / WebRTC gateway (HTTPS);voip,web;Avaya;no
+8666;Avaya one-X Portal JMX;voip,admin;Avaya;
+9092;Avaya one-X Portal database (JDBC);voip,db;Avaya;
+5433;Avaya one-X Portal geo-redundant database sync (JDBC);voip,db;Avaya;
+61615;Avaya one-X Portal geo-redundant status sync;voip;Avaya;
+50815;Avaya one-X Portal CTI control from IP Office (TLS);voip;Avaya;no
+1039;Avaya Communication Manager H.248 gateway link (PTLS encrypted);voip;Avaya;no
+2944;Avaya Communication Manager H.248 gateway link over TLS;voip;Avaya;no
+2945;Avaya Communication Manager H.248 gateway link over TCP;voip;Avaya;yes
+21874;Avaya Communication Manager translations download to survivable servers;voip;Avaya;
+450;Avaya AES TSAPI service (unencrypted, disabled by default since 10.2);voip;Avaya;yes
+453;Avaya AES TSAPI service (encrypted);voip;Avaya;no
+1050-1065;Avaya AES TSAPI TLINKs (unencrypted);voip;Avaya;yes
+1066-1081;Avaya AES TSAPI TLINKs (encrypted);voip;Avaya;no
+4721;Avaya AES DMCC (unencrypted, disabled by default);voip;Avaya;yes
+4722;Avaya AES DMCC (TLS);voip;Avaya;no
+6800;Mitel MiNet call control (unencrypted);voip;Mitel;yes
+6801;Mitel MiNet call control over SSL (MiNet-SSL);voip;Mitel;no
+6802;Mitel MiNet call control (MiNet-Secure V1);voip;Mitel;no
+3998-3999;Mitel SAC set application connection (MBG / ICP);voip;Mitel;
+6881;Mitel MiVoice Border Gateway 69xx phone avatars / apps / directory;voip;Mitel;
+6809;Mitel MiVoice Border Gateway cluster communication;voip;Mitel;
+udp:20001;Mitel TFTP for MiNet phones (MBG / ICP);voip;Mitel;yes
+udp:20002-29999;Mitel MiVoice Border Gateway voice media (RTP / SRTP);voip;Mitel;
+udp:30000-30999;Mitel MiVoice Border Gateway video media;voip;Mitel;
+udp:20000;Mitel MiVoice Border Gateway Teleworker Network Analyzer;voip;Mitel;
+6806;Mitel MiVoice Border Gateway IP Console / MiVoice Business Console support;voip;Mitel;
+6807;Mitel MiVoice Border Gateway IP Console presence;voip;Mitel;
+36008;Mitel MiCollab Client presence for MiVoice Business Console (MBG / MiCollab);voip;Mitel;
+18100;Mitel MiCollab server presence for IP Console / MiVoice Business Console;voip;Mitel;
+2555;Alcatel-Lucent OmniPCX Enterprise CSTA server (CTI);voip;Alcatel-Lucent Enterprise;
+5001;3CX web server (HTTPS, alternative to 443, presence and provisioning);voip,web;3CX;no
+5000;3CX web server (HTTP, alternative to 80);voip,web;3CX;yes
+5090;3CX tunnel (remote apps and SBC);voip;3CX;
+udp:5090;3CX tunnel (remote apps and SBC);voip;3CX;
+udp:9000-10999;3CX RTP media range;voip;3CX;
+5038;Asterisk Manager Interface (AMI);voip,admin;Asterisk;yes
+5039;Asterisk Manager Interface over TLS (when enabled);voip,admin;Asterisk;no
+8088;Asterisk HTTP server (ARI, AMI over HTTP, WebSocket);voip,admin,web;Asterisk;yes
+8089;Asterisk HTTPS server (ARI over TLS, when enabled);voip,admin,web;Asterisk;no
+udp:10000-20000;Asterisk RTP media range (rtp.conf sample, built-in default 5000-31000);voip;Asterisk;
+8021;FreeSWITCH event socket (ESL, mod_event_socket);voip,admin;FreeSWITCH;yes
+5080;FreeSWITCH SIP external profile;voip;FreeSWITCH;yes
+udp:5080;FreeSWITCH SIP external profile;voip;FreeSWITCH;yes
+5081;FreeSWITCH SIP external profile over TLS;voip;FreeSWITCH;no
+5066;FreeSWITCH SIP over WebSocket, internal profile (RFC 7118);voip,web;FreeSWITCH;yes
+7443;FreeSWITCH SIP over secure WebSocket, internal profile (RFC 7118);voip,web;FreeSWITCH;no
+8081;FreeSWITCH Verto WebSocket (mod_verto);voip,web;FreeSWITCH;yes
+8082;FreeSWITCH Verto secure WebSocket (mod_verto);voip,web;FreeSWITCH;no
+udp:16384-32768;FreeSWITCH RTP media range;voip;FreeSWITCH;
+9989;Yealink Device Management Platform config download and API (HTTP);voip,admin;Yealink;yes
+9090;Yealink Device Management Platform device connection (status reporting);voip,admin;Yealink;
+8446;Yealink Device Management Platform push to devices (mutual authentication);voip,admin;Yealink;
+443;Yealink Device Management Platform web console (HTTPS);voip,admin;Yealink;no
+80;Yealink Device Management Platform web console (HTTP);voip,admin;Yealink;yes
+24;Poly VideoOS command-line API over telnet (G7500 / Studio X, telnet off by default);voip,admin;Poly;yes
+7563;Milestone XProtect Recording Server (live / playback video and PTZ for clients);iot;Milestone Systems;
+9000;Milestone XProtect Management Server internal web service (from recording servers);iot;Milestone Systems;yes
+9001;Milestone XProtect Recording Server web service (more instances on 9002+);iot;Milestone Systems;yes
+80;Milestone XProtect Management Server (IIS, HTTP);iot,web;Milestone Systems;yes
+443;Milestone XProtect Management Server (IIS, HTTPS);iot,web;Milestone Systems;no
+22331;Milestone XProtect Event Server (events, alarms, maps, configuration);iot;Milestone Systems;
+22332;Milestone XProtect Event Server APIs (WebSocket messaging, events / alarms REST);iot,web;Milestone Systems;
+22333;Milestone XProtect Event Server MIP messaging (plug-ins);iot;Milestone Systems;
+22337;Milestone XProtect Log Server (HTTP with WS-Security message encryption);iot,monitoring;Milestone Systems;no
+7609;Milestone XProtect Data Collector (System Monitor, HTTP);iot,monitoring;Milestone Systems;yes
+8081;Milestone XProtect Mobile Server (HTTP);iot,web;Milestone Systems;yes
+8082;Milestone XProtect Mobile Server (HTTPS);iot,web;Milestone Systems;no
+12345;Milestone XProtect Management Server Matrix communication;iot;Milestone Systems;
+11000;Milestone XProtect failover recording server state polling;iot;Milestone Systems;
+5210;Milestone XProtect failover database merge;iot;Milestone Systems;
+udp:8844;Milestone XProtect failover recording server communication;iot;Milestone Systems;
+8990;Milestone XProtect Failover Server monitoring (HTTP);iot,monitoring;Milestone Systems;yes
+1234;Milestone XProtect Event Server generic events (when enabled);iot;Milestone Systems;
+udp:1234;Milestone XProtect Event Server generic events (when enabled);iot;Milestone Systems;
+1235;Milestone XProtect Event Server generic events (when enabled);iot;Milestone Systems;
+9090;Milestone XProtect Event Server analytics events (when enabled);iot;Milestone Systems;
+580;Milestone Open Network Bridge (ONVIF clients);iot;Milestone Systems;
+554;Milestone Open Network Bridge RTSP streaming to ONVIF clients;iot;Milestone Systems;yes
+9100;Milestone XProtect DLNA Server (discovery / channels, HTTP);iot;Milestone Systems;yes
+9200;Milestone XProtect DLNA Server video streaming (HTTP);iot;Milestone Systems;yes
+5500;Genetec Security Center Directory / Genetec Server communication;iot;Genetec;
+4502;Genetec Security Center legacy server communication (roles from 5.3 and earlier);iot;Genetec;
+80;Genetec Server REST / Server Admin (HTTP);iot,admin,web;Genetec;yes
+443;Genetec Server REST / Server Admin / Web App Server (HTTPS);iot,admin,web;Genetec;no
+555;Genetec Security Center Archiver (live and playback stream requests);iot;Genetec;
+605;Genetec Security Center Archiver edge playback requests;iot;Genetec;
+5602;Genetec Security Center Archiver telnet console;iot,admin;Genetec;yes
+558;Genetec Security Center Auxiliary Archiver (playback requests);iot;Genetec;
+560;Genetec Security Center Redirector (live and playback stream requests);iot;Genetec;
+960;Genetec Security Center Redirector (installs from 5.8);iot;Genetec;
+5004;Genetec Security Center Redirector (systems upgraded from 5.6 / 5.7);iot;Genetec;
+554;Genetec Security Center Media Router (RTSP);iot;Genetec;yes
+654;Genetec Security Center Media Gateway (live / playback stream requests);iot;Genetec;
+570;Genetec Security Center cloud playback (when cloud storage is enabled);iot;Genetec;
+4590;Genetec Security Center Web SDK;iot,web;Genetec;
+8012;Genetec Security Center Map Manager web server;iot,web;Genetec;
+udp:15000-19999;Genetec Security Center Archiver live unicast from IP cameras;iot;Genetec;
+udp:6000-6500;Genetec Security Center unicast live video and audio (clients, Archiver, Media Gateway);iot;Genetec;
+udp:8000-12000;Genetec Security Center Redirector live unicast;iot;Genetec;
+udp:47806-47807;Genetec Security Center live video and audio multicast;iot;Genetec;
+udp:65246;Genetec Security Center multicast live video (Federation);iot;Genetec;
+80;Axis device web interface, VAPIX and ONVIF APIs (HTTP);iot,web,admin;Axis;yes
+443;Axis device web interface, VAPIX and ONVIF APIs (HTTPS);iot,web,admin;Axis;no
+49152;Axis device UPnP discovery (device description);iot;Axis;yes
+55752;AXIS Camera Station 5 server (HTTP, server-client);iot;Axis;yes
+55754;AXIS Camera Station 5 server (TCP, client connections);iot;Axis;
+55756;AXIS Camera Station 5 mobile app communication (HTTPS);iot;Axis;no
+55757;AXIS Camera Station 5 mobile streaming;iot;Axis;
+29202;AXIS Camera Station Pro server-client communication (TCP);iot;Axis;
+29204;AXIS Camera Station Pro server-client, mobile app and external triggers (HTTPS);iot;Axis;no
+8000;Hikvision device server port (SDK / client software access);iot;Hikvision;yes
+8443;Hikvision device enhanced SDK service (TLS);iot;Hikvision;no
+80;Hikvision device web interface and ISAPI (HTTP);iot,web;Hikvision;yes
+37777;Dahua device TCP port (client software / SDK / DSS);iot;Dahua;
+udp:37778;Dahua device UDP port;iot;Dahua;
+1756;Bosch IP camera / VRM RCP+ (native protocol, closed by default on recent firmware);iot;Bosch;yes
+5390;Bosch BVMS Management Server (.NET Remoting for Operator / Configuration Client);iot;Bosch;
+5322;Bosch BVMS Management Server SSH;iot,admin;Bosch;no
+5389;Bosch BVMS Management Server ONVIF;iot;Bosch;
+5393;Bosch BVMS Data Access Service;iot;Bosch;
+5395;Bosch BVMS user preferences and file transfer;iot;Bosch;
+udp:1757-1758;Bosch VRM / device scan (discovery);iot;Bosch;
+udp:1800;Bosch VRM / device scan (discovery);iot;Bosch;
+7441;Ubiquiti UniFi Protect RTSPS streams;iot;Ubiquiti;no
+7442;Ubiquiti UniFi Protect device communication (WebSocket);iot;Ubiquiti;
+7443;Ubiquiti UniFi Protect REST API (HTTPS);iot,web;Ubiquiti;no
+7444;Ubiquiti UniFi Protect camera communication (WebSocket);iot;Ubiquiti;
+7445;Ubiquiti UniFi Protect streams;iot;Ubiquiti;
+7447;Ubiquiti UniFi Protect RTSP streams;iot;Ubiquiti;yes
+7550;Ubiquiti UniFi Protect camera adoption (UniFi device adoption article);iot;Ubiquiti;
+280;HP Jetdirect HTTP management (embedded web server, IPP);print,admin;HP;yes
+udp:280;HP Jetdirect HTTP management (http-mgmt);print,admin;HP;yes
+9101-9102;HP Jetdirect raw printing (parallel ports 2-3 of multi-port print servers);print;HP;yes
+9280;HP Jetdirect scan via embedded web server;print;HP;
+9281-9282;HP Jetdirect scan (parallel ports 2-3 of multi-port print servers);print;HP;
+9191;PaperCut NG/MF Application Server (HTTP: admin, user web, clients);print,admin,web;PaperCut;yes
+9192;PaperCut NG/MF Application Server (HTTPS);print,admin,web;PaperCut;no
+9193;PaperCut NG/MF device RPC (embedded copier / MFP solutions);print;PaperCut;
+9195;PaperCut NG/MF Print Provider over HTTPS (when configured);print;PaperCut;no
+9163;PaperCut Mobility Print server (HTTP, admin interface);print,admin;PaperCut;yes
+9164;PaperCut Mobility Print server (HTTPS);print;PaperCut;no
+8611-8614;Canon BJNP (IANA canon-bjnp1 to bjnp4);print;Canon;
+udp:8611-8614;Canon BJNP (IANA canon-bjnp1 to bjnp4);print;Canon;
+8610;Canon MFNP service (IANA canon-mfnp);print;Canon;
+udp:8610;Canon MFNP service (IANA canon-mfnp);print;Canon;
+udp:8609;Canon Compact Printer Protocol discovery (IANA canon-cpp-disc);print;Canon;
+3756;Canon CAPT printing (IANA canon-capt);print;Canon;
+udp:3756;Canon CAPT printing (IANA canon-capt);print;Canon;
+1063;Kyocera network device (IANA kyoceranetdev);print;Kyocera;
+udp:1063;Kyocera network device (IANA kyoceranetdev);print;Kyocera;
+3289;Epson ENPC (IANA enpc);print;Epson;
+udp:3289;Epson ENPC (IANA enpc);print;Epson;
+3910;Printer Request Port (IANA prnrequest);print;;
+3911;Printer Status Port (IANA prnstatus);print;;
+445;Microsoft Print Spooler remote printing (RPC over SMB named pipes);print,file;Microsoft;
+515;Microsoft TCP/IP Print Server (LPDSVC);print;Microsoft;yes
+443;Microsoft Exchange Client Access (OWA, EWS, ActiveSync, MAPI over HTTP, Outlook Anywhere, Autodiscover);mail,web;Microsoft;no
+80;Microsoft Exchange Client Access over HTTP (OWA redirect, Autodiscover fallback, calendar publishing);mail,web;Microsoft;yes
+717;Microsoft Exchange Front End Transport outbound proxy (Outbound Proxy Frontend connector);mail;Microsoft;yes
+465;Microsoft Exchange Transport Client Proxy receive connector (STARTTLS, not implicit TLS);mail;Microsoft;yes
+2525;Microsoft Exchange Transport service default receive connector (back end);mail;Microsoft;yes
+475;Microsoft Exchange Mailbox Transport Delivery receive connector;mail;Microsoft;
+50636;Microsoft Exchange EdgeSync (LDAPS to Edge Transport AD LDS);mail,directory;Microsoft;no
+50389;Microsoft Exchange Edge Transport AD LDS (LDAP);mail,directory;Microsoft;yes
+64327;Microsoft Exchange DAG log shipping and seeding;mail;Microsoft;yes
+808;Microsoft Exchange Mailbox Replication Service (MRS);mail;Microsoft;no
+6001;Microsoft Exchange 2010 Information Store / RPC Client Access (RPC over HTTP);mail;Microsoft;no
+6002;Microsoft Exchange 2010 Address Book service (RPC over HTTP);mail,directory;Microsoft;no
+6003;Microsoft Exchange 2010 Information Store (RPC over HTTP);mail;Microsoft;no
+6004;Microsoft Exchange 2010 Address Book service (RPC over HTTP);mail,directory;Microsoft;no
+5075-5077;Microsoft Exchange 2010 OWA instant messaging integration (OCS / Lync, mutual TLS);mail,voip;Microsoft;no
+5060;Microsoft Exchange UM Call Router SIP (Exchange 2013 / 2016);mail,voip;Microsoft;yes
+5061;Microsoft Exchange UM Call Router SIP over mutual TLS (Exchange 2013 / 2016);mail,voip;Microsoft;no
+5062;Microsoft Exchange Unified Messaging service SIP (Exchange 2013 / 2016);mail,voip;Microsoft;yes
+5063;Microsoft Exchange Unified Messaging service SIP over mutual TLS (Exchange 2013 / 2016);mail,voip;Microsoft;no
+5065-5068;Microsoft Exchange UM worker process SIP (Exchange 2010 to 2016);mail,voip;Microsoft;
+16000-17000;Microsoft Exchange 2010 UM control channel (dynamic range);mail,voip;Microsoft;
+udp:3343;Microsoft Failover Clustering cluster service (Exchange DAG nodes);admin;Microsoft;
+4190;ManageSieve (RFC 5804);mail;;yes
+3905;MUPDATE mailbox update protocol (RFC 3656);mail;;yes
+24;Dovecot LMTP (RFC 2033) inet listener;mail;Dovecot;yes
+5222;XMPP client-to-server (RFC 6120);messaging;;yes
+5269;XMPP server-to-server (RFC 6120);messaging;;yes
+1352;HCL Domino / Notes NRPC;mail;HCL;
+63148;HCL Domino IIOP (DIIOP);mail,web;HCL;yes
+63149;HCL Domino IIOP over TLS (DIIOP);mail,web;HCL;no
+60148;HCL Domino IIOP on Linux servers (DIIOP);mail,web;HCL;yes
+2050;HCL Domino Server Controller (TLS);mail,admin;HCL;no
+8880;HCL Domino REST API data port;mail,web;HCL;
+8886;HCL Domino REST API health check;mail,monitoring;HCL;
+8889;HCL Domino REST API management;mail,admin;HCL;
+8890;HCL Domino REST API Prometheus metrics;mail,monitoring;HCL;
+7025;Zimbra mailbox LMTP (local delivery);mail;Zimbra;yes
+7026;Zimbra milter;mail;Zimbra;yes
+7047;Zimbra conversion server (HTTP);mail,web;Zimbra;yes
+7071;Zimbra admin console (mailbox, HTTPS);mail,admin;Zimbra;no
+9071;Zimbra admin console via proxy (HTTPS);mail,admin;Zimbra;no
+7072;Zimbra nginx lookup backend (HTTP);mail;Zimbra;yes
+7073;Zimbra SASL lookup backend (HTTP);mail,directory;Zimbra;yes
+7110;Zimbra backend POP3 (behind proxy);mail;Zimbra;yes
+7143;Zimbra backend IMAP (behind proxy);mail;Zimbra;yes
+7993;Zimbra backend IMAPS (behind proxy);mail;Zimbra;no
+7995;Zimbra backend POP3S (behind proxy);mail;Zimbra;no
+7780;Zimbra spell check (HTTP);mail,web;Zimbra;yes
+8080;Zimbra mailbox backend HTTP (behind proxy);mail,web;Zimbra;yes
+8443;Zimbra mailbox backend HTTPS (behind proxy);mail,web;Zimbra;no
+389;Zimbra OpenLDAP directory;mail,directory;Zimbra;yes
+11211;Zimbra memcached (nginx route lookups, mailbox cache);mail,db;Zimbra;yes
+5222;Zimbra XMPP;mail,messaging;Zimbra;yes
+10027;Zimbra MTA postjournal;mail;Zimbra;yes
+10031;Zimbra cluebringer policyd;mail;Zimbra;
+10032;Zimbra amavisd antispam ORIGINATING_POST policy;mail;Zimbra;yes
+32843;Microsoft SharePoint service applications (HTTP binding);web;Microsoft;yes
+32844;Microsoft SharePoint service applications (HTTPS binding);web;Microsoft;no
+32845;Microsoft SharePoint service applications (net.tcp binding, third-party only);web;Microsoft;
+32846;Microsoft SharePoint User Code Service (sandbox solutions);web;Microsoft;
+16500-16519;Microsoft SharePoint search index component (intra-farm);web;Microsoft;
+22233-22236;Microsoft SharePoint Distributed Cache (AppFabric Caching Service);web,db;Microsoft;
+808;Microsoft SharePoint WCF (net.tcp);web;Microsoft;
+809;Microsoft Office Online Server farm-internal traffic;web;Microsoft;
+443;Microsoft Office Online Server (HTTPS);web;Microsoft;no
+80;Microsoft Office Online Server (HTTP);web;Microsoft;yes
+5723;Microsoft SCOM Health Service (agent / gateway to management server);monitoring;Microsoft;
+5724;Microsoft SCOM SDK service (console, web console to management server);monitoring,admin;Microsoft;
+1270;Microsoft SCOM UNIX/Linux agent (discovery and monitoring);monitoring;Microsoft;
+8886;Microsoft SCOM OMED service (contacted by management server);monitoring;Microsoft;
+51905;Microsoft SCOM connector framework source to management server;monitoring;Microsoft;
+51906;Microsoft SCOM Agentless Exception Monitoring;monitoring;Microsoft;
+51907;Microsoft SCOM Customer Experience Improvement Program endpoint;monitoring;Microsoft;
+51909;Microsoft SCOM Audit Collection Services (forwarder to collector);monitoring,security;Microsoft;
+8100;Microsoft SCVMM console to VMM server (WCF over HTTP);virtualization,admin;Microsoft;
+8101;Microsoft SCVMM WCF over HTTPS / Windows PE agent control channel;virtualization,admin;Microsoft;no
+8102;Microsoft SCVMM Net.TCP / WDS PXE provider;virtualization,admin;Microsoft;
+8103;Microsoft SCVMM Windows PE agent time sync;virtualization;Microsoft;
+443;Microsoft SCVMM BITS file transfer (hosts, library and file servers);virtualization,file;Microsoft;no
+1801;Microsoft Message Queuing (MSMQ);messaging;Microsoft;yes
+udp:1801;Microsoft Message Queuing (MSMQ);messaging;Microsoft;
+2101;Microsoft Message Queuing (MSMQ-DCs);messaging;Microsoft;
+2103;Microsoft Message Queuing (MSMQ-RPC);messaging;Microsoft;
+2105;Microsoft Message Queuing (MSMQ-RPC);messaging;Microsoft;
+2107;Microsoft Message Queuing management (MSMQ-Mgmt);messaging,admin;Microsoft;
+udp:3527;Microsoft Message Queuing ping (MSMQ-Ping);messaging;Microsoft;
+7045;Microsoft Dynamics 365 Business Central management services (version 21);web,admin;Microsoft;
+7046;Microsoft Dynamics 365 Business Central client services (version 20 and earlier);web;Microsoft;
+7047;Microsoft Dynamics 365 Business Central SOAP services;web;Microsoft;
+7048;Microsoft Dynamics 365 Business Central OData services;web;Microsoft;
+7049;Microsoft Dynamics 365 Business Central developer services;web,devops;Microsoft;
+7083;Microsoft Dynamics 365 Business Central snapshot debugger;web,devops;Microsoft;
+7085;Microsoft Dynamics 365 Business Central client services;web;Microsoft;
+7086;Microsoft Dynamics 365 Business Central management API;web,admin;Microsoft;
+2712;Microsoft Dynamics AX AOS (Axapta Object Communication Protocol);web;Microsoft;
+80;Microsoft AD CS Web Enrollment / NDES (/certsrv over HTTP);security,directory,web;Microsoft;yes
+443;Microsoft AD CS Web Enrollment / Certificate Enrollment Web Service / NDES (HTTPS);security,directory,web;Microsoft;no
+udp:1494;Citrix ICA / HDX over EDT (UDP);virtualization,remote-access;Citrix;
+udp:2598;Citrix session reliability over EDT (UDP);virtualization,remote-access;Citrix;
+443;Citrix VDA ICA / HDX over TLS;virtualization,remote-access;Citrix;no
+udp:443;Citrix HDX adaptive transport (EDT over DTLS);virtualization,remote-access;Citrix;no
+80;Citrix Delivery Controller XML service (HTTP);virtualization;Citrix;yes
+443;Citrix Delivery Controller XML service (HTTPS);virtualization;Citrix;no
+80;Citrix Delivery Controller VDA registration (broker, CXF / WCF);virtualization;Citrix;
+89;Citrix Delivery Controller Local Host Cache;virtualization;Citrix;
+9095;Citrix Delivery Controller orchestration service;virtualization;Citrix;
+27000;Citrix License Server Manager (lmgrd);virtualization,admin;Citrix;
+7279;Citrix License Server vendor daemon;virtualization;Citrix;
+8082;Citrix License Administration Console (legacy);virtualization,admin;Citrix;
+8083;Citrix Web Services for Licensing;virtualization,admin;Citrix;
+808;Citrix StoreFront server-group propagation and subscription synchronization;virtualization;Citrix;
+6890-6909;Citrix Provisioning server-to-server;virtualization;Citrix;
+udp:6890-6909;Citrix Provisioning server-to-server;virtualization;Citrix;
+udp:6910-6930;Citrix Provisioning stream service (server to target devices);virtualization;Citrix;
+udp:6901-6902;Citrix Provisioning target device (static ports);virtualization;Citrix;
+udp:6905;Citrix Provisioning target device (static port);virtualization;Citrix;
+8008;Citrix Linux VDA HTML5 ICA proxy (internal access);virtualization,remote-access;Citrix;
+7503;Citrix Telemetry Service on VDA (Citrix Scout);virtualization,monitoring;Citrix;
+7502;Citrix Telemetry Service on Delivery Controller (Citrix Scout);virtualization,monitoring;Citrix;
+52525-52624;Citrix Linux VDA HDX Screen Sharing (disabled by default);virtualization,remote-access;Citrix;
+udp:55000-55250;Citrix Linux VDA HDX Direct (external user connections);virtualization,remote-access;Citrix;
+6001-6099;Citrix Linux VDA session shadowing (noVNC / WebSocket, dynamic);virtualization,remote-access;Citrix;
+443;Omnissa (VMware) Horizon Connection Server (client login, Horizon Console, API);virtualization,remote-access,admin;Omnissa;no
+389;Omnissa (VMware) Horizon Connection Server AD LDS (unmanaged agent registration, replica install);virtualization,directory;Omnissa;
+udp:22443;Omnissa (VMware) Horizon Blast Extreme (agent);virtualization,remote-access;Omnissa;no
+udp:8443;Omnissa (VMware) Horizon Blast Secure Gateway (adaptive transport);virtualization,remote-access;Omnissa;no
+4173;Omnissa (VMware) Horizon PCoIP (virtual desktop port range);virtualization,remote-access;Omnissa;
+udp:4173-4182;Omnissa (VMware) Horizon PCoIP (virtual desktop port range);virtualization,remote-access;Omnissa;
+4001;Omnissa (VMware) Horizon JMS (agent to Connection Server);virtualization;Omnissa;
+4002;Omnissa (VMware) Horizon JMS enhanced security (agent to Connection Server);virtualization;Omnissa;no
+4100;Omnissa (VMware) Horizon JMS inter-router (Connection Server replicas);virtualization;Omnissa;
+4101;Omnissa (VMware) Horizon JMS inter-router over TLS (Connection Server replicas);virtualization;Omnissa;no
+32111;Omnissa (VMware) Horizon USB redirection / framework channel;virtualization,remote-access;Omnissa;
+9427;Omnissa (VMware) Horizon multimedia and client drive redirection;virtualization,remote-access;Omnissa;
+22389;Omnissa (VMware) Horizon Cloud Pod Architecture global LDAP replication (AD LDS);virtualization,directory;Omnissa;
+22636;Omnissa (VMware) Horizon Cloud Pod Architecture global LDAPS replication (AD LDS);virtualization,directory;Omnissa;no
+8472;Omnissa (VMware) Horizon Cloud Pod Architecture inter-pod API (VIPA);virtualization;Omnissa;no
+443;Omnissa Unified Access Gateway (Horizon edge);virtualization,remote-access,security;Omnissa;no
+udp:443;Omnissa Unified Access Gateway UDP tunnel (Horizon login fallback);virtualization,remote-access;Omnissa;
+9443;Omnissa Unified Access Gateway management / monitoring;virtualization,admin;Omnissa;no
+9443;Omnissa Horizon Recording Server (session recording);virtualization,monitoring;Omnissa;
+31883;Omnissa Horizon Edge Gateway (agent data collection);virtualization,monitoring;Omnissa;
+443;Omnissa App Volumes Manager (agent communication);virtualization;Omnissa;no
+80;Omnissa App Volumes Manager (agent communication without TLS);virtualization;Omnissa;yes
+3001-3004;Omnissa App Volumes Manager inter-manager (HTTP);virtualization;Omnissa;yes
+54311;Omnissa App Volumes Manager inter-manager (HTTPS);virtualization;Omnissa;no
+7443;Omnissa Access (Workspace ONE Access) certificate authentication;directory,security;Omnissa;no
+5262;Omnissa Access (Workspace ONE Access) Android single sign-on;directory,security;Omnissa;
+88;Omnissa Access (Workspace ONE Access) built-in KDC (iOS single sign-on);directory,security;Omnissa;
+udp:88;Omnissa Access (Workspace ONE Access) built-in KDC (iOS single sign-on);directory,security;Omnissa;
+8443;Omnissa Access (Workspace ONE Access) appliance cluster communication;directory;Omnissa;
+8200;Omnissa Access (Workspace ONE Access) Elasticsearch (cluster);directory,db;Omnissa;
+5701;Omnissa Access (Workspace ONE Access) Hazelcast cache (cluster);directory;Omnissa;
+40002-40003;Omnissa Access (Workspace ONE Access) EHCache (cluster);directory;Omnissa;
+9300;Omnissa Access (Workspace ONE Access) audit (cluster);directory,monitoring;Omnissa;
+udp:54328;Omnissa Access (Workspace ONE Access) audit (cluster);directory,monitoring;Omnissa;
+9400;Omnissa Access (Workspace ONE Access) vPostgres (cluster);directory,db;Omnissa;
+9543;VMware Log Insight (log forwarding target of Omnissa Access);monitoring;VMware;
+8080;Atlassian Jira;web;Atlassian;yes
+40001;Atlassian Jira Data Center Ehcache (inter-node);web;Atlassian;
+40011;Atlassian Jira Data Center Ehcache object port (inter-node);web;Atlassian;
+8090;Atlassian Confluence;web;Atlassian;yes
+8091;Atlassian Confluence Synchrony (collaborative editing);web;Atlassian;
+5801;Atlassian Confluence Data Center Hazelcast (inter-node);web;Atlassian;
+5701;Atlassian Bitbucket Data Center / Synchrony Hazelcast (inter-node);web,devops;Atlassian;
+25500;Atlassian Synchrony cluster base port (inter-node);web;Atlassian;
+udp:54327;Atlassian Synchrony multicast (standalone cluster);web;Atlassian;
+7992;Atlassian Bitbucket bundled search (Elasticsearch / OpenSearch);devops,db;Atlassian;
+7993;Atlassian Bitbucket bundled search (Elasticsearch / OpenSearch);devops,db;Atlassian;
+54663;Atlassian Bamboo ActiveMQ / JMS broker (remote agents);devops,messaging;Atlassian;yes
+54664;Atlassian Bamboo JMS over TLS (remote agents);devops,messaging;Atlassian;no
+9090;Atlassian Bamboo Data Center internal node communication (gRPC);devops;Atlassian;
+8095;Atlassian Crowd;directory,web;Atlassian;yes
+8060;Atlassian Fisheye / Crucible;devops,web;Atlassian;yes
+8000;Atlassian Tomcat control port (shutdown, Tomcat-based products);web,admin;Atlassian;
+8075;GitLab Gitaly (gRPC);devops;GitLab;yes
+9999;GitLab Gitaly over TLS;devops;GitLab;no
+2305;GitLab Praefect (Gitaly Cluster);devops;GitLab;yes
+3305;GitLab Praefect over TLS (Gitaly Cluster);devops;GitLab;no
+5050;GitLab Container Registry;devops;GitLab;
+5000;GitLab Container Registry (internal listener);devops;GitLab;
+5001;GitLab Container Registry Prometheus exporter;devops,monitoring;GitLab;
+8150;GitLab agent server for Kubernetes (KAS);devops;GitLab;
+6432;PgBouncer PostgreSQL connection pooler;db;PgBouncer;
+8065;Mattermost;messaging,web;Mattermost;yes
+8060;GitLab NGINX status;devops,monitoring;GitLab;
+9168;GitLab Exporter (Prometheus metrics);devops,monitoring;GitLab;
+9121;GitLab Redis exporter (Prometheus);devops,monitoring;GitLab;
+9187;GitLab PostgreSQL exporter (Prometheus);devops,monitoring;GitLab;
+9188;GitLab PgBouncer exporter (Prometheus);devops,monitoring;GitLab;
+8082;GitLab Sidekiq exporter (Prometheus);devops,monitoring;GitLab;
+8092;GitLab Sidekiq health check;devops,monitoring;GitLab;
+8083;GitLab web exporter (Prometheus);devops,monitoring;GitLab;
+9236;GitLab Gitaly exporter (Prometheus);devops,monitoring;GitLab;
+9229;GitLab Workhorse exporter (Prometheus);devops,monitoring;GitLab;
+8181;GitLab Workhorse (TCP alternative to socket);devops,web;GitLab;
+8080;GitLab Puma (TCP alternative to socket);devops,web;GitLab;
+5431;GitLab Geo PostgreSQL (TCP alternative to socket);devops,db;GitLab;
+8000-8099;SAP ICM HTTP (80NN);web;SAP;yes
+44300-44399;SAP ICM HTTPS (443NN);web;SAP;no
+8100-8199;SAP message server HTTP (81NN);web,admin;SAP;yes
+44400-44499;SAP message server HTTPS (444NN);web,admin;SAP;no
+25;SAP ICM SMTP (not active by default);mail,web;SAP;yes
+50013;SAP start service sapstartsrv HTTP (5NN13, instance 00);admin;SAP;yes
+50014;SAP start service sapstartsrv HTTPS (5NN14, instance 00);admin;SAP;no
+50113;SAP start service sapstartsrv HTTP (5NN13, instance 01);admin;SAP;yes
+50114;SAP start service sapstartsrv HTTPS (5NN14, instance 01);admin;SAP;no
+1128;SAP Host Agent SAPHostControl (SOAP over HTTP);admin;SAP;yes
+1129;SAP Host Agent SAPHostControl (SOAP over HTTPS);admin;SAP;no
+6400;SAP BusinessObjects Central Management Server (CMS);web;SAP;
+6410;SAP BusinessObjects Enterprise internal server (SIA);web;SAP;
+7003;Oracle WebLogic Server managed server (first default listen port);web;Oracle;yes
+5556;Oracle WebLogic Server Node Manager;web,admin;Oracle;
+7777;Oracle HTTP Server (non-SSL listen port);web;Oracle;yes
+8888;Oracle HTTP Server (non-SSL listen port, alternate default);web;Oracle;yes
+4443;Oracle HTTP Server (SSL listen port);web;Oracle;no
+9001;Oracle Business Activity Monitoring managed server;web;Oracle;
+15000;Oracle Data Integrator;web,db;Oracle;
+7574;Oracle Coherence cluster service;web,db;Oracle;
+udp:7574;Oracle Coherence cluster discovery;web,db;Oracle;
+9443;IBM WebSphere HTTPS transport (WC_defaulthost_secure);web;IBM;no
+2809;IBM WebSphere bootstrap (application server, deployment manager);web,admin;IBM;
+2810;IBM WebSphere bootstrap (node agent);web,admin;IBM;
+8880;IBM WebSphere SOAP connector (application server);web,admin;IBM;
+8879;IBM WebSphere SOAP connector (deployment manager);web,admin;IBM;
+8878;IBM WebSphere SOAP connector (node agent);web,admin;IBM;
+9100;IBM WebSphere ORB listener (application server, deployment manager);web;IBM;
+9900;IBM WebSphere ORB listener (node agent);web;IBM;
+9401;IBM WebSphere SAS SSL server authentication listener (deprecated);web;IBM;no
+9901;IBM WebSphere SAS SSL server authentication listener (node agent, deprecated);web;IBM;no
+9402;IBM WebSphere CSIv2 client authentication listener;web;IBM;no
+9403;IBM WebSphere CSIv2 server authentication listener;web;IBM;no
+9201;IBM WebSphere CSIv2 server authentication listener (node agent);web;IBM;no
+9202;IBM WebSphere CSIv2 client authentication listener (node agent);web;IBM;no
+9353;IBM WebSphere HA manager DCS (application server);web;IBM;
+9352;IBM WebSphere HA manager DCS (deployment manager);web;IBM;
+9354;IBM WebSphere HA manager DCS (node agent);web;IBM;
+9633;IBM WebSphere IPC connector (application server);web,admin;IBM;
+9632;IBM WebSphere IPC connector (deployment manager);web,admin;IBM;
+9626;IBM WebSphere IPC connector (node agent);web,admin;IBM;
+5557;IBM WebSphere internal JMS server;web,messaging;IBM;
+7276;IBM WebSphere service integration bus (SIB);web,messaging;IBM;yes
+7286;IBM WebSphere service integration bus over TLS;web,messaging;IBM;no
+5558;IBM WebSphere SIB MQ transport;web,messaging;IBM;yes
+5578;IBM WebSphere SIB MQ transport over TLS;web,messaging;IBM;no
+5060;IBM WebSphere SIP container;web,voip;IBM;yes
+5061;IBM WebSphere SIP container over TLS;web,voip;IBM;no
+7277;IBM WebSphere cell discovery (deployment manager);web,admin;IBM;
+7272;IBM WebSphere node discovery (node agent);web,admin;IBM;
+udp:5000;IBM WebSphere node agent multicast discovery;web,admin;IBM;
+7060;IBM WebSphere middleware agent RPC (deployment manager);web,admin;IBM;
+7061;IBM WebSphere middleware agent RPC (node agent);web,admin;IBM;
+9420;IBM WebSphere status update listener (deployment manager);web,admin;IBM;
+udp:11003;IBM WebSphere administration overlay (application server);web,admin;IBM;
+11004;IBM WebSphere administration overlay (application server);web,admin;IBM;
+udp:11005;IBM WebSphere administration overlay (deployment manager);web,admin;IBM;
+11006;IBM WebSphere administration overlay (deployment manager);web,admin;IBM;
+udp:11001;IBM WebSphere administration overlay (node agent);web,admin;IBM;
+11002;IBM WebSphere administration overlay (node agent);web,admin;IBM;
+80;IBM HTTP Server;web;IBM;yes
+8008;IBM HTTP Server administration server;web,admin;IBM;
+1414;IBM MQ queue manager listener;messaging;IBM;yes
+8080;WildFly / JBoss EAP HTTP;web;Red Hat;yes
+8443;WildFly / JBoss EAP HTTPS;web;Red Hat;no
+9993;WildFly / JBoss EAP management (HTTPS);web,admin;Red Hat;no
+9999;WildFly native management (legacy, e.g. WildFly 9);web,admin;Red Hat;
+3528;WildFly / JBoss EAP IIOP;web;Red Hat;yes
+3529;WildFly / JBoss EAP IIOP over TLS;web;Red Hat;no
+7600;WildFly / JBoss EAP JGroups TCP (clustering);web;Red Hat;
+udp:55200;WildFly / JBoss EAP JGroups UDP (clustering);web;Red Hat;
+udp:45688;WildFly / JBoss EAP JGroups multicast (clustering);web;Red Hat;
+udp:45700;WildFly / JBoss EAP JGroups MPING multicast discovery;web;Red Hat;
+udp:23364;WildFly / JBoss EAP mod_cluster advertise multicast;web;Red Hat;
+4712;WildFly / JBoss EAP transaction recovery environment;web;Red Hat;
+4713;WildFly / JBoss EAP transaction status manager;web;Red Hat;
+4000-4100;Apache Tomcat cluster replication receiver (first free port);web;Apache;yes
+udp:45564;Apache Tomcat cluster membership multicast;web;Apache;yes
+8443;Apache Tomcat HTTPS connector (commented out in default server.xml);web;Apache;no
+62354;GLPI Agent embedded web interface;admin;GLPI Project;yes
+3205;iSNS storage name service (RFC 4171);file;;yes
+3225;FCIP Fibre Channel over IP (RFC 3821);file,network;;yes
+4420;NVMe over Fabrics TCP I/O controller (NVMe/TCP);file;;yes
+8009;NVMe over Fabrics discovery controller (NVMe/TCP);file;;yes
+20048;NFS mountd (IANA mountd);file;;yes
+20049;NFS over RDMA (RFC 8267);file;;yes
+udp:4791;RoCEv2 RDMA over Converged Ethernet (IBTA);file,network;;yes
+5445;SMB Direct over iWARP (RDMA);file;Microsoft;
+4045;NFS lock manager NLM / lockd (fixed port on NetApp ONTAP and Synology DSM);file;;yes
+5988;WBEM CIM-XML over HTTP (DMTF, SMI-S storage providers);file,monitoring;;yes
+5989;WBEM CIM-XML over HTTPS (DMTF, SMI-S storage providers);file,monitoring;;no
+30000;NDMP over TLS (NDMPS);backup,file;;no
+443;NetApp ONTAP System Manager / REST API (cluster management LIF);file,admin;NetApp;no
+635;NetApp ONTAP NFS mountd;file;NetApp;yes
+2050;NetApp ONTAP NRV (NetApp Remote Volume protocol);file;NetApp;
+4046;NetApp ONTAP NFS network status monitor (NSM / statd);file;NetApp;yes
+udp:4049;NetApp ONTAP NFS rquotad;file;NetApp;yes
+443;Dell PowerStore Manager (web UI / REST API);file,admin;Dell;no
+26;Dell PowerStore SSH (target of the port 22 redirect);admin;Dell;no
+3261;Dell PowerStore data mobility replication (high-latency links);backup,file;Dell;
+8443;Dell PowerStore VASA provider (VASA 3.0);virtualization,file;Dell;no
+2000;Dell PowerStore NAS SSHD for serviceability (optional);admin;Dell;no
+1234;Dell PowerStore / Unity NAS NFS mountd;file;Dell;yes
+4000;Dell PowerStore / Unity NAS NFS statd;file;Dell;yes
+4001;Dell PowerStore / Unity NAS NFS lockd (NLM);file;Dell;yes
+4002;Dell PowerStore / Unity NAS NFS rquotad;file;Dell;yes
+4658;Dell PowerStore / Unity NAS PAX archive (NDMP);backup,file;Dell;
+8888;Dell PowerStore / Unity NAS replication data path (RCPD);backup,file;Dell;
+10500-10531;Dell PowerStore NAS NDMP three-way backup dynamic ports;backup,file;Dell;yes
+12228;Dell Common AntiVirus Agent (CAVA) server;security,file;Dell;yes
+443;Dell Unity Unisphere (web UI / REST API);file,admin;Dell;no
+5085;Dell Unity replication (RCP);backup,file;Dell;
+5086;Dell Unity replication (RCP, OE 5.5 and later);backup,file;Dell;
+2051;Dell Data Domain replication / DD Boost optimized duplication;backup;Dell;
+2052;Dell Data Domain NFS mountd / DD Boost;backup,file;Dell;yes
+8443;Dell Unisphere for PowerMax (web UI / REST API);file,admin;Dell;no
+2707;Dell (EMC) Solutions Enabler SYMAPI server (IANA emcsymapiport);file,admin;Dell;
+5781;HPE 3PAR event reporting service;file,monitoring;HPE;
+5782;HPE 3PAR management service (IANA 3par-mgmt);file,admin;HPE;yes
+5783;HPE 3PAR management service over SSL (IANA 3par-mgmt-ssl);file,admin;HPE;no
+5785;HPE 3PAR Remote Copy (IANA 3par-rcopy);backup,file;HPE;
+8080;HPE 3PAR StoreServ Web Services API (WSAPI);file,admin;HPE;
+5392;HPE Nimble Storage REST API;file,admin;HPE;no
+8117;Pure Storage Purity replication, clustering and remote management;backup,file;Pure Storage;
+443;Hitachi VSP SVP / Storage Navigator (HTTPS);file,admin;Hitachi Vantara;no
+1099;Hitachi VSP SVP RMI registry (Storage Navigator);file,admin;Hitachi Vantara;
+51099;Hitachi VSP SVP RMI class loader;file,admin;Hitachi Vantara;
+51100-51355;Hitachi VSP SVP RMI servers (dynamically allocated);file,admin;Hitachi Vantara;
+20961;Hitachi Ops Center Administrator web UI (when 443 is taken);file,admin;Hitachi Vantara;no
+22015;Hitachi Command Suite / Ops Center common component web (HTTP);file,admin;Hitachi Vantara;yes
+22016;Hitachi Command Suite / Ops Center common component web (HTTPS);file,admin;Hitachi Vantara;no
+443;Brocade SANnav Management Portal;file,network,admin;Broadcom;no
+19092;Brocade SANnav Kafka (switch telemetry);file,network,monitoring;Broadcom;yes
+19094;Brocade SANnav Kafka (switch telemetry, TLS);file,network,monitoring;Broadcom;no
+udp:9997-9999;Synology Assistant discovery;file,network;Synology;yes
+5510;Synology Active Backup for Business (agent to NAS);backup;Synology;
+6281;Synology Hyper Backup Vault;backup;Synology;
+5005;Synology DSM WebDAV (HTTP);file;Synology;yes
+5006;Synology DSM WebDAV (HTTPS);file;Synology;no
+5566;Synology Snapshot Replication / Virtual Machine Manager replication;backup,file,virtualization;Synology;
+6690;Synology Drive Server / Cloud Station sync;file,backup;Synology;
+662;NFS statd (Synology DSM fixed port);file;Synology;yes
+892;NFS mountd (Synology DSM fixed port);file;Synology;yes
+7400-7999;Synology High Availability / Migration Assistant (DRBD replication);file,backup;Synology;
+443;QNAP QTS / QuTS hero web administration (HTTPS);file,admin;QNAP;no
+8899;QNAP RTRR real-time remote replication;backup;QNAP;
+874-875;QNAP SnapSync (QuTS hero);backup,file;QNAP;
+udp:8097;QNAP Qfinder Pro discovery;file,network;QNAP;yes
+13131;QNAP QTS Telnet;admin,remote-access;QNAP;yes
+6600;QNAP Q'center server;monitoring,admin;QNAP;
+7788;QNAP QuWAN hub-to-edge connections;network;QNAP;
+443;TrueNAS web interface / REST and WebSocket API;file,admin;iXsystems;no
+7480;Ceph Object Gateway (RGW, Beast frontend default);file,web;Ceph;yes
+8443;Ceph Dashboard (ceph-mgr);file,admin;Ceph;no
+8080;Ceph Dashboard (ceph-mgr, SSL disabled);file,admin;Ceph;yes
+9283;Ceph Manager Prometheus module;file,monitoring;Ceph;yes
+49152-49251;GlusterFS brick processes (glusterfsd);file;Gluster;yes
+38465-38469;GlusterFS NFS server (mount, NLM, NFS ACL);file;Gluster;yes
+7788-7799;DRBD replication (one port per resource, from 7788);file,backup;LINBIT;yes
+7000-7999;LINSTOR-provisioned DRBD resources (default range);file,backup;LINBIT;yes
+3370;LINSTOR controller REST API (HTTP);file,admin;LINBIT;yes
+3371;LINSTOR controller REST API (HTTPS);file,admin;LINBIT;no
+3376;LINSTOR controller;file;LINBIT;yes
+3366;LINSTOR satellite;file;LINBIT;yes
+9090;Cockpit web console;admin;Cockpit project;no
+9090;IBM AIX Web-based System Manager (WebSM);admin;IBM;
+20000;Usermin web interface;admin;Webmin;no
+2224;pcsd Pacemaker/Corosync configuration daemon and web UI;admin,virtualization;ClusterLabs;no
+3121;Pacemaker Remote (pacemaker_remoted);virtualization;ClusterLabs;
+5403;Corosync QNetd quorum device (corosync-qnetd);virtualization;Corosync;
+udp:5404-5412;Corosync cluster communication (Pacemaker / RHEL HA);virtualization;Corosync;
+21064;DLM distributed lock manager (GFS2);virtualization,file;Red Hat;
+9929;Booth cluster ticket manager (multi-site Pacemaker);virtualization;ClusterLabs;
+443;Red Hat Ansible Automation Platform controller (web UI / API);devops,admin;Red Hat;no
+27199;Red Hat Ansible Automation Platform receptor mesh;devops;Red Hat;
+443;Chef Infra Server (API / web front end, nginx);devops,admin;Progress Chef;no
+9683;Chef Infra Server nginx (internal oc_bifrost load balancing);devops;Progress Chef;
+443;Foreman / Red Hat Satellite (web UI, API, content);devops,admin;Foreman;no
+8000;Foreman / Satellite Smart Proxy provisioning templates and PXE;devops;Foreman;
+9090;Foreman / Satellite Smart Proxy API;devops,admin;Foreman;no
+9191;Foreman Salt API;devops;Foreman;no
+1883;Foreman pull-based remote execution (MQTT);devops,messaging;Foreman;
+5910-5930;Foreman / Satellite compute resource VM console;virtualization,remote-access;Foreman;no
+5647;Red Hat Satellite Qpid dispatch router (katello-agent clients);devops,messaging;Red Hat;
+7911;ISC DHCP OMAPI management (Foreman default);network,admin;ISC;yes
+443;Uyuni / SUSE Manager server (web UI, API, clients);devops,admin;SUSE;no
+8022;Uyuni / SUSE Manager proxy SSH push;devops,admin;SUSE;no
+5556;Uyuni Taskomatic JMX exporter (Prometheus);monitoring;SUSE;yes
+5557;Uyuni Tomcat JMX exporter (Prometheus);monitoring;SUSE;yes
+443;FreeIPA / Red Hat IdM web UI and API;directory,admin;Red Hat;no
+8080;FreeIPA / Red Hat IdM Dogtag pki-tomcat (internal, keep blocked);directory,security;Red Hat;yes
+8443;FreeIPA / Red Hat IdM Dogtag pki-tomcat (internal, keep blocked);directory,security;Red Hat;no
+749;Kerberos administration (kadmind);directory,admin;MIT;no
+754;Kerberos database propagation (kpropd);directory;MIT;no
+901;Samba SWAT web administration (legacy);file,admin;Samba;yes
+4379;Samba CTDB clustered Samba daemon;file;Samba;
+3493;Network UPS Tools upsd;monitoring;Network UPS Tools;yes
+7;Echo (RFC 862);network;;yes
+udp:7;Echo (RFC 862);network;;yes
+13;Daytime (RFC 867);network;;yes
+19;Character Generator (RFC 864);network;;yes
+2401;CVS pserver;devops;CVS;yes
+10080;Amanda backup;backup;Amanda;
+udp:319;PTP event messages (IEEE 1588);network;;yes
+udp:320;PTP general messages (IEEE 1588);network;;yes
+4460;NTS Key Establishment (RFC 8915);network;;no
+udp:323;chrony command port (chronyc);network,admin;chrony;yes
+647;DHCP failover (ISC dhcpd default, IANA dhcp-failover);network;ISC;yes
+847;DHCP failover 2 (IANA dhcp-failover2);network;;yes
+8000;ISC Kea Control Agent (REST API, HA peers);network,admin;ISC;yes
+953;BIND rndc remote control;directory,admin;ISC;yes
+8081;PowerDNS Authoritative webserver / REST API;directory,admin;PowerDNS;yes
+8082;PowerDNS Recursor webserver / REST API;directory,admin;PowerDNS;yes
+8953;Unbound remote control (unbound-control);directory,admin;NLnet Labs;no
+udp:3130;Squid ICP inter-cache protocol (RFC 2186);web;Squid;yes
+5555;HAProxy Data Plane API;web,admin;HAProxy Technologies;yes
+8404;HAProxy statistics page (documented example port);web,monitoring;HAProxy Technologies;yes
+657;IBM RSCT RMC (HMC to AIX / VIOS / Linux LPARs: DLPAR, LPM);admin,virtualization;IBM;
+udp:657;IBM RSCT RMC (HMC to AIX / VIOS / Linux LPARs: DLPAR, LPM);admin,virtualization;IBM;
+udp:12347-12348;IBM RSCT peer domain (AIX clustering);virtualization;IBM;
+443;IBM Power HMC web UI / REST API;admin,virtualization;IBM;no
+12443;IBM Power HMC remote web access / REST API (V10R3 and earlier);admin,virtualization;IBM;no
+9960;IBM Power HMC browser applet / remote vterm (V10R1 and earlier);admin,virtualization;IBM;no
+2300;IBM Power HMC remote 5250 console;admin,remote-access;IBM;yes
+2301;IBM Power HMC remote 5250 console (SSL);admin,remote-access;IBM;no
+udp:9900;IBM Power HMC-to-HMC discovery / call-home negotiation;admin;IBM;
+9920;IBM Power HMC-to-HMC communication and data replication;admin;IBM;
+17443;IBM Power eBMC to HMC connection (Redfish);oob;IBM;no
+30000-30001;IBM Power FSP to HMC connection (NETS, SSL);oob;IBM;no
+1058;IBM AIX NIM master (nimesis);admin;IBM;
+1059;IBM AIX NIM client registration (nimreg);admin;IBM;
+3901;IBM AIX NIM service handler (nimsh);admin;IBM;
+3902;IBM AIX NIM service handler auxiliary (nimaux);admin;IBM;
+1191;IBM Storage Scale (GPFS) daemon mmfsd;file;IBM;
+23;TN3270E Telnet (RFC 2355, IBM z/OS);remote-access,admin;;yes
+992;TN3270E / Telnet over TLS (telnets, IBM z/OS SECUREPORT);remote-access,admin;;no
+80;Trellix ePO agent-server communication (HTTP, legacy agents);security;Trellix;
+443;Trellix ePO agent-server secure communication;security;Trellix;no
+udp:8082;Trellix Agent broadcast (SuperAgent wake-up forwarding, peer-to-peer / RelayServer discovery);security;Trellix;
+udp:8083;Trellix Agent RelayServer discovery (older agents);security;Trellix;
+8883;Trellix DXL broker (MQTT over TLS);security,messaging;Trellix;no
+udp:4167;Trellix IPS Manager-Sensor command channel (IPv4);security;Trellix;
+udp:8500;Trellix IPS Manager-Sensor command channel;security;Trellix;
+8501;Trellix IPS Sensor-Manager install channel;security;Trellix;no
+8502;Trellix IPS Sensor-Manager alert channel;security,monitoring;Trellix;no
+8503;Trellix IPS Sensor-Manager packet log channel;security;Trellix;no
+8504;Trellix IPS Sensor-Manager file transfer channel;security;Trellix;
+8506-8510;Trellix IPS Sensor-Manager channels (CA-signed certificates, bulk file transfer);security;Trellix;no
+8505;Trellix IPS Sensor data channel to NTBA / Intelligent Sandbox;security;Trellix;
+udp:9996;Trellix NTBA NetFlow collector;security,monitoring;Trellix;yes
+61641;Trellix Logon Collector JMS (IPS Manager);security,directory;Trellix;
+11344;Trellix DLP Network Prevent ICAP over SSL;security,web;Trellix;no
+2638;Symantec Endpoint Protection Manager embedded database (SQL Anywhere);security,db;Broadcom (Symantec);
+2967;Symantec Endpoint Protection client Group Update Provider (GUP);security;Broadcom (Symantec);
+8445;Symantec Endpoint Protection Manager reporting console (HTTPS);security,monitoring;Broadcom (Symantec);no
+8446;Symantec Endpoint Protection Manager web services;security,admin;Broadcom (Symantec);
+9090;Symantec Endpoint Protection Manager remote console login (HTTP);security,admin;Broadcom (Symantec);yes
+4118;Trend Micro Deep Security Agent (manager-initiated heartbeat / activation);security;Trend Micro;no
+4119;Trend Micro Deep Security Manager web console / API;security,admin;Trend Micro;no
+4120;Trend Micro Deep Security Manager agent heartbeat;security;Trend Micro;no
+4122;Trend Micro Deep Security Relay;security;Trend Micro;no
+5274;Trend Micro Smart Protection Server Web Reputation (HTTP);security,web;Trend Micro;yes
+5275;Trend Micro Smart Protection Server Web Reputation (HTTPS);security,web;Trend Micro;no
+8080;Trend Micro Apex One server web console / agent communication (HTTP);security,admin;Trend Micro;yes
+4343;Trend Micro Apex One server web console / agent communication (HTTPS);security,admin;Trend Micro;no
+8443;Bitdefender GravityZone Endpoint Communication Server;security;Bitdefender;
+8080;Bitdefender GravityZone Communication Server deployment (Setup Downloader);security;Bitdefender;
+7074;Bitdefender GravityZone Update Server;security;Bitdefender;
+7075;Bitdefender GravityZone Update Server (update download / proxy);security;Bitdefender;
+7076;Bitdefender GravityZone Relay proxy to Global Protective Network (encrypted);security;Bitdefender;no
+7081;Bitdefender GravityZone Security Server scanning;security;Bitdefender;
+7083;Bitdefender GravityZone Security Server scanning (SSL);security;Bitdefender;no
+8444;Bitdefender GravityZone Incidents Server (EDR);security;Bitdefender;
+6150;Bitdefender GravityZone appliance cluster messaging (RabbitMQ);security,messaging;Bitdefender;
+32002;Bitdefender GravityZone distributed Web Console instances;security,admin;Bitdefender;
+8080;WithSecure Policy Manager Server admin module (console, localhost-only by default);security,admin;WithSecure (F-Secure);no
+8081;WithSecure Policy Manager Web Reporting;security,monitoring;WithSecure (F-Secure);no
+443;WithSecure Policy Manager host module (endpoints);security;WithSecure (F-Secure);no
+80;WithSecure Policy Manager host module (database updates, legacy clients);security;WithSecure (F-Secure);yes
+3128;ESET Bridge (HTTP proxy for ESET PROTECT);security,web;ESET;
+8192;Sophos Enterprise Console management server discovery (CORBA);security;Sophos;
+8193-8194;Sophos Enterprise Console management server (Remote Management System);security;Sophos;
+8090;Sophos Firewall captive portal;security,directory;Sophos;no
+udp:6060;Sophos Firewall RADIUS SSO (client authentication);security,directory;Sophos;
+8443;Sophos Firewall SSL VPN;security,remote-access;Sophos;no
+3128;Sophos Firewall web proxy (direct proxy);security,web;Sophos;yes
+udp:1813;Microsoft Defender for Identity sensor (RADIUS accounting);security,directory;Microsoft;
+8000;IBM QRadar Event Collection Service (Event Collector to Console);monitoring,security;IBM;
+7800;IBM QRadar real-time event streaming (Event Collector to Console);monitoring,security;IBM;
+7801;IBM QRadar real-time flow streaming (Event Collector to Console);monitoring,security;IBM;
+6543;IBM QRadar HA heartbeat;monitoring;IBM;
+udp:6543;IBM QRadar HA heartbeat;monitoring;IBM;
+7789;IBM QRadar HA disk replication (DRBD);monitoring;IBM;
+8413;IBM QRadar WinCollect agent management;monitoring,security;IBM;
+32000-33999;IBM QRadar inter-component data flows (events, flows, searches);monitoring,security;IBM;
+32004;IBM QRadar normalized event forwarding;monitoring,security;IBM;
+32005;IBM QRadar data flow between Event Collectors;monitoring;IBM;
+32006;IBM QRadar Ariel queries (proxy to query server);monitoring;IBM;
+32010;IBM QRadar flow source listening port (QFlow);monitoring;IBM;
+32011;IBM QRadar Ariel listening port;monitoring;IBM;
+udp:9995;IBM QRadar QFlow NetFlow input;monitoring;IBM;yes
+40799;IBM QRadar PCAP collection from Juniper SRX;monitoring,security;IBM;
+8443;OpenText ArcSight ESM Manager (SmartConnectors and consoles);monitoring,security;OpenText (Micro Focus);no
+9000;OpenText ArcSight ESM peering;monitoring,security;OpenText (Micro Focus);
+9000;OpenText ArcSight Logger / ArcMC web UI and SmartMessage receiver (software, non-root);monitoring,security;OpenText (Micro Focus);no
+443;OpenText ArcSight Logger web UI and SmartMessage receiver (appliance);monitoring,security;OpenText (Micro Focus);no
+515;OpenText ArcSight Logger TCP syslog receiver;monitoring;OpenText (Micro Focus);yes
+udp:8514;OpenText ArcSight Logger UDP syslog receiver (software, non-root);monitoring;OpenText (Micro Focus);yes
+8515;OpenText ArcSight Logger TCP syslog receiver (software, non-root);monitoring;OpenText (Micro Focus);yes
+9001-9008;OpenText ArcSight SmartConnector remote management (ArcMC / Connector Appliance);monitoring,admin;OpenText (Micro Focus);
+7913;OpenText ArcSight Management Center agent;monitoring,admin;OpenText (Micro Focus);
+9443;OpenText ArcSight Web (ESM 6.x and earlier);monitoring;OpenText (Micro Focus);no
+9090;OpenText ArcSight ESM service layer (web services);monitoring;OpenText (Micro Focus);
+udp:694;OpenText ArcSight ESM HA module heartbeat;monitoring;OpenText (Micro Focus);
+7789;OpenText ArcSight ESM HA module disk replication;monitoring;OpenText (Micro Focus);
+40000;LogRhythm Data Processor agent log intake (unidirectional mode);monitoring,security;LogRhythm (Exabeam);no
+8501;LogRhythm API Gateway (Platform Manager, Data Processor, Data Indexer);monitoring,security;LogRhythm (Exabeam);no
+30000-30001;LogRhythm AI Engine Communication Manager;monitoring,security;LogRhythm (Exabeam);
+8443;LogRhythm Web Console;monitoring,security;LogRhythm (Exabeam);no
+9300-9400;LogRhythm Data Indexer replication and federation;monitoring,db;LogRhythm (Exabeam);
+8400;LogRhythm Open Collector admin (OC Admin);monitoring,admin;LogRhythm (Exabeam);no
+udp:5500;LogRhythm System Monitor NetFlow / IPFIX / J-Flow collector;monitoring;LogRhythm (Exabeam);yes
+8065;Splunk Web app server;monitoring;Splunk;
+8191;Splunk App Key Value Store (KV store);monitoring,db;Splunk;
+9887;Splunk indexer / search head cluster replication;monitoring;Splunk;
+8181;Splunk search head cluster replication;monitoring;Splunk;
+udp:1514;Wazuh agent connection (UDP, disabled by default);security,monitoring;Wazuh;
+514;Wazuh syslog collector (TCP, disabled by default);security,monitoring;Wazuh;yes
+9200;Wazuh indexer RESTful API;security,monitoring;Wazuh;
+9300-9400;Wazuh indexer cluster communication;security,monitoring;Wazuh;
+8835;Tenable Network Monitor (Nessus Network Monitor);security,monitoring;Tenable;
+8837;Tenable Security Center linked scans;security;Tenable;
+40814;Rapid7 InsightVM / Nexpose Scan Engine (console-to-engine);security;Rapid7;
+40815;Rapid7 InsightVM / Nexpose Security Console (engine-to-console pairing);security;Rapid7;
+9390;OpenVAS Transfer Protocol (IANA otp, legacy OpenVAS);security;Greenbone;
+12001;Cisco ISE data synchronization and replication (JGroups);security,directory;Cisco;
+8671;Cisco ISE messaging service (SSL);security;Cisco;no
+7800;Cisco ISE node groups (JGroups clustering);security;Cisco;
+9060;Cisco ISE ERS REST API;security,admin;Cisco;no
+8444;Cisco ISE blocked list portal;security;Cisco;no
+8445;Cisco ISE sponsor portal;security;Cisco;no
+8449;Cisco ISE bidirectional posture;security;Cisco;no
+9090;Cisco ISE SCEP;security;Cisco;
+2560;Cisco ISE OCSP responder;security;Cisco;yes
+udp:1700;Cisco ISE RADIUS CoA (Cisco port);security,directory,network;Cisco;
+udp:20514;Cisco ISE syslog collector (UDP);security,monitoring;Cisco;yes
+1468;Cisco ISE syslog collector (TCP);security,monitoring;Cisco;yes
+9094;Cisco ISE Passive ID terminal server agent;security,directory;Cisco;
+9095;Cisco ISE Passive ID AD agent;security,directory;Cisco;
+udp:40514;Cisco ISE Passive ID syslog (UDP);security,directory;Cisco;yes
+11468;Cisco ISE Passive ID syslog (TCP);security,directory;Cisco;yes
+64999;Cisco TrustSec SXP (ISE to network devices);security,network;Cisco;
+9443;Cisco ISE MnT REST APIs;security,monitoring;Cisco;no
+udp:9996;Cisco ISE profiler NetFlow probe;security,monitoring;Cisco;yes
+udp:2083;RADIUS over DTLS (RFC 7360);directory,security,network;;no
+8302;Cisco Secure Firewall Management Center eStreamer (Sourcefire);security,monitoring;Cisco;no
+6658;HPE Aruba ClearPass OnGuard agent control channel;security,directory;HPE Aruba Networking;
+5433;HPE Aruba ClearPass Insight database;security,db;HPE Aruba Networking;
+7432;HPE Aruba ClearPass cluster diagnostics;security;HPE Aruba Networking;
+13000;Forescout eyeSight Console / Appliance / Enterprise Manager communication;security,admin;Forescout;no
+10003;Forescout SecureConnector for Windows;security;Forescout;no
+10005;Forescout SecureConnector for macOS;security;Forescout;no
+10006;Forescout SecureConnector for Linux;security;Forescout;no
+2200;Forescout SecureConnector for Linux (older releases, SSH);security;Forescout;no
+2222;Forescout eyeSight HA pair physical appliance SSH;security,admin;Forescout;no
+4568;Fortinet FortiNAC Persistent Agent (TLS);security;Fortinet;no
+udp:4567;Fortinet FortiNAC Persistent Agent (legacy agents);security;Fortinet;
+1050;Fortinet FortiNAC high availability (CORBA);security;Fortinet;
+5555;Fortinet FortiNAC internal / high availability;security;Fortinet;
+8443;Fortinet FortiNAC admin UI (HTTPS);security,admin;Fortinet;no
+8080;Fortinet FortiNAC admin UI (HTTP);security,admin;Fortinet;yes
+8000;Fortinet FortiNAC FSSO (Security Fabric);security,directory;Fortinet;
+8543;Fortinet FortiNAC Analytics Server data transfer;security;Fortinet;
+9022;CyberArk Vault Remote Control Agent (PrivateArk Remote Agent);security,admin;CyberArk;
+udp:1858;CyberArk Vault (UDP: PTA, PrivateArk Client notifications);security;CyberArk;
+3390;Delinea Secret Server RDP proxy;security,remote-access;Delinea;
+8443;Delinea Secret Server RDP Gateway (RDP over HTTPS);security,remote-access;Delinea;no
+8672;Delinea Secret Server MemoryMQ;security,messaging;Delinea;yes
+8671;Delinea Secret Server MemoryMQ (SSL);security,messaging;Delinea;no
+5832;BeyondTrust passive Jump Client wake-up listener;security,remote-access;BeyondTrust;
+9200;HashiCorp Boundary controller API;security,remote-access,admin;HashiCorp;
+9201;HashiCorp Boundary controller cluster (workers);security;HashiCorp;
+9202;HashiCorp Boundary worker session proxy;security,remote-access;HashiCorp;
+9203;HashiCorp Boundary ops (health, metrics);security,monitoring;HashiCorp;
+3022;Teleport SSH Service (nodes);security,remote-access;Teleport;no
+3023;Teleport Proxy SSH;security,remote-access;Teleport;no
+3024;Teleport Proxy reverse tunnel;security,remote-access;Teleport;no
+3025;Teleport Auth Service gRPC API;security,directory,remote-access;Teleport;no
+3026;Teleport Kubernetes Service;security,devops;Teleport;no
+3028;Teleport Windows Desktop Service;security,remote-access;Teleport;
+3080;Teleport Proxy web UI / login (without TLS routing);security,remote-access,admin,web;Teleport;no
+5550;RSA Authentication Manager agent auto-registration;security,directory;RSA;
+5555;RSA Authentication Manager agent authentication (REST);security,directory;RSA;
+5580;RSA Authentication Manager offline authentication service;security,directory;RSA;
+7002;RSA Authentication Manager replication / RSA API (SSL);security;RSA;no
+7022;RSA Authentication Manager replication, trusted realms and web tier (SSL);security;RSA;no
+7072;RSA Authentication Manager Operations Console;security,admin;RSA;
+7082;RSA Authentication Manager RADIUS configuration (SSL);security,admin;RSA;no
+9786;RSA Authentication Manager embedded identity router;security,directory;RSA;
+udp:1812;Duo Authentication Proxy RADIUS server;security,directory;Cisco (Duo);
+2083;Duo Authentication Proxy RADIUS server (RadSec);security,directory;Cisco (Duo);no
+389;Duo Authentication Proxy LDAP server (ldap_server_auto);security,directory;Cisco (Duo);yes
+636;Duo Authentication Proxy LDAPS server (ldap_server_auto);security,directory;Cisco (Duo);no
+8080;Keycloak HTTP;directory,security,web;Keycloak;yes
+8443;Keycloak HTTPS;directory,security,web;Keycloak;no
+9000;Keycloak management interface (health, metrics);directory,monitoring;Keycloak;
+7800;Keycloak cluster transport (JGroups);directory;Keycloak;
+57800;Keycloak cluster failure detection (JGroups FD_SOCK2);directory;Keycloak;
+18184;Check Point OPSEC LEA (log export API);security,monitoring;Check Point;
+18210;Check Point OPSEC certificate pull (ICA);security;Check Point;
+5696;KMIP key management (OASIS KMIP);security;;no
+1344;ICAP (RFC 3507);security,web;;yes
+udp:4166;Trellix IPS Manager-Sensor command channel (IPv6);security;Trellix;
+udp:9008;Trellix NTBA EIA service (DTLS);security;Trellix;no
+61613;Trellix Logon Collector (DLP appliances);security,directory;Trellix;
+8444;Symantec Endpoint Protection Manager web services (Protection Center);security;Broadcom (Symantec);
+443;Symantec Endpoint Protection Manager client communication (HTTPS);security;Broadcom (Symantec);no
+7077;Bitdefender GravityZone staging Update Server;security;Bitdefender;
+48652;Bitdefender Security Server for NSX (Guest Introspection);security,virtualization;Bitdefender;
+27017;Bitdefender GravityZone database appliance (MongoDB);security,db;Bitdefender;
+6379;Bitdefender GravityZone Report Builder / Security Server (Redis);security,db;Bitdefender;
+8887;Bitdefender Network Attack Defense (BEST for Linux);security;Bitdefender;
+443;WithSecure Policy Manager Proxy host module;security;WithSecure (F-Secure);no
+80;WithSecure Policy Manager Proxy (database updates, legacy clients);security;WithSecure (F-Secure);yes
+443;Sophos Firewall user portal;security,remote-access;Sophos;no
+443;Microsoft ATA Center (console and gateway communication);security,directory;Microsoft;no
+udp:514;Microsoft ATA Gateway syslog listener (SIEM events);security,monitoring;Microsoft;yes
+32009;IBM QRadar identity data (VIS to ECS);monitoring;IBM;
+23111;IBM QRadar ECS SOAP web server;monitoring;IBM;
+7803;IBM QRadar Anomaly Detection Engine;monitoring,security;IBM;
+udp:7789;IBM QRadar HA disk replication (DRBD);monitoring;IBM;
+7676-7677;IBM QRadar message queue broker (IMQ, managed host components);monitoring,messaging;IBM;
+10000;IBM QRadar web-based system administration (legacy);monitoring,admin;IBM;
+udp:10000;IBM QRadar web-based system administration (legacy);monitoring,admin;IBM;
+23333;Emulex HBAnyware remote management (elxmgmt, QRadar appliances);file,admin;Broadcom (Emulex);
+5443;OpenText ArcSight installer / CDF management portal;monitoring,admin;OpenText (Micro Focus);
+38080;OpenText ArcSight Event Broker management (from ArcMC);monitoring,admin;OpenText (Micro Focus);
+9093;OpenText ArcSight Event Broker / Transformation Hub Kafka (TLS);monitoring,messaging;OpenText (Micro Focus);no
+6702;OpenText ArcSight SmartConnector Load Balancer HA health check;monitoring;OpenText (Micro Focus);
+3179-3182;OpenText ArcSight ESM information repository;monitoring;OpenText (Micro Focus);
+10000-10100;OpenText ArcSight ESM distributed cluster services (default range);monitoring;OpenText (Micro Focus);
+8089;LogRhythm Reporting Engine (Platform Manager);monitoring;LogRhythm (Exabeam);
+8076;LogRhythm metrics database (InfluxDB);monitoring;LogRhythm (Exabeam);
+8080;Splunk indexer cluster replication;monitoring;Splunk;
+8081;Splunk search head cluster replication;monitoring;Splunk;
+udp:514;Wazuh syslog collector (disabled by default);security,monitoring;Wazuh;yes
+443;Greenbone GSA web interface (HTTPS default);security;Greenbone;no
+9002;Cisco ISE guest account management (admin GUI);security,admin;Cisco;
+9062;Cisco ISE ERS certificate authentication (Catalyst Center);security,admin;Cisco;
+9063;Cisco ISE TrustSec data transfer (REST);security;Cisco;
+9070;Cisco ISE OpenAPIs (MnT);security,admin;Cisco;
+9993;Cisco ISE pxGrid bulk download (MnT);security;Cisco;
+5701;Cisco ISE log analytics (on MnT nodes, from PAN);security,monitoring;Cisco;
+9644;Cisco ISE SXP internal;security,network;Cisco;
+9300;Cisco ISE context visibility replication (Elasticsearch);security,db;Cisco;
+6379;Cisco ISE profiler endpoint ownership sync;security;Cisco;
+15672;Cisco ISE internal communication (all nodes);security;Cisco;
+8080;Cisco ISE profiler HTTP probe;security;Cisco;
+8084;Cisco ISE BYOD EST for Android;security;Cisco;
+8180;Fortinet FortiNAC Analytics Server agent updates;security;Fortinet;
+3021;Teleport Proxy peering;security;Teleport;
+3036;Teleport Database Service (MySQL);security,db;Teleport;
+1812;RSA Authentication Manager RADIUS replication (TCP);security,directory;RSA;
+1813;RSA Authentication Manager RADIUS administration (TCP, before 8.6);security,directory,admin;RSA;
+8443;RSA Authentication Manager update status (during product updates only);security,admin;RSA;
+80;Duo Authentication Proxy HTTP proxy mode;security,web;Cisco (Duo);yes
+18187;Check Point OPSEC ELA (event logging API);security,monitoring;Check Point;
+28270;Palo Alto Networks Log Collector log distribution (Collector Group);security,monitoring;Palo Alto Networks;
+9300-9302;Palo Alto Networks Log Collector log distribution (PAN-OS 11.1 and later);security,monitoring;Palo Alto Networks;
+8765;Palo Alto Networks offline license server (air-gapped Panorama);security;Palo Alto Networks;yes
+23000-23999;Palo Alto Networks Panorama syslog from Traps ESM (legacy);security,monitoring;Palo Alto Networks;
+28;Palo Alto Networks HA1 control link (encrypted, SSH);security;Palo Alto Networks;no
+28764-28767;Palo Alto Networks HA1 / HA1 backup SSH-tunneled communication;security;Palo Alto Networks;no
+28770;Palo Alto Networks HA1 backup link;security;Palo Alto Networks;
+28771;Palo Alto Networks HA heartbeat backup;security;Palo Alto Networks;
+udp:29281;Palo Alto Networks HA2 data link (UDP transport);security;Palo Alto Networks;
+5006;Palo Alto Networks User-ID agent XML API;security,directory;Palo Alto Networks;
+5009;Palo Alto Networks Terminal Server Agent;security,directory;Palo Alto Networks;
+6514;Palo Alto Networks User-ID syslog listener (SSL);security,directory;Palo Alto Networks;no
+udp:514;Palo Alto Networks User-ID syslog listener;security,directory;Palo Alto Networks;yes
+514;Palo Alto Networks User-ID agent syslog listener (TCP, Windows agent);security,directory;Palo Alto Networks;yes
+8060;Kaspersky Security Center installation package publishing (HTTP);security;Kaspersky;yes
+8061;Kaspersky Security Center installation package publishing (TLS);security;Kaspersky;no
+udp:13000;Kaspersky Security Center (powered-off device notices from Network Agents);security;Kaspersky;
+13001;Kaspersky Security Center Administration Server as distribution point;security;Kaspersky;no
+13111;Kaspersky Security Center KSN proxy;security;Kaspersky;
+udp:15111;Kaspersky Security Center KSN proxy;security;Kaspersky;
+17111;Kaspersky Security Center KSN proxy (HTTPS, distribution point);security;Kaspersky;no
+17000;Kaspersky Security Center activation proxy;security;Kaspersky;no
+17100;Kaspersky Security Center activation proxy (mobile devices);security;Kaspersky;no
+19170;Kaspersky Security Center Web Console remote connection tunneling;security,remote-access;Kaspersky;no
+13292;Kaspersky Security Center mobile device connections;security;Kaspersky;no
+13294;Kaspersky Security Center UEFI protection device connections;security;Kaspersky;no
+13295;Kaspersky Security Center distribution point push server;security;Kaspersky;no
+13296;Kaspersky Security Center Prometheus metrics;security,monitoring;Kaspersky;no
+udp:15001;Kaspersky Network Agent multicast from distribution point;security;Kaspersky;
+542;Fortinet FGFM over IPv6 (FortiGate to FortiManager);security,admin;Fortinet;no
+8890;Fortinet FortiManager FortiGuard queries (local FortiGuard server);security;Fortinet;
+udp:53;Fortinet FortiManager FortiGuard rating queries (local FortiGuard server);security;Fortinet;
+udp:9443;Fortinet FortiGuard AV/IPS push (FortiManager, FortiGate);security;Fortinet;
+6028;Fortinet FortiManager FortiClient Manager;security,admin;Fortinet;
+3000;Fortinet FortiAnalyzer log aggregation;security,monitoring;Fortinet;
+8443;Fortinet FortiAnalyzer logs from FortiClient for Chromebook;security,monitoring;Fortinet;no
+8443;Fortinet FortiClient EMS Chromebook profile server;security;Fortinet;no
+udp:720;Fortinet FortiAuthenticator HA heartbeat;security,directory;Fortinet;
+udp:721;Fortinet FortiAuthenticator load-balancing / HA secondary sync;security,directory;Fortinet;
+udp:1194;Fortinet FortiAuthenticator load-balancing secondary sync;security,directory;Fortinet;
+8001;Fortinet FortiAuthenticator SSO Mobility Agent / FSSO;security,directory;Fortinet;
+8001;Fortinet FortiGate SSO Mobility Agent / FSSO;security,directory;Fortinet;
+8000;Fortinet FortiAuthenticator FSSO;security,directory;Fortinet;
+8002-8003;Fortinet FortiAuthenticator FSSO tiers;security,directory;Fortinet;
+2560;Fortinet FortiAuthenticator OCSP responder;security;Fortinet;yes
+389;Fortinet FortiAuthenticator LDAP server;security,directory;Fortinet;yes
+636;Fortinet FortiAuthenticator LDAPS server;security,directory;Fortinet;no
+8013;Fortinet FortiGate FortiClient compliance / Security Fabric;security;Fortinet;
+11344;Fortinet FortiSandbox ICAP over SSL (ICAPS);security,web;Fortinet;no
+udp:12222;LWAPP data (RFC 5412);network;;yes
+udp:12223;LWAPP control (RFC 5412);network;;
+323;RPKI to Router protocol (RFC 6810);network,security;;yes
+324;RPKI to Router protocol over TLS (RFC 6810);network,security;;no
+udp:546;DHCPv6 client (RFC 9915);network;;yes
+udp:547;DHCPv6 server / relay agent (RFC 9915);network;;yes
+639;MSDP (RFC 3618);network;;yes
+udp:853;DNS over QUIC / DTLS (RFC 9250, RFC 8094);directory,network;;no
+861;OWAMP control (RFC 4656);network,monitoring;;yes
+862;TWAMP control (RFC 5357);network,monitoring;;yes
+udp:862;TWAMP test receiver (RFC 8545);network,monitoring;;yes
+udp:2029;Cisco HSRP for IPv6 (HSRPv2);network;Cisco;yes
+udp:3222;Cisco GLBP;network;Cisco;yes
+udp:1589;Cisco VQP (VMPS VLAN query);network;Cisco;yes
+udp:4011;PXE boot server discovery (IANA altserviceboot);network;;yes
+udp:3785;BFD echo (RFC 5881);network;;yes
+udp:6784;BFD on LAG member links (RFC 7130);network;;yes
+udp:7784;Seamless BFD (RFC 7881);network;;yes
+udp:3503;MPLS LSP ping (RFC 8029);network,monitoring;;yes
+udp:4341;LISP data plane (RFC 9300);network;;yes
+udp:4342;LISP control plane (RFC 9301);network;;yes
+4189;PCEP (RFC 5440);network;;yes
+4739;IPFIX over TCP (RFC 7011);monitoring,network;;yes
+sctp:4739;IPFIX over SCTP (RFC 7011);monitoring,network;;yes
+4740;IPFIX over TLS (RFC 7011);monitoring,network;;no
+udp:4740;IPFIX over DTLS (RFC 7011);monitoring,network;;no
+4500;IKE and IPsec over TCP (RFC 9329);security,network;;no
+4334;NETCONF Call Home over SSH (RFC 8071);network,admin;;no
+4335;NETCONF Call Home over TLS (RFC 8071);network,admin;;no
+6640;OVSDB management protocol (RFC 7047);network,virtualization,admin;Open vSwitch;
+9339;gNMI / gNOI over gRPC;network,admin,monitoring;OpenConfig;
+4163;Silver Peak peer protocol;network;Silver Peak (HPE);
+4164;Silver Peak communication protocol;network;Silver Peak (HPE);
+udp:12346-12445;Cisco Catalyst SD-WAN DTLS control and IPsec/BFD data plane (base 12346, port hopping and offset);network;Cisco;no
+udp:12446-13046;Cisco Catalyst SD-WAN Manager / Controller DTLS control (per-core ports, 12346 + 100 per core);network,admin;Cisco;no
+23456-24156;Cisco Catalyst SD-WAN Manager / Controller TLS control (per-core ports, 23456 + 100 per core);network,admin;Cisco;no
+7600;Cisco Catalyst SD-WAN Manager cluster application server;network,admin;Cisco;
+57600;Cisco Catalyst SD-WAN Manager cluster application server;network,admin;Cisco;
+8553;Cisco Catalyst SD-WAN Manager Cloud Agent (cluster);network;Cisco;
+50051;Cisco Catalyst SD-WAN Manager Cloud Agent V2 (cluster);network;Cisco;
+10502-10503;Cisco Catalyst SD-WAN Manager SD-AVC (cluster);network;Cisco;
+udp:16666;Cisco Catalyst 9800 WLC mobility tunnel control (CAPWAP, DTLS);network;Cisco;no
+udp:16667;Cisco Catalyst 9800 WLC mobility tunnel data (CAPWAP);network;Cisco;yes
+16113;Cisco NMSP (WLC to MSE / CMX / Spectrum Expert);network,monitoring;Cisco;
+2222;Cisco Catalyst Center (DNA Center) shell over SSH;network,admin;Cisco;no
+9004;Cisco Catalyst Center web installation page;network,admin;Cisco;
+udp:6007;Cisco Catalyst Center NetFlow collector;monitoring,network;Cisco;yes
+9991;Cisco Catalyst Center Wide Area Bonjour (SDG agents);network;Cisco;
+udp:21730;Cisco Catalyst Center application visibility (CBAR);monitoring,network;Cisco;
+25103;Cisco Catalyst Center streaming telemetry (Catalyst 9000, 9800 WLC);monitoring,network;Cisco;
+32626;Cisco Catalyst Center Intelligent Capture (gRPC from APs);monitoring,network;Cisco;
+8082;Cisco Prime Infrastructure HA Health Monitor (heartbeat, web page);network,admin;Cisco;
+1522;Cisco Prime Infrastructure HA Oracle data synchronization;network,db;Cisco;
+8085;Cisco Prime Infrastructure HA bandwidth check;network;Cisco;
+57400;Cisco IOS XR gRPC server (gNMI, dial-in telemetry);network,admin,monitoring;Cisco;
+50051;Cisco NX-OS gRPC agent (gNMI);network,admin,monitoring;Cisco;
+50052;Cisco IOS XE gNMI (insecure mode);network,admin,monitoring;Cisco;yes
+57400;Nokia SR OS / SR Linux gRPC server (gNMI);network,admin,monitoring;Nokia;
+6030;Arista EOS gNMI (OpenConfig, gRPC);network,admin,monitoring;Arista Networks;
+9910;Arista CloudVision TerminAttr telemetry ingest;monitoring,network;Arista Networks;no
+4432;Arista MLAG peer control (TCP);network;Arista Networks;
+udp:4432;Arista MLAG peer control and heartbeat (UDP);network;Arista Networks;
+7804;Juniper Junos Space device-initiated connection (outbound SSH);network,admin;Juniper Networks;no
+udp:8209;HPE Aruba secure PAPI;network;HPE Aruba Networking;no
+udp:4500;HPE Aruba Control Plane Security (CPsec) and Remote AP IPsec;network,security;HPE Aruba Networking;no
+udp:7678;HPE Aruba AOS-CX VSX keepalive;network;HPE Aruba Networking;
+2000;MikroTik bandwidth test server (btest);network,monitoring;MikroTik;yes
+udp:20561;MikroTik MAC Telnet / MAC WinBox / MAC ping (layer 2);network,admin;MikroTik;
+8880-8882;Ubiquiti UniFi hotspot portal redirection (HTTP);network,web;Ubiquiti;yes
+8843;Ubiquiti UniFi hotspot portal redirection (HTTPS);network,web;Ubiquiti;no
+8444;Ubiquiti UniFi secure hotspot portal;network,web;Ubiquiti;no
+6789;Ubiquiti UniFi mobile speed test;network;Ubiquiti;
+udp:5514;Ubiquiti UniFi remote syslog capture;network,monitoring;Ubiquiti;yes
+27117;Ubiquiti UniFi Network local database (MongoDB);network,db;Ubiquiti;
+udp:1900;Ubiquiti UniFi L2 discovery;network;Ubiquiti;yes
+28082;Ubiquiti UniFi device packet capture and support file download;network;Ubiquiti;
+udp:10101;Ubiquiti UniFi client fingerprinting;network;Ubiquiti;
+udp:20100-22100;Ubiquiti UniFi Site Magic SD-WAN;network;Ubiquiti;
+8088;TP-Link Omada Software Controller web UI and portal (HTTP);network,admin;TP-Link;yes
+8043;TP-Link Omada Software Controller web UI (HTTPS) and device upgrade;network,admin;TP-Link;no
+8843;TP-Link Omada portal (HTTPS);network,web;TP-Link;no
+udp:29810;TP-Link Omada device discovery;network;TP-Link;
+29811-29812;TP-Link Omada device management (v4 firmware);network,admin;TP-Link;
+29813;TP-Link Omada device firmware upgrade (v4 firmware);network;TP-Link;
+29814;TP-Link Omada device adoption and management (v5 firmware);network,admin;TP-Link;
+29815;TP-Link Omada device info, packet capture and DPI statistics (v5.9+);network,monitoring;TP-Link;
+29816;TP-Link Omada remote control terminal session (v5.9+);network,admin;TP-Link;
+29817;TP-Link Omada device monitoring data (v6.0+);network,monitoring;TP-Link;
+udp:27001;TP-Link Omada controller discovery by the Omada app;network;TP-Link;
+27217;TP-Link Omada Software Controller database (MongoDB);network,db;TP-Link;
+91;Ruckus SmartZone AP firmware download (legacy AP firmware) and ARC signature updates;network;Ruckus Networks;yes
+udp:12222-12223;Ruckus SmartZone LWAPP AP discovery (legacy ZoneDirector APs);network;Ruckus Networks;
+23232;Ruckus SmartZone GRE tunnel (AP to data plane);network;Ruckus Networks;
+23233;Ruckus SmartZone GRE over UDP tunnel (AP to data plane, TCP);network;Ruckus Networks;
+udp:23233;Ruckus SmartZone GRE over UDP tunnel (AP to data plane);network;Ruckus Networks;
+8443;Ruckus SmartZone web interface and public API;network,admin;Ruckus Networks;no
+8022;Ruckus SmartZone CLI over SSH (management ACL enabled);network,admin;Ruckus Networks;no
+9997;Ruckus SmartZone internal subscriber portal (HTTP);network,web;Ruckus Networks;yes
+6868;Ruckus vSZ-D internal communication;network;Ruckus Networks;
+8090;Ruckus SmartZone hotspot redirect for unauthorized UEs (HTTP);network,web;Ruckus Networks;yes
+8099;Ruckus SmartZone hotspot redirect for unauthorized UEs (HTTPS);network,web;Ruckus Networks;no
+9080;Ruckus SmartZone hotspot northbound portal interface (HTTP);network,web;Ruckus Networks;yes
+9443;Ruckus SmartZone hotspot northbound portal interface (HTTPS);network,web;Ruckus Networks;no
+9998;Ruckus SmartZone hotspot WISPr subscriber login (HTTPS);network,web;Ruckus Networks;no
+3333;Ruckus local license server;network;Ruckus Networks;
+7000;Ruckus SmartZone cluster database (Cassandra);network,db;Ruckus Networks;
+7800;Ruckus SmartZone cluster node communication;network;Ruckus Networks;
+udp:7800;Ruckus SmartZone cluster node communication;network;Ruckus Networks;
+8888;Fortinet FortiManager local FortiGuard (web filter queries, AV/IPS updates);security;Fortinet;
+udp:8888;Fortinet FortiManager local FortiGuard (web filter queries, AV/IPS updates);security;Fortinet;
+8889;Fortinet FortiManager local FortiGuard antispam;security;Fortinet;
+8900;Fortinet FortiManager local FortiGuard web/email filter, file query and GeoIP;security;Fortinet;
+5199;Fortinet FortiManager / FortiAnalyzer HA;security;Fortinet;
+300;Fortinet FortiManager log aggregation server;security,monitoring;Fortinet;
+8080;Fortinet FortiManager / FortiAnalyzer web services (SOAP/XML API);security,admin;Fortinet;
+8082;Fortinet FortiManager remote access to FortiOS GUI (7.4.2+);security,admin;Fortinet;
+udp:3003;NetScaler ADC high availability heartbeat;network;NetScaler;yes
+3008;NetScaler ADC HA synchronization / command propagation (secure);network,admin;NetScaler;no
+3009;NetScaler ADC HA command propagation and GSLB metric exchange (secure);network;NetScaler;no
+3010;NetScaler ADC HA synchronization / command propagation (non-secure);network,admin;NetScaler;yes
+3011;NetScaler ADC HA command propagation and GSLB metric exchange (non-secure);network;NetScaler;yes
+udp:7000;NetScaler ADC cluster internal communication;network;NetScaler;
+1028;F5 BIG-IP connection mirroring (single channel, before 11.4);network;F5;
+1029-1155;F5 BIG-IP connection mirroring per traffic group (11.4 and later);network;F5;
+udp:1194;Infoblox NIOS Grid VPN tunnel;directory,network;Infoblox;no
+udp:2114;Infoblox NIOS Grid key exchange;directory,network;Infoblox;
+9997;Infoblox NIOS reporting service;monitoring,directory;Infoblox;
+8787;Infoblox vNIOS for AWS API proxy;directory,network;Infoblox;
+10042;BlueCat DNS/DHCP Server management from Address Manager;directory,network,admin;BlueCat;no
+10045;BlueCat DNS/DHCP Server notifications to Address Manager (unencrypted);directory,network;BlueCat;yes
+10046;BlueCat DNS/DHCP Server notifications to Address Manager (encrypted);directory,network;BlueCat;no
+udp:694;BlueCat DNS/DHCP Server xHA heartbeat;directory,network;BlueCat;
+7788-7789;BlueCat DNS/DHCP Server xHA disk partition replication;directory,network;BlueCat;
+30865;BlueCat DNS/DHCP Server xHA configuration replication (csync2);directory,network;BlueCat;
+264;Check Point FW1_topo (topology download for VPN clients);security;Check Point;
+18181;Check Point OPSEC CVP (content inspection server);security;Check Point;
+18182;Check Point OPSEC UFP (URL filtering server);security;Check Point;
+18183;Check Point OPSEC SAM (suspicious activity monitoring);security;Check Point;
+18211;Check Point ICA push (certificate distribution);security;Check Point;
+udp:259;Check Point RDP (control connections to gateways);security;Check Point;
+udp:18233;Check Point SCV (secure configuration verification);security;Check Point;
+udp:18234;Check Point VPN tunnel test;security;Check Point;
+18202;Check Point RTM (SmartView Monitor);security,monitoring;Check Point;
+18205;Check Point reporting server (CP_reporting);security,monitoring;Check Point;
+18208;Check Point CPRID (remote installation daemon);security,admin;Check Point;
+18221;Check Point management high availability (CP_redundant);security,admin;Check Point;
+udp:8116;Check Point ClusterXL Cluster Control Protocol (Check Point Clustering);security;Check Point;
+7744;Riverbed SteelHead data store synchronization;network;Riverbed;
+7800;Riverbed SteelHead in-path appliance-to-appliance connections;network;Riverbed;
+7801;Riverbed SteelHead NAT;network;Riverbed;
+7810;Riverbed SteelHead out-of-path server;network;Riverbed;
+7820;Riverbed SteelHead failover (redundant appliances);network;Riverbed;
+7850;Riverbed SteelHead connection forwarding (neighbors);network;Riverbed;
+7860;Riverbed SteelHead Interceptor;network;Riverbed;
+7870;Riverbed SteelHead Mobile Controller;network;Riverbed;
+7881-7882;Riverbed SteelHead TLS optimization (SSL simplification);network;Riverbed;
+udp:2426;VMware SD-WAN (VeloCloud) VCMP tunnels;network,security;Broadcom (VMware VeloCloud);no
+6163;Veeam Hyper-V Integration Service;backup,virtualization;Veeam;
+6164;Veeam WAN accelerator RPC control;backup;Veeam;
+6165;Veeam WAN accelerator data transfer;backup;Veeam;
+6166;Veeam tape server RPC control;backup;Veeam;
+6167;Veeam Log Shipping Service (SQL Server / Oracle guests);backup,db;Veeam;
+6173;Veeam Guest Helper (guest OS processing, file-level restore);backup;Veeam;
+6182;Veeam CDP proxy control channel;backup;Veeam;
+6190;Veeam guest interaction proxy (non-persistent runtime components);backup;Veeam;
+6290;Veeam guest interaction proxy control channel;backup;Veeam;
+6210;Veeam Backup VSS Integration Service (SMB file share backup);backup;Veeam;
+6220;Veeam WAN accelerator traffic control (Cloud Connect);backup;Veeam;
+10003;Veeam B&R console to backup server (Cloud Connect management);backup,admin;Veeam;
+11731;Veeam Installer Service failover port;backup;Veeam;
+6960;Veeam B&R application backup repository;backup;Veeam;
+33032;Veeam CDP data channel (ESXi I/O filter to CDP proxy);backup,virtualization;Veeam;
+33033;Veeam CDP source proxy to target proxy;backup;Veeam;
+33034;Veeam CDP Coordinator Service (backup server);backup;Veeam;
+33035;Veeam CDP I/O filter installation;backup,virtualization;Veeam;
+33036;Veeam CDP components on ESXi (HTTPS without reverse proxy);backup,virtualization;Veeam;no
+33050;Veeam universal CDP agent on source workload (HTTPS);backup;Veeam;no
+9387;HPE StoreOnce Catalyst (backup server / gateway to StoreOnce);backup,file;HPE;
+9388;HPE StoreOnce Catalyst (backup server / gateway to StoreOnce);backup,file;HPE;
+1239;Veeam ONE Web Services / Web Client (HTTPS);backup,monitoring,admin;Veeam;no
+2741;Veeam ONE internal Web API;backup,monitoring;Veeam;
+2805;Veeam ONE Monitoring service (Veeam Analytics data collection);backup,monitoring;Veeam;
+9191;Veeam Backup for Microsoft 365 server (REST API, PowerShell, console, proxies);backup,admin;Veeam;
+9193;Veeam Backup for Microsoft 365 backup proxy;backup;Veeam;
+9194;Veeam Backup for Microsoft 365 server (Veeam Explorers, Restore Portal);backup;Veeam;
+4443;Veeam Backup for Microsoft 365 REST API / Restore Portal (HTTPS);backup,web;Veeam;no
+443;Veritas NetBackup web UI (NBWMC on primary server);backup,admin,web;Veritas;no
+13731;Veritas NetBackup web UI smart card authentication;backup,admin;Veritas;
+10082;Veritas NetBackup MSDP / Backup Exec deduplication engine (spoold);backup;Veritas;
+10102;Veritas NetBackup MSDP / Backup Exec deduplication manager (spad);backup;Veritas;
+8443;Veritas NetBackup legacy Web Services (HTTPS, first port set);backup,admin;Veritas;no
+8553;Veritas NetBackup legacy Web Services (HTTPS, second port set);backup,admin;Veritas;no
+8663;Veritas NetBackup legacy Web Services (HTTPS, third port set);backup,admin;Veritas;no
+7394;Veritas NetBackup nbfsd (Granular Restore Technology);backup;Veritas;
+13781;Veritas NetBackup Messaging Broker (nbmqbroker);backup,messaging;Veritas;
+13720;Veritas NetBackup bprd request daemon (legacy);backup;Veritas;
+13721;Veritas NetBackup bpdbm database manager (legacy);backup;Veritas;
+13722;Veritas NetBackup bpjava-msvc Java console (legacy);backup,admin;Veritas;
+13785;Veritas NetBackup database (NBDB);backup,db;Veritas;
+5671;Veritas NetBackup Snapshot Manager (agent interaction);backup,messaging;Veritas;no
+3527;Veritas Backup Exec server (beserver);backup;Veritas;
+6106;Veritas Backup Exec server (beserver);backup;Veritas;
+10000;Veritas Backup Exec Agent for Windows / Linux (NDMP);backup;Veritas;
+50104;Veritas Backup Exec Management Service;backup,admin;Veritas;
+6103;Veritas Backup Exec Agent for Windows;backup;Veritas;
+5633;Veritas Backup Exec Agent for Oracle (DBA-initiated backups);backup,db;Veritas;
+1125;Veritas Backup Exec SQL Server instance (MSSQL$BKUPEXEC);backup,db;Veritas;
+4005;Zerto ZVM to VRA log collection (TLS);backup,virtualization;Zerto;no
+4006;Zerto ZVM to VRA / VBA communication (TLS);backup,virtualization;Zerto;no
+4007;Zerto VRA to VRA control;backup,virtualization;Zerto;yes
+4008;Zerto VRA to VRA replication data;backup,virtualization;Zerto;yes
+4009;Zerto ZVM to VRA checkpoints (TLS);backup,virtualization;Zerto;no
+9071;Zerto ZVM to ZVM pairing (HTTPS, 8.0 and later);backup;Zerto;no
+9080;Zerto ZVM internal API (PowerShell cmdlets, diagnostics);backup,admin;Zerto;yes
+9081;Zerto ZVM to ZVM (legacy, backward compatibility);backup;Zerto;
+9180;Zerto ZVM to Virtual Backup Appliance (VBA);backup;Zerto;
+9669;Zerto Virtual Manager GUI / REST API (HTTPS);backup,admin,web;Zerto;no
+9779;Zerto Self-Service Portal to ZVM (HTTPS);backup,admin;Zerto;no
+9989;Zerto Cloud Manager GUI / REST API (HTTPS);backup,admin,web;Zerto;no
+4443;NAKIVO Backup & Replication Director web UI (HTTPS);backup,admin,web;NAKIVO;no
+9446;NAKIVO Transporter (Director / Transporter control);backup;NAKIVO;
+9448-10000;NAKIVO Transporter data transfer;backup;NAKIVO;
+9445;NAKIVO Director configuration service on Hyper-V hosts;backup,virtualization;NAKIVO;
+33088;NAKIVO real-time replication I/O filter (ESXi);backup,virtualization;NAKIVO;
+33089-33091;NAKIVO Journal Service (real-time replication);backup,virtualization;NAKIVO;
+8014;Arcserve UDP Recovery Point Server / Agent web services (HTTP/HTTPS);backup,admin;Arcserve;
+8015;Arcserve UDP Console / Gateway (HTTP/HTTPS);backup,admin;Arcserve;
+4090;Arcserve UDP Virtual Standby data transfer (proxy mode);backup;Arcserve;
+5000-5060;Arcserve UDP RPS data store service (GDDServer);backup;Arcserve;
+6052;Arcserve UDP Console sync with Arcserve Backup Global Dashboard;backup;Arcserve;
+6054;Arcserve UDP Console sync with Arcserve Backup primary server;backup;Arcserve;
+8021;Arcserve UDP Linux Backup Server backup service (cresvc);backup;Arcserve;
+8016;Arcserve UDP Linux Backup Server Instant VM / Instant BMR data service;backup;Arcserve;
+8017;Arcserve UDP Appliance NAT redirect to Linux Backup Server (Amazon S3 backup);backup;Arcserve;
+8018;Arcserve UDP Appliance NAT redirect to Linux Backup Server agent (8014);backup;Arcserve;
+8019;Arcserve UDP Appliance NAT redirect to Linux Backup Server SSH;backup,admin;Arcserve;no
+8036;Arcserve UDP Appliance NAT redirect to Linux Backup Server (8036);backup;Arcserve;
+50000-50004;Arcserve UDP Appliance NAT redirect to Linux Backup Server (cloud backup);backup;Arcserve;
+6050;Arcserve Backup Universal Agent;backup;Arcserve;
+udp:6050;Arcserve Backup Universal Agent;backup;Arcserve;
+6502;Arcserve Backup Communication Foundation / Tape Engine;backup;Arcserve;
+6503;Arcserve Backup Job Engine;backup;Arcserve;
+6504;Arcserve Backup Database Engine;backup;Arcserve;
+7854;Arcserve Backup PortMapper (catirpc);backup;Arcserve;
+41523;Arcserve Backup Discovery Service;backup;Arcserve;
+udp:41524;Arcserve Backup Discovery Service;backup;Arcserve;
+1501;IBM Storage Protect client scheduler (server-prompted mode);backup;IBM;
+11090;IBM Storage Protect Operations Center (HTTPS);backup,admin,web;IBM;no
+9028;IBM Storage Protect client management service;backup,admin;IBM;
+7937;Dell NetWorker nsrexecd (server, client, storage node, NMC);backup;Dell;
+7938;Dell NetWorker nsrexecd portmapper;backup;Dell;
+7937-9936;Dell NetWorker default service port range;backup;Dell;
+9090;Dell NetWorker Authentication Service (AUTHC) / Web UI;backup,admin,directory;Dell;no
+9000;Dell NetWorker Management Console server (HTTPS);backup,admin;Dell;no
+9001;Dell NetWorker Management Console RPC (Java client to server);backup,admin;Dell;
+9095;Dell NetWorker server port used by the NetWorker Web UI server;backup,admin;Dell;
+5435;Dell NetWorker status updating and reporting (NWUI);backup,monitoring;Dell;
+udp:5435;Dell NetWorker status updating and reporting (NWUI);backup,monitoring;Dell;
+6278;Dell NetWorker Module for Microsoft (NMM) control;backup;Dell;
+6279;Dell NetWorker Module for Microsoft (NMM) data;backup;Dell;
+10024;Dell NetWorker Module for Microsoft Hyper-V FLR persistence service;backup,virtualization;Dell;
+10099;Dell NetWorker Module for Microsoft Hyper-V FLR cache service;backup,virtualization;Dell;
+11000;Dell NetWorker Module for Microsoft Hyper-V FLR (HTTPS);backup,virtualization;Dell;no
+27000;Dell Avamar server (GSAN) client backup traffic;backup;Dell;
+29000;Dell Avamar server (GSAN) client backup traffic over TLS;backup;Dell;no
+28001;Dell Avamar administrator server (MCS) client communications;backup,admin;Dell;
+30001;Dell Avamar administrator server (MCS) with certificate authentication;backup,admin;Dell;no
+28002;Dell Avamar client agent (avagent);backup;Dell;
+30002;Dell Avamar client agent (avagent) with certificate authentication / NDMP;backup;Dell;no
+3008;Dell Data Domain RSS (Archiver, GDA, Archive Tier);backup,file;Dell;
+5001;Dell Data Domain iPerf throughput test;network,monitoring;Dell;yes
+50051;Cohesity agent (physical Windows / Linux servers);backup;Cohesity;
+21213;Cohesity backup agents (IANA cohesity-agent);backup;Cohesity;
+1743;Unitrends agent command and control (BP Agent service);backup;Unitrends;
+1745-1749;Unitrends agent data ports (Windows);backup;Unitrends;
+1745-1844;Unitrends agent data ports (Linux / Unix);backup;Unitrends;
+888;Unitrends secure agent pairing (certificate sharing);backup,security;Unitrends;
+443;Unitrends Recovery Series web console (HTTPS);backup,admin,web;Unitrends;no
+udp:1194;Unitrends Hot Copy replication (OpenVPN);backup,security;Unitrends;no
+8006;Quest Rapid Recovery Core / Agent management;backup,admin;Quest;
+8009;Quest Rapid Recovery transfer data;backup;Quest;
+9876;Acronis Cyber Protect storage node (backup data, TLS);backup;Acronis;no
+9200;Acronis Cyber Protect catalog (index);backup;Acronis;
+44445;Acronis Backup Gateway (TLS);backup;Acronis;no
+8888;Acronis Backup Gateway management (HTTPS);backup,admin;Acronis;no
+5718;Microsoft System Center DPM agent coordinator;backup;Microsoft;
+5719;Microsoft System Center DPM protection agent (data channel);backup;Microsoft;
+6075;Microsoft System Center DPM end-user recovery / Central Console;backup;Microsoft;
+1158;Oracle Enterprise Manager Database Control (11g and earlier);db,admin,web;Oracle;
+udp:42424;Oracle Clusterware CSS (RAC interconnect);db;Oracle;
+3872;Oracle Enterprise Manager Management Agent;db,monitoring,admin;Oracle;
+4889;Oracle Enterprise Manager OMS upload (HTTP);db,monitoring;Oracle;yes
+1159;Oracle Enterprise Manager OMS upload (HTTPS);db,monitoring;Oracle;no
+7788;Oracle Enterprise Manager Cloud Control console (HTTP);db,admin,web;Oracle;yes
+7799;Oracle Enterprise Manager Cloud Control console (HTTPS);db,admin,web;Oracle;no
+7101;Oracle Enterprise Manager WebLogic Administration Server (HTTPS);db,admin,web;Oracle;no
+25100;IBM Db2 client interface over TLS (IANA db2c-tls);db;IBM;no
+9088;IBM Informix SQL interface (sqlexec);db;IBM;
+9089;IBM Informix SQL interface over TLS (sqlexec-ssl);db;IBM;no
+2638;SAP SQL Anywhere (Sybase Anywhere);db;SAP;
+7473;Neo4j HTTPS;db,web;Neo4j;no
+6000;Neo4j cluster internal traffic;db;Neo4j;
+7000;Neo4j cluster Raft;db;Neo4j;
+7688;Neo4j cluster routing connector;db;Neo4j;
+6362;Neo4j online backup (binds localhost by default);db,backup;Neo4j;
+8443;ClickHouse HTTPS;db;ClickHouse;no
+9004;ClickHouse MySQL protocol emulation;db;ClickHouse;
+9005;ClickHouse PostgreSQL protocol emulation;db;ClickHouse;
+9009;ClickHouse interserver HTTP (replication);db;ClickHouse;yes
+9010;ClickHouse interserver HTTPS;db;ClickHouse;no
+9011;ClickHouse native protocol with PROXYv1;db;ClickHouse;
+9019;ClickHouse JDBC bridge;db;ClickHouse;
+9100;ClickHouse gRPC;db;ClickHouse;
+9181;ClickHouse Keeper;db;ClickHouse;
+9234;ClickHouse Keeper Raft;db;ClickHouse;
+9281;ClickHouse Keeper (TLS);db;ClickHouse;no
+9363;ClickHouse Prometheus metrics;db,monitoring;ClickHouse;yes
+9440;ClickHouse native protocol over TLS;db;ClickHouse;no
+8080;CockroachDB DB Console;db,admin,web;Cockroach Labs;
+4000;TiDB server (MySQL protocol);db;PingCAP;
+10080;TiDB status port;db,monitoring;PingCAP;
+20160;TiKV;db;PingCAP;
+20180;TiKV status port;db,monitoring;PingCAP;
+2379;TiDB Placement Driver (PD) client;db;PingCAP;
+2380;TiDB Placement Driver (PD) peer;db;PingCAP;
+3930;TiFlash Raft and Coprocessor;db;PingCAP;
+20170;TiFlash Proxy;db;PingCAP;
+20292;TiFlash Proxy metrics;db,monitoring;PingCAP;
+8234;TiFlash metrics;db,monitoring;PingCAP;
+8300;TiCDC;db;PingCAP;
+12020;TiDB NgMonitoring;db,monitoring;PingCAP;
+8092;Couchbase Views (capi);db;Couchbase;yes
+8093;Couchbase Query service;db;Couchbase;yes
+8094;Couchbase Search service (FTS);db;Couchbase;yes
+8095;Couchbase Analytics service;db;Couchbase;yes
+8096;Couchbase Eventing service;db;Couchbase;yes
+8097;Couchbase Backup service;db,backup;Couchbase;yes
+18091-18097;Couchbase Server TLS ports (admin, Views, Query, Search, Analytics, Eventing, Backup);db;Couchbase;no
+11210;Couchbase Data service (memcached protocol);db;Couchbase;yes
+11207;Couchbase Data service (TLS);db;Couchbase;no
+11209;Couchbase Data service dedicated control port;db;Couchbase;
+11206;Couchbase Data service dedicated control port (TLS);db;Couchbase;no
+11280;Couchbase Data service Prometheus metrics;db,monitoring;Couchbase;yes
+4369;Couchbase Server Erlang Port Mapper (epmd);db;Couchbase;
+21100;Couchbase cluster management exchange (node to node);db;Couchbase;
+21150;Couchbase cluster management exchange (TLS);db;Couchbase;no
+9100-9105;Couchbase Index service (node to node);db;Couchbase;
+19102;Couchbase Index service HTTPS;db;Couchbase;no
+9999;Couchbase Index projector;db;Couchbase;
+9110-9118;Couchbase Analytics service (node to node);db;Couchbase;
+9120;Couchbase Analytics replication;db;Couchbase;
+9123;Couchbase Prometheus stats;db,monitoring;Couchbase;yes
+9124;Couchbase Backup service gRPC;db,backup;Couchbase;
+9130;Couchbase Search service gRPC (scatter-gather);db;Couchbase;
+19130;Couchbase Search service gRPC (TLS);db;Couchbase;no
+9140;Couchbase Eventing debugger;db;Couchbase;yes
+8080;RavenDB HTTP API / Studio (ServerUrl default port);db,web;RavenDB;
+38888;RavenDB TCP (cluster, replication, documented example port);db;RavenDB;
+8088;InfluxDB 1.x RPC (backup / restore);db,backup;InfluxData;
+2003;InfluxDB 1.x Graphite input (when enabled);db,monitoring;InfluxData;yes
+4242;InfluxDB 1.x OpenTSDB input (when enabled);db,monitoring;InfluxData;yes
+udp:8089;InfluxDB 1.x UDP input (when enabled);db,monitoring;InfluxData;yes
+udp:25826;InfluxDB 1.x collectd input (when enabled);db,monitoring;InfluxData;
+9094;Prometheus Alertmanager clustering;monitoring;Prometheus;
+9101;Prometheus haproxy_exporter;monitoring;Prometheus;yes
+9102;Prometheus statsd_exporter;monitoring;Prometheus;yes
+9104;Prometheus mysqld_exporter;monitoring,db;Prometheus;yes
+9107;Prometheus consul_exporter;monitoring;Prometheus;yes
+9108;Prometheus graphite_exporter;monitoring;Prometheus;yes
+9114;Prometheus elasticsearch_exporter;monitoring,db;Prometheus;yes
+9122;Prometheus influxdb_exporter;monitoring,db;Prometheus;yes
+9150;Prometheus memcached_exporter;monitoring,db;Prometheus;yes
+9182;Prometheus windows_exporter;monitoring;Prometheus;yes
+9187;Prometheus postgres_exporter;monitoring,db;Prometheus;yes
+9865;Apache Hadoop HDFS DataNode web UI (HTTPS);devops,file,web;Apache;no
+9868;Apache Hadoop HDFS Secondary NameNode web UI (HTTP);devops,file,web;Apache;yes
+9869;Apache Hadoop HDFS Secondary NameNode web UI (HTTPS);devops,file,web;Apache;no
+9871;Apache Hadoop HDFS NameNode web UI (HTTPS);devops,file,web;Apache;no
+8485;Apache Hadoop HDFS JournalNode RPC;devops,file;Apache;
+8480;Apache Hadoop HDFS JournalNode web UI (HTTP);devops,file,web;Apache;yes
+8481;Apache Hadoop HDFS JournalNode web UI (HTTPS);devops,file,web;Apache;no
+8019;Apache Hadoop HDFS ZKFC (HA failover controller);devops,file;Apache;
+8030;Apache Hadoop YARN ResourceManager scheduler;devops;Apache;
+8031;Apache Hadoop YARN ResourceManager resource tracker;devops;Apache;
+8033;Apache Hadoop YARN ResourceManager admin;devops,admin;Apache;
+8090;Apache Hadoop YARN ResourceManager web UI (HTTPS);devops,web;Apache;no
+8044;Apache Hadoop YARN NodeManager web UI (HTTPS);devops,web;Apache;no
+8040;Apache Hadoop YARN NodeManager localizer;devops;Apache;
+8188;Apache Hadoop YARN Timeline Server web UI (HTTP);devops,web;Apache;yes
+10200;Apache Hadoop YARN Timeline Server RPC;devops;Apache;
+10020;Apache Hadoop MapReduce JobHistory Server RPC;devops;Apache;
+19888;Apache Hadoop MapReduce JobHistory Server web UI (HTTP);devops,web;Apache;yes
+19890;Apache Hadoop MapReduce JobHistory Server web UI (HTTPS);devops,web;Apache;no
+13562;Apache Hadoop MapReduce shuffle handler;devops;Apache;
+10001;Apache Hive HiveServer2 (Thrift HTTP mode);db,devops;Apache;
+10002;Apache Hive HiveServer2 web UI;db,devops,web;Apache;yes
+8081;Apache Spark standalone worker web UI;devops,web;Apache;yes
+18080;Apache Spark History Server web UI;devops,web;Apache;yes
+16000;Apache HBase Master RPC;db;Apache;
+16010;Apache HBase Master web UI;db,web;Apache;yes
+16020;Apache HBase RegionServer RPC;db;Apache;
+16030;Apache HBase RegionServer web UI;db,web;Apache;yes
+8080;Apache HBase REST server;db,web;Apache;yes
+2888;Apache ZooKeeper quorum (follower to leader, conventional);messaging,devops;Apache;yes
+3888;Apache ZooKeeper leader election (conventional);messaging,devops;Apache;yes
+7000;Apache ZooKeeper Prometheus metrics (when enabled);messaging,monitoring;Apache;yes
+9983;Apache Solr embedded ZooKeeper (SolrCloud);db,devops;Apache;yes
+9093;Apache Kafka KRaft controller listener;messaging;Apache;yes
+8081;Confluent Schema Registry REST API;messaging;Confluent;yes
+8082;Confluent REST Proxy;messaging;Confluent;yes
+8088;Confluent ksqlDB server REST API;messaging,db;Confluent;yes
+9021;Confluent Control Center;messaging,admin,web;Confluent;yes
+8090;Confluent Metadata Service (MDS) / Confluent Server REST API;messaging,admin;Confluent;
+9091;Confluent Server interbroker listener;messaging;Confluent;
+9092;Redpanda Kafka API;messaging;Redpanda;
+9644;Redpanda Admin API;messaging,admin;Redpanda;
+33145;Redpanda internal RPC;messaging;Redpanda;
+8082;Redpanda HTTP Proxy (Pandaproxy);messaging;Redpanda;
+8081;Redpanda Schema Registry;messaging;Redpanda;
+9300;OpenSearch transport (node communication);db;OpenSearch;
+5601;OpenSearch Dashboards;monitoring,web;OpenSearch;
+9600;OpenSearch Performance Analyzer API (before 3.0);monitoring;OpenSearch;
+27018;MongoDB shard server (shardsvr);db;MongoDB;
+27019;MongoDB config server (configsvr);db;MongoDB;
+16379;Redis Cluster bus;db;Redis;
+2383;Microsoft SQL Server Analysis Services (default instance);db;Microsoft;
+2382;Microsoft SQL Server Browser for Analysis Services named instances;db;Microsoft;
+1434;Microsoft SQL Server Dedicated Admin Connection (DAC, default instance);db,admin;Microsoft;
+8008;Patroni REST API (PostgreSQL HA, documented example port);db,admin,devops;Patroni;yes
+6568;AnyDesk client connection to the AnyDesk network;remote-access;AnyDesk;
+udp:50001-50003;AnyDesk Discovery (multicast 239.255.102.18);remote-access;AnyDesk;
+4022;NoMachine SSH connections on Windows (commercial servers);remote-access;NoMachine;no
+4443;NoMachine web connections (HTTPS, up to v8);remote-access,web;NoMachine;no
+8080;Apache Guacamole web application (Tomcat);remote-access,web;Apache;yes
+5800;TightVNC Server built-in web server (Java viewer);remote-access,web;TightVNC;yes
+5500;TightVNC Viewer listening mode (reverse VNC connection);remote-access;TightVNC;yes
+3283;Apple Remote Desktop (Net Assistant);remote-access,admin;Apple;
+udp:3283;Apple Remote Desktop (Net Assistant);remote-access,admin;Apple;
+5900;Apple Remote Desktop / macOS Screen Sharing (RFB);remote-access;Apple;
+udp:5900;Apple Remote Desktop / macOS Screen Sharing (RTP / RTCP);remote-access;Apple;
+udp:5901-5902;Apple Remote Desktop / macOS Screen Sharing (RTP / RTCP);remote-access;Apple;
+3031;Apple Remote Apple Events (eppc);admin;Apple;
+udp:3031;Apple Remote Apple Events (eppc);admin;Apple;
+6129;SolarWinds Dameware Mini Remote Control agent;remote-access,admin;SolarWinds;
+6130;SolarWinds Dameware Mobile Gateway;remote-access;SolarWinds;
+6132;SolarWinds Dameware Internet Proxy session data stream;remote-access;SolarWinds;
+6133;SolarWinds Dameware Central Server components;remote-access,admin;SolarWinds;
+443;SolarWinds Dameware Internet Proxy (HTTPS);remote-access,web;SolarWinds;no
+4899;Radmin Server;remote-access;Famatech;
+5405;NetSupport Manager client;remote-access;NetSupport;
+5631;Symantec pcAnywhere data;remote-access;Symantec;
+udp:5632;Symantec pcAnywhere status;remote-access;Symantec;
+8383;ManageEngine Endpoint Central server (agent communication, HTTPS);admin,remote-access;ManageEngine;no
+8384;ManageEngine Endpoint Central distribution server (agent communication, HTTPS);admin;ManageEngine;no
+8443;ManageEngine Endpoint Central remote control, chat and file transfer (secure);remote-access,admin;ManageEngine;no
+8444;ManageEngine Endpoint Central remote control (non-secure);remote-access,admin;ManageEngine;yes
+8031;ManageEngine Endpoint Central server port required by Secure Gateway;admin;ManageEngine;
+8080;ManageEngine ADManager Plus web console (default port);directory,admin,web;ManageEngine;yes
+9535;Ivanti EPM (LANDesk Management Suite) remote control;remote-access,admin;Ivanti;
+9592;Ivanti EPM (LANDesk) Management Gateway;admin,remote-access;Ivanti;
+9593;Ivanti EPM (LANDesk) management agent (CBA8);admin;Ivanti;
+14500;Xpra remote display;remote-access;Xpra;
+6557;Checkmk Livestatus (TCP) — no auth, IP allow-list only, reads all, sends commands;risky,monitoring;Checkmk;
+4949;Munin node — plaintext host metrics, IP allow-list only;risky,monitoring;Munin;yes
+9091;Prometheus Pushgateway — anyone can create, modify and delete metrics;risky,monitoring;Prometheus;yes
+9115;Prometheus Blackbox exporter — probes any target from URL params (SSRF);risky,monitoring,network;Prometheus;yes
+9116;Prometheus SNMP exporter — queries any target from URL params (SSRF);risky,monitoring,network;Prometheus;yes
+3100;Grafana Loki HTTP API — no built-in authentication, logs readable;risky,monitoring;Grafana Labs;yes
+10255;Kubernetes kubelet read-only port — no authentication or authorization;risky,devops;Kubernetes;yes
+8080;Kubernetes API server insecure port (1.19 and earlier) — bypasses authn and authz;risky,devops,admin;Kubernetes;yes
+44134;Helm v2 Tiller gRPC — no auth by default, any pod can deploy;risky,devops;Helm;yes
+8080;Traefik API and dashboard (api.insecure) — exposes all routing config;risky,devops,network;Traefik Labs;yes
+9901;Envoy admin interface (docs example port) — destructive ops, config disclosure;risky,network,devops;Envoy;yes
+8001;Kong Admin API — full gateway control, local-only by default;risky,network,admin;Kong;yes
+3128;Squid proxy — relays into other zones when client ACLs are loose;risky,network,web,security;Squid;yes
+4040;Weave Scope app — shells and control of containers, no login;risky,devops;Weaveworks;yes
+5050;Apache Mesos master (docs example port) — authentication disabled by default;risky,devops;Apache;yes
+5005;Java Debug Wire Protocol (JDWP, IntelliJ default port) — remote code execution;risky,devops;Oracle;yes
+8000;Java Debug Wire Protocol (JDWP, JDK docs example port) — remote code execution;risky,devops;Oracle;yes
+9229;Node.js inspector — remote code execution if not bound to localhost;risky,devops;Node.js;yes
+9222;Chrome DevTools Protocol remote debugging (conventional port) — cookie theft, browser control;risky,devops;Google;yes
+9000;PHP-FPM FastCGI — any client can set PHP options (code exec);risky,web;PHP;yes
+1099;Java RMI registry — unauthenticated JMX/RMI = remote code execution;risky,devops,admin,web;Oracle;yes
+8778;Jolokia JVM agent — JMX over HTTP, no auth unless a user is set;risky,admin,devops;Jolokia;yes
+5000;Flask / Werkzeug development server — debugger console = code execution;risky,web;Pallets;yes
+5555;Android Debug Bridge over TCP (adb tcpip) — device shell access;risky,iot,remote-access;Google;yes
+8265;Ray dashboard and Jobs API — arbitrary code execution, no auth before 2.61;risky,devops;Anyscale;yes
+10001;Ray Client server — arbitrary code execution on the cluster;risky,devops;Anyscale;yes
+6379;Ray GCS server (head node) — cluster control, arbitrary code execution;risky,devops;Anyscale;yes
+52365;Ray dashboard agent — arbitrary code execution on the node;risky,devops;Anyscale;yes
+10002-19999;Ray worker ports (default range, reached through the Ray dashboard 8265);devops;Anyscale;yes
+5000;MLflow tracking server — no auth unless the basic-auth app is enabled;risky,devops;MLflow;yes
+11434;Ollama API — no authentication (pull, delete, run models);risky,devops;Ollama;yes
+8081;PyTorch TorchServe management API — registers models from any URL (code exec);risky,devops;PyTorch;yes
+8786;Dask scheduler — unauthenticated by default, runs submitted Python;risky,devops;Dask;yes
+8787;Dask dashboard — unauthenticated cluster and task details;risky,devops,monitoring;Dask;yes
+54321;H2O web UI and REST API (Flow) — no auth unless a login module is set;risky,devops;H2O.ai;yes
+7860;Langflow — runs user Python by design (CVE-2025-3248, KEV);risky,devops;Langflow;yes
+8000;vLLM OpenAI-compatible server — sensitive endpoints without auth;risky,devops;vLLM;yes
+8088;Apache Superset — default SECRET_KEY = forged admin session (CVE-2023-27524);risky,web,db;Apache;yes
+6066;Apache Spark standalone REST submission — unauth app submission (RCE);risky,devops;Apache;yes
+8080;Apache Spark standalone master web UI — no auth by default, cluster and app details;risky,devops,web;Apache;yes
+4040;Apache Spark application web UI — no auth by default, job and environment details;risky,devops,web;Apache;yes
+8081;Apache Flink REST API and web UI — no client auth, jar upload and run;risky,devops;Apache;yes
+8083;Apache Kafka Connect REST API — no auth by default, connectors read files or run code;risky,messaging,devops;Apache;yes
+8080;Apache ZooKeeper AdminServer — admin commands without client auth;risky,messaging,devops,admin;Apache;yes
+8032;Apache Hadoop YARN ResourceManager RPC — simple auth: unauth app submission (RCE);risky,devops;Apache;yes
+8042;Apache Hadoop YARN NodeManager web UI — simple auth: container logs and details;risky,devops,web;Apache;yes
+9864;Apache Hadoop HDFS DataNode web (WebHDFS) — simple auth: read/write as any user;risky,devops,file,web;Apache;yes
+9866;Apache Hadoop HDFS DataNode data transfer — simple auth: block access as any user;risky,devops,file;Apache;yes
+9867;Apache Hadoop HDFS DataNode IPC — simple auth, no authentication by default;risky,devops,file;Apache;yes
+10000;Apache HiveServer2 (Thrift) — default auth NONE, any user accepted;risky,db,devops;Apache;yes
+9083;Apache Hive Metastore (Thrift) — SASL off by default, unauth metadata access;risky,db,devops;Apache;yes
+8888;Apache Druid router / web console — security off by default, tasks read/write local files;risky,db;Apache;yes
+8080;Apache Zeppelin — anonymous access by default, interpreters run code;risky,devops,web;Apache;yes
+8080;Apache NiFi over HTTP (before 1.14) — no auth, every user gets all roles;risky,devops;Apache;yes
+8080;Apache Airflow webserver (1.x) — no authentication by default;risky,devops;Apache;yes
+8998;Apache Livy REST server — runs submitted Spark code, no auth unless Kerberos;risky,devops;Apache;yes
+9200;OpenSearch REST API — demo admin/admin before 2.12;risky,db,monitoring;OpenSearch;no
+9100-9200;Apache CouchDB Erlang distribution (range from CouchDB docs) — cookie = full node access (CVE-2022-24706);risky,db;Apache;yes
+10800;Apache Ignite thin client — authentication disabled by default;risky,db;Apache;yes
+47100;Apache Ignite communication — authentication disabled by default;risky,db;Apache;yes
+47500;Apache Ignite discovery — authentication disabled by default;risky,db;Apache;yes
+5701;Hazelcast member / client port — no auth or TLS in open-source edition;risky,db;Hazelcast;yes
+4440;Rundeck — default admin/admin, runs commands on nodes;risky,devops,admin;PagerDuty;yes
+10000;Webmin — root web admin (CVE-2019-15107 backdoor, KEV);risky,admin;Webmin;
+3632;distcc daemon — any allowed client can run arbitrary commands;risky,devops;distcc;yes
+4444;Selenium Grid — no auth by default, can launch custom binaries;risky,devops;Selenium;yes
+3690;Subversion svnserve — anonymous read by default, data unencrypted;risky,devops,file;Apache;yes
+9418;Git daemon (git://) — no authentication, anonymous read;risky,devops,file;Git;yes
+79;Finger (RFC 1288) — discloses user accounts and logins;risky,directory;;yes
+113;Ident (RFC 1413) — discloses the user owning a connection;risky,directory,network;;yes
+11;Active Users / systat (RFC 866) — lists logged-in users;risky,directory;;yes
+udp:19;Character Generator (RFC 864) — reflection amplification x358 (CISA);risky,network;;yes
+udp:17;Quote of the Day (RFC 865) — reflection amplification x140 (CISA);risky,network;;yes
+udp:3702;WS-Discovery — reflection amplification up to x500 (CISA);risky,network,iot,print;;yes
+udp:427;SLP (RFC 2608) — unauth service registration, amplification (CVE-2023-29552);risky,network,print;;yes
+udp:33848;Jenkins UDP auto-discovery — reflection amplification (CVE-2020-2100);risky,devops;Jenkins;yes
+udp:631;CUPS browsing (cups-browsed) — trusts printer adverts from any host (CVE-2024-47176);risky,print;OpenPrinting;yes
+3299;SAProuter — loose route table proxies attackers into SAP (CISA AA19-122A);risky,network,security;SAP;yes
+3900-3999;SAP message server internal port (39NN) — no auth by default (CISA AA19-122A);risky,db;SAP;yes
+16992;Intel AMT SOAP/HTTP — out-of-band KVM, auth bypass CVE-2017-5689 (KEV);risky,oob,remote-access,admin;Intel;yes
+16993;Intel AMT SOAP/HTTPS — out-of-band KVM, auth bypass CVE-2017-5689 (KEV);risky,oob,remote-access,admin;Intel;no
+16994;Intel AMT redirection (SOL / IDE-R) — remote console and boot media;risky,oob,remote-access;Intel;yes
+16995;Intel AMT redirection over TLS — remote console and boot media;risky,oob,remote-access;Intel;no
+udp:3205;iSNS storage name service (RFC 4171);file;;yes
+3420;iFCP Internet Fibre Channel Protocol (RFC 4172);file,network;;yes
+udp:20048;NFS mountd (IANA mountd);file;;yes
+udp:4045;NFS lock manager NLM / lockd (fixed port on NetApp ONTAP and Synology DSM);file;;yes
+udp:635;NetApp ONTAP NFS mountd;file;NetApp;yes
+udp:4046;NetApp ONTAP NFS network status monitor (NSM / statd);file;NetApp;yes
+udp:4444;Kerberos 524 ticket conversion (krb524, NetApp ONTAP);directory;NetApp;
+udp:1234;Dell PowerStore / Unity NAS NFS mountd;file;Dell;yes
+udp:4000;Dell PowerStore / Unity NAS NFS statd;file;Dell;yes
+udp:4001;Dell PowerStore / Unity NAS NFS lockd (NLM);file;Dell;yes
+udp:4002;Dell PowerStore / Unity NAS NFS rquotad;file;Dell;yes
+4003;Dell PowerStore NAS XATTRPD (extended file attributes);file;Dell;
+udp:4003;Dell PowerStore NAS XATTRPD (extended file attributes);file;Dell;
+11099;Hitachi VSP 5000 series storage communication (RMI);file,admin;Hitachi Vantara;
+5443;Hitachi VSP SVP RMI class loader (SSL);file,admin;Hitachi Vantara;no
+19095;Brocade SANnav Kafka telemetry;file,network,monitoring;Broadcom;
+18081-18082;Brocade SANnav telemetry schema registry;file,network,monitoring;Broadcom;
+8081;Brocade SANnav Avro schema registry (SANnav 1.x);file,network,monitoring;Broadcom;
+29092;Brocade SANnav Kafka (switch telemetry);file,network,monitoring;Broadcom;yes
+29094;Brocade SANnav Kafka (switch telemetry, TLS);file,network,monitoring;Broadcom;no
+39092;Brocade SANnav Kafka (switch telemetry);file,network,monitoring;Broadcom;yes
+39094;Brocade SANnav Kafka (switch telemetry, TLS);file,network,monitoring;Broadcom;no
+3261;Synology Snapshot Replication (legacy advanced LUNs);backup,file;Synology;
+udp:662;NFS statd (Synology DSM fixed port);file;Synology;yes
+udp:892;NFS mountd (Synology DSM fixed port);file;Synology;yes
+30700-30701;Synology Tiering Vault (data retrieval);backup,file;Synology;
+3360-3361;Synology Presto File Server;file;Synology;
+udp:3360-3361;Synology Presto File Server;file;Synology;
+2379-2382;Synology Virtual Machine Manager cluster network;virtualization;Synology;
+2385;Synology Virtual Machine Manager Redis server;virtualization,db;Synology;
+5555;Synology Contacts;web;Synology;
+38898-38899;QNAP RTRR real-time remote replication;backup;QNAP;
+16500-16550;QNAP Virtualization Station VM live migration;virtualization;QNAP;
+udp:874-875;QNAP SnapSync (QuTS hero);backup,file;QNAP;
+udp:6600;QNAP Q'center server;monitoring,admin;QNAP;
+6606;QNAP Q'center server;monitoring,admin;QNAP;
+udp:6606;QNAP Q'center server;monitoring,admin;QNAP;
+6621;QNAP Q'center managed NAS;monitoring,admin;QNAP;
+udp:6621;QNAP Q'center managed NAS;monitoring,admin;QNAP;
+6623;QNAP Q'center managed NAS;monitoring,admin;QNAP;
+udp:6623;QNAP Q'center managed NAS;monitoring,admin;QNAP;
+8088;QNAP Virtualization Station 3 web (HTTP);virtualization,admin;QNAP;yes
+8089;QNAP Virtualization Station 3 web (HTTPS);virtualization,admin;QNAP;no
+9045-9049;QNAP HDP for SaaS backup;backup;QNAP;
+1514;QNAP QuLog Center (log receiver);monitoring;QNAP;
+udp:1514;QNAP QuLog Center (log receiver);monitoring;QNAP;
+5027-5029;QNAP Qsirch search;file;QNAP;
+8081;QNAP QTS Web Server;web;QNAP;
+9284;Ceph Manager Prometheus module (TLS);file,monitoring;Ceph;no
+24009-24108;GlusterFS brick processes (Red Hat Gluster Storage 2.0, legacy);file;Gluster;yes
+965;GlusterFS NFS lock manager (NLM);file;Gluster;yes
+udp:963;GlusterFS NFS lock manager (NLM);file;Gluster;yes
+6010-6012;OpenStack Swift object, container and account servers (Red Hat Gluster Storage);file;OpenStack;
+8080;OpenStack Swift proxy server (Red Hat Gluster Storage);file,web;OpenStack;
+54321;oVirt / RHV VDSM host agent;virtualization;oVirt;
+60000-61000;IBM Storage Scale command port range (install toolkit before 5.0.0);file;IBM;
+10001-10010;Webmin RPC fast mode (Webmin to Webmin);admin;Webmin;
+udp:9929;Booth cluster ticket manager (multi-site Pacemaker);virtualization;ClusterLabs;
+4321;Chef Infra Server bookshelf (cookbook storage);devops;Progress Chef;
+8000;Chef Infra Server erchef API (back end);devops;Progress Chef;
+9463;Chef Infra Server oc_bifrost authorization (back end);devops;Progress Chef;
+9090;Chef Infra Server oc-id OAuth2 provider (back end);devops,directory;Progress Chef;
+16379;Chef Infra Server redis_lb (KeyDB, back end);devops,db;Progress Chef;
+8443;Foreman Discovery image (discovered host reboot API);devops;Foreman;no
+5646;Red Hat Satellite Qpid dispatch router (Capsule, katello-agent);devops,messaging;Red Hat;
+9800;Uyuni Taskomatic metrics (Prometheus);monitoring;SUSE;yes
+9;Discard (RFC 863);network;;yes
+udp:9;Discard (RFC 863);network;;yes
+udp:13;Daytime (RFC 867);network;;yes
+17;Quote of the Day (RFC 865);network;;yes
+37;Time protocol (RFC 868);network;;yes
+udp:37;Time protocol (RFC 868);network;;yes
+543;Kerberized rlogin (klogin);admin,remote-access;;
+544;Kerberized rsh (kshell);admin,remote-access;;
+udp:3401;Squid SNMP agent;monitoring,web;Squid;yes
+udp:4827;Squid HTCP inter-cache protocol (RFC 2756);web;Squid;yes
+11125;IBM PowerSC UI agent (HMC);security;IBM;
+udp:11125;IBM PowerSC UI agent (HMC);security;IBM;
+udp:9920;IBM Power HMC-to-HMC communication and data replication;admin;IBM;
+udp:2123;GTP-C control plane (3GPP);network;;yes
+udp:2152;GTP-U user plane (3GPP);network;;yes
+3868;Diameter (RFC 6733);directory,security,network;;yes
+sctp:3868;Diameter over SCTP (RFC 6733);directory,security,network;;yes
+5868;Diameter over TLS (RFC 6733);directory,security,network;;no
+udp:6696;Babel routing protocol (RFC 8966);network;;yes
+udp:6699;Babel routing protocol over DTLS (RFC 8968);network;;no
+udp:4754;GRE-in-UDP (RFC 8086);network;;yes
+udp:6635;MPLS-in-UDP (RFC 7510);network;;yes
+udp:4790;VXLAN-GPE;network,virtualization;;yes
+udp:4163;Silver Peak peer protocol;network;Silver Peak (HPE);
+udp:4164;Silver Peak communication protocol;network;Silver Peak (HPE);
+5161;SNMP over SSH (RFC 5592);monitoring,network;;no
+5162;SNMP notifications over SSH (RFC 5592);monitoring,network;;no
+4336;RESTCONF Call Home over TLS (RFC 8071);network,admin;;no
+udp:861;OWAMP test (RFC 8545);network,monitoring;;yes
+9340;gRIBI over gRPC;network,admin;OpenConfig;
+9559;P4Runtime over gRPC;network,admin;P4.org;
+udp:694;Linux-HA heartbeat (ha-cluster);network;Linux-HA;
+8443;Cisco Catalyst SD-WAN Manager cluster application server;network,admin;Cisco;
+9005;Cisco Catalyst Center web installation API;network,admin;Cisco;
+8891;Fortinet FortiManager cascade mode (FortiClient AV packages);security;Fortinet;
+udp:8889;Fortinet FortiManager local FortiGuard antispam;security;Fortinet;
+18231;Check Point Policy Server logon;security;Check Point;
+18262-18263;Check Point ExtraNet (ExNet_PK, ExNet_Resolve);security;Check Point;

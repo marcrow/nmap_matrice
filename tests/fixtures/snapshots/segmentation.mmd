@@ -1,14 +1,14 @@
 %%{init: {'theme':'base','themeVariables':{'fontFamily':'ui-sans-serif,-apple-system,Segoe UI,Roboto,sans-serif','fontSize':'13px','lineColor':'#94a3b8'},'flowchart':{'curve':'linear','htmlLabels':true,'nodeSpacing':40,'rankSpacing':60,'padding':8}}}%%
 flowchart LR
   Z_audit(["audit"])
-  style Z_audit fill:#eef5ff,stroke:#3b82f6,stroke-width:2px,color:#1e3a5f
+  style Z_audit fill:#eff8ff,stroke:#1565c0,stroke-width:2px,color:#0b3c75
   Z_data(["data"])
-  style Z_data fill:#eafaf1,stroke:#22a565,stroke-width:2px,color:#14532d
+  style Z_data fill:#fff3ee,stroke:#8d6e63,stroke-width:2px,color:#51352c
   Z_dmz(["dmz"])
-  style Z_dmz fill:#fff4e6,stroke:#f59e0b,stroke-width:2px,color:#7c4a03
+  style Z_dmz fill:#f6f5ff,stroke:#7c4dff,stroke-width:2px,color:#3c3072
   Z_lab(["lab"])
-  style Z_lab fill:#fdeef4,stroke:#db2777,stroke-width:2px,color:#7a1840
+  style Z_lab fill:#eafafe,stroke:#1597ad,stroke-width:2px,color:#00495e
   Z_audit ==>|"5432"| Z_data
-  Z_audit ==>|"<b style='color:#b91c1c'>22</b>,<b style='color:#b91c1c'>udp:161</b>,6379,8443"| Z_dmz
-  linkStyle 0 stroke:#e11d48,stroke-width:2.5px,stroke-linecap:round;
-  linkStyle 1 stroke:#e11d48,stroke-width:2.5px,stroke-linecap:round;
+  Z_audit ==>|"<b>22</b>,<b>udp:161</b>,6379,8443"| Z_dmz
+  linkStyle 0 stroke:#f59e0b,stroke-width:2.5px,stroke-linecap:round;
+  linkStyle 1 stroke:#f59e0b,stroke-width:2.5px,stroke-linecap:round;

@@ -6,12 +6,16 @@ Measures, from network scans launched inside the perimeter, which flows are actu
 
 ### Perimeter
 
+**Mission**:
+One segmentation audit for a client: its inventory, its Scans, its optional Flow Policy and its Port Groups. The unit that is archived, copied and compared.
+_Avoid_: engagement, project, audit
+
 **Zone**:
 Network segment declared by the auditor in the inventory, representing a segmentation intent, not an observed VLAN or subnet. An administration tier (T0, T1…) or an environment (admin, iLO, monitoring) is expressed as a Zone.
 _Avoid_: VLAN, subnet, segment, tier, environment
 
 **Machine**:
-Physical or virtual device, identified by its name in the inventory, carrying one or more Interfaces.
+What the inventory names: Interfaces with the same name are one Machine, whatever reality is. The auditor merges or splits Machines by renaming an Interface in the inventory; a name found elsewhere (DNS, a Scan) only proposes. An inventory filled with DNS names does not prove that two different names are two different devices: one device may carry one name per network.
 _Avoid_: host, server, asset
 
 **Interface**:
@@ -28,8 +32,20 @@ Observed flow about which the Flow Policy says nothing. Shown apart, never a Fin
 ### Scan
 
 **Source**:
-The IP a Scan is launched from. In practice it stands for its Machine, since system routing picks the outgoing Interface.
+The IP the auditor scans from. It is declared before its first Scan, so a Source without a Scan is a gap in the Mission, unlike an Interface that was never meant to be scanned from. In practice it stands for its Machine, since system routing picks the outgoing Interface.
 _Avoid_: pivot, origin, source host
+
+**Scan Profile**:
+Named, reusable recipe for a Scan: which ports (Port Groups, explicit ports, top-ports) and which nmap options. Carries no target: targets always come from the inventory, so a Scan Profile holds no client data. Exported as one ready-to-run command per Source, so every Source is scanned the same way.
+_Avoid_: template, preset, scan config
+
+**Port Label**:
+Human description of a port (product, technology, vendor, whether it is cleartext) with descriptive tags (admin, backup, oob, risky…), used to find ports when building Port Groups and Scan Profiles. Purely descriptive: unlike a Port Group, it filters nothing and the Flow Policy cannot reference it.
+_Avoid_: service, port category
+
+**Auditor Kit**:
+Named set of Port Groups, Scan Profiles and Port Labels that an auditor carries from Mission to Mission. Never contains client data (no inventory, no Flow Policy, no Scan, no IP).
+_Avoid_: library, settings, config
 
 **Scan**:
 One nmap run from a Source, against a set of targets and a set of ports. A Source may have several Scans (e.g. a broad sweep then a targeted follow-up with extra ports); they are combined into its Source View.
@@ -76,7 +92,7 @@ Observed flow that the Flow Policy explicitly denies. Without a Flow Policy ther
 _Avoid_: vulnerability, violation
 
 **Pivot Machine**:
-A Machine spanning at least two Zones that a Source reaches with an OPEN verdict: from the Source's Zone, it is a one-hop path to the Machine's other Zones.
+A Machine spanning at least two Zones that a Source reaches with an OPEN verdict: whoever holds it rebounds from the Source's Zone into the Machine's other Zones. Only the Machines the inventory declares are found: a device known under two names is missed, so the list is never exhaustive.
 _Avoid_: bastion, jump host, bridge
 
 **Port Group**:

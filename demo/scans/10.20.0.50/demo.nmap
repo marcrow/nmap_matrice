@@ -1,0 +1,670 @@
+# Nmap 7.95 scan initiated Thu Nov  5 09:36:35 2026 as: nmap -sS -Pn -T4 --max-retries 1 -sU -p T:20-23,25,53,69,80,88,111,135,139,143,389,443,445,464,512-514,587,623,636,873,993,1433,1521,2049,2222,3128,3268-3269,3306,3389,5432,5900-5903,5984-5986,6379,7000-7001,8000,8008,8080-8081,8086,8291,8443,8888,9042,9100,9200,9300,9443,10000,11211,27017,U:53,69,88,111,123,161,389,464,623,2049 -iL targets/10.20.0.50-demo.txt -oA scans/10.20.0.50/demo
+Warning: 10.10.0.254 giving up on port because retransmission cap hit (1).
+Nmap scan report for fw-01.corp.local (10.10.0.254)
+Host is up (0.000026s latency).
+Not shown: 59 closed tcp ports (reset), 4 closed udp ports (port-unreach)
+PORT     STATE         SERVICE
+22/tcp   open          ssh
+443/tcp  open          https
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+2049/udp open|filtered nfs
+
+Nmap scan report for fw-01.corp.local (10.30.0.254)
+Host is up (0.000036s latency).
+Not shown: 59 closed tcp ports (reset), 1 closed udp ports (port-unreach)
+PORT     STATE         SERVICE
+22/tcp   open          ssh
+443/tcp  open          https
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for fw-01.corp.local (10.40.0.254)
+Host is up (0.000025s latency).
+Not shown: 59 closed tcp ports (reset)
+PORT     STATE         SERVICE
+22/tcp   open          ssh
+443/tcp  open          https
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for fw-01.corp.local (10.50.0.254)
+Host is up (0.000032s latency).
+Not shown: 59 closed tcp ports (reset)
+PORT     STATE         SERVICE
+22/tcp   open          ssh
+443/tcp  open          https
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for 10.10.0.10
+Host is up.
+Not shown: 61 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for bastion-01.corp.local (10.40.0.10)
+Host is up (0.000092s latency).
+Not shown: 60 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+443/tcp  closed        https
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for web-01-be.corp.local (10.30.0.80)
+Host is up (0.000058s latency).
+Not shown: 56 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/tcp   closed        domain
+88/tcp   closed        kerberos-sec
+389/tcp  closed        ldap
+5432/tcp closed        postgresql
+8080/tcp closed        http-proxy
+53/udp   closed        domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for dns-01.corp.local (10.30.0.53)
+Host is up (0.000080s latency).
+Not shown: 56 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/tcp   open          domain
+88/tcp   closed        kerberos-sec
+389/tcp  closed        ldap
+5432/tcp closed        postgresql
+8080/tcp closed        http-proxy
+53/udp   open          domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for ad-01.corp.local (10.30.0.10)
+Host is up (0.000054s latency).
+Not shown: 56 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/tcp   open          domain
+88/tcp   open          kerberos-sec
+389/tcp  open          ldap
+5432/tcp closed        postgresql
+8080/tcp closed        http-proxy
+53/udp   closed        domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for ad-02.corp.local (10.30.0.11)
+Host is up (0.000077s latency).
+Not shown: 56 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/tcp   open          domain
+88/tcp   open          kerberos-sec
+389/tcp  open          ldap
+5432/tcp closed        postgresql
+8080/tcp closed        http-proxy
+53/udp   closed        domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for db-01.corp.local (10.30.0.20)
+Host is up (0.000055s latency).
+Not shown: 56 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/tcp   closed        domain
+88/tcp   closed        kerberos-sec
+389/tcp  closed        ldap
+5432/tcp open          postgresql
+8080/tcp closed        http-proxy
+53/udp   closed        domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for 10.30.0.21
+Host is up (0.000044s latency).
+Not shown: 56 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/tcp   closed        domain
+88/tcp   closed        kerberos-sec
+389/tcp  closed        ldap
+5432/tcp closed        postgresql
+8080/tcp closed        http-proxy
+53/udp   closed        domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for file-01.corp.local (10.30.0.30)
+Host is up (0.000059s latency).
+Not shown: 56 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/tcp   closed        domain
+88/tcp   closed        kerberos-sec
+389/tcp  closed        ldap
+5432/tcp closed        postgresql
+8080/tcp closed        http-proxy
+53/udp   closed        domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for app-01.corp.local (10.30.0.40)
+Host is up (0.00011s latency).
+Not shown: 56 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/tcp   closed        domain
+88/tcp   closed        kerberos-sec
+389/tcp  closed        ldap
+5432/tcp closed        postgresql
+8080/tcp open          http-proxy
+53/udp   closed        domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for app-02.corp.local (10.30.0.41)
+Host is up (0.000073s latency).
+Not shown: 56 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/tcp   closed        domain
+88/tcp   closed        kerberos-sec
+389/tcp  closed        ldap
+5432/tcp closed        postgresql
+8080/tcp open          http-proxy
+53/udp   closed        domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for monitor-01.corp.local (10.30.0.60)
+Host is up (0.000092s latency).
+Not shown: 56 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/tcp   closed        domain
+88/tcp   closed        kerberos-sec
+389/tcp  closed        ldap
+5432/tcp closed        postgresql
+8080/tcp closed        http-proxy
+53/udp   closed        domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for monitor-01.corp.local (10.40.0.60)
+Host is up (0.00011s latency).
+Not shown: 60 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+443/tcp  closed        https
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for backup-01.corp.local (10.30.0.70)
+Host is up (0.000055s latency).
+Not shown: 56 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/tcp   closed        domain
+88/tcp   closed        kerberos-sec
+389/tcp  closed        ldap
+5432/tcp closed        postgresql
+8080/tcp closed        http-proxy
+53/udp   closed        domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for backup-adm.corp.local (10.40.0.70)
+Host is up (0.000081s latency).
+Not shown: 60 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+443/tcp  closed        https
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for legacy-01.corp.local (10.30.0.99)
+Host is up (0.94s latency).
+Not shown: 60 filtered tcp ports (no-response), 1 filtered udp ports (host-unreach), 1 filtered tcp ports (host-unreach)
+PORT     STATE         SERVICE
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for ilo-01.corp.local (10.40.0.21)
+Host is up (0.00014s latency).
+Not shown: 60 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+443/tcp  open          https
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for 10.40.0.22
+Host is up (0.000063s latency).
+Not shown: 60 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+443/tcp  open          https
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for ilo-03.corp.local (10.40.0.23)
+Host is up (0.00012s latency).
+Not shown: 60 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+443/tcp  open          https
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for hv-01.corp.local (10.40.0.30)
+Host is up (0.00012s latency).
+Not shown: 60 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+443/tcp  open          https
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for switch-01.corp.local (10.40.0.40)
+Host is up (0.00011s latency).
+Not shown: 60 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+443/tcp  closed        https
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for ws-01.corp.local (10.50.0.101)
+Host is up.
+Not shown: 61 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for ws-02.corp.local (10.50.0.102)
+Host is up.
+Not shown: 61 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for pc-compta-03.corp.local (10.50.0.103)
+Host is up.
+Not shown: 61 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for ws-04.corp.local (10.50.0.104)
+Host is up.
+Not shown: 61 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for ws-05.corp.local (10.50.0.105)
+Host is up.
+Not shown: 61 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for 10.50.0.106
+Host is up.
+Not shown: 61 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for ws-07.corp.local (10.50.0.107)
+Host is up.
+Not shown: 61 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for ws-08.corp.local (10.50.0.108)
+Host is up.
+Not shown: 61 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Nmap scan report for printer-01.corp.local (10.50.0.200)
+Host is up.
+Not shown: 61 filtered tcp ports (no-response)
+PORT     STATE         SERVICE
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+
+Warning: 10.20.0.254 giving up on port because retransmission cap hit (1).
+Warning: 10.20.0.11 giving up on port because retransmission cap hit (1).
+Warning: 10.20.0.12 giving up on port because retransmission cap hit (1).
+Warning: 10.20.0.20 giving up on port because retransmission cap hit (1).
+Warning: 10.20.0.25 giving up on port because retransmission cap hit (1).
+Warning: 10.20.0.30 giving up on port because retransmission cap hit (1).
+Nmap scan report for fw-01.corp.local (10.20.0.254)
+Host is up (0.000030s latency).
+Not shown: 59 closed tcp ports (reset), 1 closed udp ports (port-unreach)
+PORT     STATE         SERVICE
+22/tcp   open          ssh
+443/tcp  open          https
+53/udp   open|filtered domain
+69/udp   open|filtered tftp
+88/udp   open|filtered kerberos-sec
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+389/udp  open|filtered ldap
+464/udp  open|filtered kpasswd5
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+MAC Address: B2:65:EC:49:83:87 (Unknown)
+
+Nmap scan report for web-01.corp.local (10.20.0.11)
+Host is up (0.000020s latency).
+Not shown: 59 closed tcp ports (reset), 4 closed udp ports (port-unreach)
+PORT     STATE         SERVICE
+80/tcp   open          http
+443/tcp  open          https
+53/udp   open|filtered domain
+88/udp   open|filtered kerberos-sec
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+623/udp  open|filtered asf-rmcp
+2049/udp open|filtered nfs
+MAC Address: CE:E8:CA:05:7C:D9 (Unknown)
+
+Nmap scan report for web-02.corp.local (10.20.0.12)
+Host is up (0.000029s latency).
+Not shown: 58 closed tcp ports (reset), 5 closed udp ports (port-unreach)
+PORT     STATE         SERVICE
+80/tcp   open          http
+443/tcp  open          https
+8080/tcp open          http-proxy
+53/udp   open|filtered domain
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+2049/udp open|filtered nfs
+MAC Address: E2:12:B7:22:C5:86 (Unknown)
+
+Nmap scan report for proxy.corp.local (10.20.0.20)
+Host is up (0.000016s latency).
+Not shown: 59 closed tcp ports (reset), 5 closed udp ports (port-unreach)
+PORT     STATE         SERVICE
+3128/tcp open          squid-http
+8080/tcp open          http-proxy
+53/udp   open|filtered domain
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+MAC Address: 0A:5B:C4:DC:4E:81 (Unknown)
+
+Nmap scan report for mail-01.corp.local (10.20.0.25)
+Host is up (0.000014s latency).
+Not shown: 57 closed tcp ports (reset), 5 closed udp ports (port-unreach)
+PORT     STATE         SERVICE
+25/tcp   open          smtp
+143/tcp  open          imap
+587/tcp  open          submission
+993/tcp  open          imaps
+53/udp   open|filtered domain
+88/udp   open|filtered kerberos-sec
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+2049/udp open|filtered nfs
+MAC Address: 16:96:FA:74:2F:1C (Unknown)
+
+Nmap scan report for vpn-01.corp.local (10.20.0.30)
+Host is up (0.000014s latency).
+Not shown: 59 closed tcp ports (reset), 5 closed udp ports (port-unreach)
+PORT     STATE         SERVICE
+443/tcp  open          https
+8443/tcp open          https-alt
+53/udp   open|filtered domain
+111/udp  open|filtered rpcbind
+123/udp  open|filtered ntp
+161/udp  open|filtered snmp
+2049/udp open|filtered nfs
+MAC Address: BA:94:90:14:AA:F4 (Unknown)
+
+# Nmap done at Thu Nov  5 09:37:02 2026 -- 40 IP addresses (40 hosts up) scanned in 26.60 seconds

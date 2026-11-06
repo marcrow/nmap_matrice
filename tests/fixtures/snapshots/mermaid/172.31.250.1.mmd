@@ -2,17 +2,17 @@
 flowchart LR
   S{{"auditor · 172.31.250.1<br/><small>audit · source</small>"}}
   style S fill:#1f2937,stroke:#0f172a,stroke-width:2px,color:#ffffff
-  classDef z_Z_data fill:#ffffff,stroke:#22a565,stroke-width:1.5px,color:#14532d;
-  classDef z_Z_dmz fill:#ffffff,stroke:#f59e0b,stroke-width:1.5px,color:#7c4a03;
+  classDef z_Z_data fill:#ffffff,stroke:#8d6e63,stroke-width:1.5px,color:#51352c;
+  classDef z_Z_dmz fill:#ffffff,stroke:#7c4dff,stroke-width:1.5px,color:#3c3072;
   subgraph Z_data["data"]
     H_172_31_250_20("db-01 · 172.31.250.20<br/><small>container</small>"):::z_Z_data
   end
-  style Z_data fill:#eafaf1aa,stroke:#22a565,stroke-width:1px,color:#14532d
+  style Z_data fill:#fff3eeaa,stroke:#8d6e63,stroke-width:1px,color:#51352c
   subgraph Z_dmz["dmz"]
     H_172_31_250_10("app-01 · 172.31.250.10<br/><small>container</small>"):::z_Z_dmz
   end
-  style Z_dmz fill:#fff4e6aa,stroke:#f59e0b,stroke-width:1px,color:#7c4a03
-  S ==>|"<b style='color:#b91c1c'>22</b>,<b style='color:#b91c1c'>udp:161</b>,6379,8443"| H_172_31_250_10
+  style Z_dmz fill:#f6f5ffaa,stroke:#7c4dff,stroke-width:1px,color:#3c3072
+  S ==>|"<b>22</b>,<b>udp:161</b>,6379,8443"| H_172_31_250_10
   S ==>|"5432"| H_172_31_250_20
-  linkStyle 0 stroke:#e11d48,stroke-width:2.5px,stroke-linecap:round;
-  linkStyle 1 stroke:#e11d48,stroke-width:2.5px,stroke-linecap:round;
+  linkStyle 0 stroke:#f59e0b,stroke-width:2.5px,stroke-linecap:round;
+  linkStyle 1 stroke:#f59e0b,stroke-width:2.5px,stroke-linecap:round;

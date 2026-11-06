@@ -1,0 +1,29 @@
+<!-- SegOWL — Auditor Kits page body (ticket 06), wrapped by app.page(). -->
+<main>
+<p class="sub">A kit carries your Port Groups, Scan Profiles and Port Labels from Mission to Mission: only
+<code>port_groups.csv</code>, <code>scan_profiles.csv</code> and <code>port_labels.csv</code>, never client data. Applying
+a kit shows a row-by-row diff with the Mission; you pick which of its files replace the Mission's, the others stay as
+they are.</p>
+<div id="msg"></div>
+<div class="card" style="padding:0;overflow:auto"><table class="grid" id="kl"></table></div>
+<div class="layout" style="grid-template-columns:repeat(auto-fit,minmax(320px,1fr));align-items:start">
+  <div class="card"><b>Save this Mission as a kit</b>
+    <div class="small muted" id="mfiles" style="margin:4px 0 8px"></div>
+    <div class="toolbar"><input type="text" id="sn" placeholder="kit name, e.g. acme-ot" style="width:180px">
+      in <select id="sd" class="kd" style="max-width:240px"></select><button class="btn pri" id="sb">Save</button></div>
+    <div id="sres"></div></div>
+  <div class="card"><b>Import a kit zip</b>
+    <div class="small muted" style="margin:4px 0 8px">Only the three kit files are read from the zip, at its root or in one folder.</div>
+    <div class="toolbar"><label class="btn">Choose a zip…<input type="file" id="izf" accept=".zip" hidden></label>
+      <input type="text" id="in" placeholder="kit name" style="width:150px"> in <select id="id" class="kd" style="max-width:200px"></select>
+      <button class="btn pri" id="ib" disabled>Import</button></div>
+    <div id="ires"></div></div>
+  <div class="card"><b>Kit folders</b>
+    <div class="small muted" style="margin:4px 0 8px">Every sub-folder of a kit folder is a kit, e.g. a private repo you
+    clone and update with <code>git pull</code>. Saved in the server's <code>kit_dirs</code>.</div>
+    <div id="dl"></div>
+    <div class="toolbar" style="margin-top:8px"><input type="text" id="nd" placeholder="/home/me/segowl-kits" style="flex:1;min-width:0">
+      <button class="btn" id="ndb">Add folder</button></div></div>
+</div>
+</main>
+<script src="/static/app_kits.js"></script>

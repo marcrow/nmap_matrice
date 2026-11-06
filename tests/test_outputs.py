@@ -4,28 +4,30 @@ Intended change to a view: `UPDATE_SNAPSHOTS=1 uv run pytest`, then review the s
 """
 
 import os
+import re
 from pathlib import Path
 
-from seg_matrix.analysis import analyze
-from seg_matrix.cli import main
-from seg_matrix.inventory import load_inventory
-from seg_matrix.nmap import parse_scan
-from seg_matrix.render.html import write_html
+from segowl.analysis import analyze
+from segowl.cli import main
+from segowl.inventory import load_inventory
+from segowl.nmap import parse_scan
+from segowl.render.html import write_html
 
 MISSION = Path(__file__).parent / "fixtures" / "mission"
 SNAPSHOTS = Path(__file__).parent / "fixtures" / "snapshots"
+DEMO = Path(__file__).parent.parent / "demo"
 
 
 def _texts(root: Path) -> dict[Path, str]:
     return {
         p.relative_to(root): p.read_text(encoding="utf-8")
         for p in root.rglob("*")
-        if p.is_file() and p.name != "report.html"  # HTML: covered by the escaping test, bundles mermaid
+        if p.is_file() and p.name != "report.html"  # HTML: covered by the tests below, bundles Cytoscape
     }
 
 
 def test_text_views_match_snapshots(tmp_path, monkeypatch, capsys):  # capsys: silences the CLI
-    monkeypatch.setattr("sys.argv", ["seg_matrix", str(MISSION), "-o", str(tmp_path)])
+    monkeypatch.setattr("sys.argv", ["segowl", str(MISSION), "-o", str(tmp_path)])
     main()
     produced = _texts(tmp_path)
     if os.environ.get("UPDATE_SNAPSHOTS"):
@@ -48,3 +50,13 @@ def test_inventory_text_is_escaped_in_the_report(tmp_path):
     a = analyze(inv, {"10.0.0.1": [parse_scan(str(scan), "10.0.0.1")]}, [])
     doc = open(write_html(a, str(tmp_path)), encoding="utf-8").read()
     assert bad not in doc
+
+
+def test_report_has_the_seven_big_tabs_and_loads_nothing_from_the_network(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr("sys.argv", ["segowl", str(DEMO), "-o", str(tmp_path)])
+    main()
+    doc = (tmp_path / "report.html").read_text(encoding="utf-8")
+    tabs = re.findall(r'data-tab="(\w+)"', doc)
+    assert tabs == ["global", "policy", "pivots", "persource", "pertarget", "scans", "diff"]
+    assert not re.search(r'<script[^>]+src=|<link[^>]+href="http', doc)  # offline: everything inlined
+    assert "mermaid" not in doc.lower()  # every diagram is Cytoscape; the .mmd exports stay files

@@ -1,0 +1,37 @@
+<!-- SegOWL — Inventory & Zones page body (ticket 03), wrapped by app.page(). -->
+<main>
+<h2>Inventory</h2><p class="sub">Click a cell to edit. Drag to select a block, <span class="kbd">Ctrl</span>+click or
+<span class="kbd">Ctrl</span>+drag to add blocks. With cells selected, <b>just type</b>: the value fills every selected
+cell. Drag the <span style="display:inline-block;width:9px;height:9px;background:#00C8FF;outline:1px solid #0B1F33">
+</span> handle down to extend a series (vm-01 → vm-02…). <span class="kbd">Ctrl+D</span> copies the top cell down.
+<span class="kbd">Ctrl+V</span> pastes a block from a spreadsheet (rows are added as needed). Changes save automatically.</p>
+<div class="layout" style="grid-template-columns:240px minmax(0,1fr)">
+  <div class="card" style="align-self:start">
+    <b>Zones</b><div class="muted small" style="margin:2px 0 6px">Click: show only this Zone · double-click: rename
+    everywhere · ✕: delete (only when unused)</div>
+    <ul class="zlist" id="zl"></ul>
+    <div style="display:flex;gap:6px;margin-top:8px"><input type="text" id="nz" placeholder="New Zone…"
+      style="flex:1;min-width:0"><button class="btn sm pri" id="nzb">Add</button></div>
+    <div class="muted small" style="margin-top:10px">Import the Zones of another inventory:
+      <label class="btn sm">Choose inventory.csv…<input type="file" id="izf" accept=".csv,.txt" hidden></label></div>
+  </div>
+  <div style="min-width:0">
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Filter (ip, name, any column)…" style="width:220px"><span id="fz"></span>
+      <span class="sep"></span>
+      <input type="text" id="cidr" placeholder="10.0.2.0/24" style="width:120px">
+      <button class="btn" id="cidrb">+ Add range</button><button class="btn" id="addr">+ Row</button>
+      <span class="sep"></span>
+      <span class="palette"><button class="btn" id="addc">+ Column</button><span class="drop" id="addcp" hidden
+        style="width:250px;padding:8px"><input type="text" id="addcn" placeholder="column name, e.g. os"
+        style="width:100%"><span class="small muted"><span class="kbd">Enter</span> add ·
+        <span class="kbd">Esc</span> cancel</span></span></span>
+      <button class="btn" id="delr">Delete selected rows</button><span class="sep"></span>
+      <a class="btn" id="dl" href="/api/file/inventory.csv">Download CSV</a>
+      <label class="btn">Upload CSV…<input type="file" id="upf" accept=".csv,.txt" hidden></label>
+      <span style="margin-left:auto" class="small" id="cnt"></span><span class="status" id="st">Loading…</span>
+    </div>
+    <div id="banner"></div><div id="val"></div><div id="grid"></div>
+  </div>
+</div></main>
+<script src="/static/tabulator.min.js"></script><script src="/static/app_inventory.js"></script>

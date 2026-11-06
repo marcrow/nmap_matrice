@@ -1,0 +1,4 @@
+name;ports;options
+broad;top:1000,@admin;-sS -Pn -T4 --max-retries 2 -n --reason
+full-tcp;1-65535;-sS -Pn -T4 --max-retries 1 --min-rate 500 -n --reason
+connect;top:1000,@admin;-sT -Pn -T4 --max-retries 2 -n --reason

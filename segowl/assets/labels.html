@@ -1,0 +1,14 @@
+<!-- SegOWL — Port Labels page body (app-navigation ticket 05), wrapped by app.page(). -->
+<main>
+<p class="sub">Descriptive only: they help find ports, they filter nothing. Grey rows ship with SegOWL; <b>Complete</b>
+copies one into this Mission to add a vendor, tags or cleartext, and the copy replaces it (same port + product). Several
+services may share a port. Tags: suggestions come from the tags in use; a new tag is kept as typed and flagged
+<span class="pill newtag">dashed</span>. Changes save automatically.</p>
+<div class="toolbar"><button class="btn pri" id="ladd">+ New label</button><span class="sep"></span>
+  <input type="search" id="lq" placeholder="Filter: port, product, vendor" style="width:220px">
+  <select id="lt"><option value="">every tag</option></select><select id="lv"><option value="">every vendor</option></select>
+  <label class="small"><input type="checkbox" id="lm"> this Mission's rows only</label>
+  <span style="margin-left:auto" class="small muted" id="lcount"></span><span class="status" id="st">Loading…</span></div>
+<div id="lfbox"></div><div id="grid"></div>
+</main>
+<script src="/static/tabulator.min.js"></script><script src="/static/app_ports.js"></script><script src="/static/app_labels.js"></script>
