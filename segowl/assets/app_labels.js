@@ -1,9 +1,6 @@
 // SegOWL — Port Labels editor (app-navigation ticket 05). The server checks and normalises every row.
 "use strict";
-const $ = (s, r = document) => r.querySelector(s);
-const {esc, api, tokOk, toks, normTags} = Ports;
-function toast(msg) { const t = $("#toast"); t.textContent = msg; t.style.opacity = 1; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = 0, 3800); }
-function status(text, cls = "") { const s = $("#st"); s.textContent = text; s.className = "status " + cls; }
+const {tokOk, toks, normTags} = Ports;
 const ORD = {shipped: 0, override: 1, mission: 2};
 const badge = o => ({shipped: `<span class="badge shipped">shipped</span>`, mission: `<span class="badge b-mission">Mission</span>`,
   override: `<span class="badge override" title="completes the shipped label of the same port + product">Mission · replaces</span>`}[o]);
@@ -27,7 +24,8 @@ function setData(d) {
   keep("#lt", Object.keys(vocab()).sort()); keep("#lv", Ports.vendorsOf(D));
   return table.replaceData(rows()).then(count);
 }
-function count() { $("#lcount").textContent = `${table.getDataCount("active")} shown · ${table.getDataCount()} labels · ${D.mission.length} from this Mission`; }
+function count() { if (!D) return; // the table filters once while it is built, before the data arrives
+  $("#lcount").textContent = `${table.getDataCount("active")} shown · ${table.getDataCount()} labels · ${D.mission.length} from this Mission`; }
 async function save(msg) {
   status("Saving…");
   try { D.fp = (await api("/api/labels", {fp: D.fp, labels: D.mission})).fp; status("Saved ✓", "ok"); if (msg) toast(msg); }

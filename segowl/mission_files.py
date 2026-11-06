@@ -8,22 +8,15 @@ from __future__ import annotations
 
 import csv
 import io
-import os
-import tempfile
 from collections import Counter
 
-from segowl.inventory import BASE_COLUMNS, load_inventory
-
-HEADER_FIRST_CELLS = ("ip", "adresse", "address")
+from segowl import csvfile
+from segowl.inventory import BASE_COLUMNS, HEADER_CELLS, load_inventory
 
 
 def _rows(text: str):
-    for row in csv.reader(io.StringIO(text.lstrip("﻿")), delimiter=";"):
-        row = [c.strip() for c in row]
-        while row and not row[-1]:  # spreadsheets pad rows with empty cells
-            row.pop()
-        if row and not row[0].startswith("#"):
-            yield row
+    """Every row, an empty first cell included: the editors show what the CLI would refuse."""
+    return (row for _, row in csvfile.rows(text, blank_first=True))
 
 
 def _write(rows) -> str:
@@ -32,12 +25,19 @@ def _write(rows) -> str:
     return out.getvalue()
 
 
+def with_notes(new: str, old: str) -> str:
+    """`new` with the `#` lines of `old` kept, right under the header (editors rewrite whole files)."""
+    head, _, rows = new.partition("\n")
+    notes = "".join(f"{x}\n" for x in old.splitlines() if x.lstrip().startswith("#"))
+    return f"{head}\n{notes}{rows}"
+
+
 # ---------------------------------------------------------------- inventory
 def read_inventory(text: str) -> tuple[list[str], list[dict[str, str]]]:
     """(free column names, rows as dicts), tolerant of a missing header and of invalid values."""
     columns, rows = list(BASE_COLUMNS), []
     for row in _rows(text):
-        if row[0].lower() in HEADER_FIRST_CELLS:
+        if row[0].lower() in HEADER_CELLS:
             columns = [*BASE_COLUMNS, *row[len(BASE_COLUMNS) :]]
             continue
         while len(columns) < len(row):
@@ -56,15 +56,11 @@ def check_inventory(text: str) -> str | None:
     """The CLI's own validation message for this inventory, or None when it loads (or is empty)."""
     if not read_inventory(text)[1]:
         return None
-    with tempfile.NamedTemporaryFile("w", suffix=".csv", delete=False, encoding="utf-8") as fh:
-        fh.write(text)
     try:
-        load_inventory(fh.name)
+        load_inventory("inventory.csv", text)
         return None
     except SystemExit as e:
-        return str(e.code).replace(fh.name, "inventory.csv")
-    finally:
-        os.unlink(fh.name)
+        return str(e.code)
 
 
 # ---------------------------------------------------------------- zones.csv
@@ -98,9 +94,8 @@ def read_policy(text: str) -> list[dict[str, str]]:
 def policy_text(rules: list[dict], old: str = "") -> str:
     """flow_policy.csv content; the old file's # comment lines are kept, on top."""
     # ponytail: comment lines move to the top, keep their position if anyone cares
-    notes = "".join(line + "\n" for line in old.splitlines() if line.lstrip().startswith("#"))
     rows = [[r.get(c, "") for c in POLICY_COLUMNS] for r in rules]
-    return _write([list(POLICY_COLUMNS)]) + notes + _write(r for r in rows if any(r))
+    return with_notes(_write([POLICY_COLUMNS, *(r for r in rows if any(r))]), old)
 
 
 # ---------------------------------------------------------------- Flow Policy references

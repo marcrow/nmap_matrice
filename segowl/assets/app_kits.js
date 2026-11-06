@@ -1,14 +1,5 @@
 // SegOWL — Auditor Kits page (ticket 06). The server does every file operation (segowl/kits.py).
 "use strict";
-const $ = (s, r = document) => r.querySelector(s);
-const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-async function api(path, body, raw) {
-  const opt = body === undefined ? {} : {method: "POST", headers: {"X-SegOWL": "1", "Content-Type": raw ? "application/zip" : "application/json"}, body: raw ? body : JSON.stringify(body)};
-  const r = await fetch(path, opt), j = await r.json().catch(() => ({error: r.statusText}));
-  if (!r.ok) { const e = new Error(j.error || r.statusText); e.exists = j.exists; throw e; }
-  return j;
-}
-function toast(msg) { const t = $("#toast"); t.textContent = msg; t.style.opacity = 1; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = 0, 3500); }
 const SHORT = {"port_groups.csv": "Port Groups", "scan_profiles.csv": "Scan Profiles", "port_labels.csv": "Port Labels"};
 const rows = text => text.split(/\r?\n/).slice(1).filter(l => l.trim() && !l.startsWith("#")).length;
 

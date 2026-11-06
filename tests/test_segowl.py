@@ -13,14 +13,12 @@ from segowl.analysis import (
     build_matrix,
     pivot_machines,
     rebounds,
-    restrict,
 )
 from segowl.cli import main
 from segowl.inventory import Host, load_inventory
 from segowl.nmap import HostRecord, Scan, discover_declared, discover_excluded, discover_scans, parse_scan
 from segowl.policy import load_policy
 from segowl.port_groups import load_port_groups
-from segowl.ports import in_port_set
 from segowl.render.common import zone_cell
 from segowl.render.exports import write_observed_zone_flows
 from segowl.render.html import _nmap_ports, _pivot_graph, write_html
@@ -129,18 +127,12 @@ def test_inventory_free_columns(tmp_path):
         load_inventory(str(path))
 
 
-def test_port_groups_override_and_filter(tmp_path):
+def test_port_groups_override(tmp_path):
     override = tmp_path / "port_groups.csv"
     override.write_text("group;ports\nadmin;22,udp:161\n")
     groups = load_port_groups(str(override))
     assert groups["admin"] == {"tcp": [(22, 22)], "udp": [(161, 161)]}  # mission file replaces the default
     assert "db" in groups  # other defaults kept
-
-    inv = load_inventory(str(MISSION / "inventory.csv"))
-    scans = {SRC: [parse_scan(p, SRC) for p in discover_scans(str(MISSION / "scans"))[SRC]]}
-    admin = restrict(build_matrix(inv, scans)[0], lambda p: in_port_set(p, groups["admin"]))
-    assert admin[SRC]["172.31.250.10"].open_ports == [(22, "tcp"), (161, "udp")]
-    assert admin[SRC]["172.31.250.20"].verdict == NODATA  # 5432 is not an admin port
 
 
 def test_pivot_machine(tmp_path):

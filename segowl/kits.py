@@ -11,13 +11,13 @@ every sub-folder of a kit folder is a kit.
 
 from __future__ import annotations
 
-import csv
 import io
 import os
 import tempfile
 import zipfile
 from pathlib import Path
 
+from segowl import csvfile
 from segowl import scan_profiles as sp
 from segowl.port_groups import load_port_groups
 from segowl.scan_profiles import NAME_RE
@@ -80,16 +80,9 @@ def save_kit(mission: Path, dirs: list[Path], kit_dir: Path, name: str, overwrit
 
 def _table(path: Path) -> dict[str, str]:
     """A kit file as {row key: rest of the row}; comments, header and blank lines are not rows."""
-    out: dict[str, str] = {}
-    text = path.read_text(encoding="utf-8-sig") if path.is_file() else ""
-    for row in csv.reader(io.StringIO(text), delimiter=";"):
-        row = [c.strip() for c in row]
-        while row and not row[-1]:
-            row.pop()
-        if row and row[0] and not row[0].startswith("#") and row[0].lower() not in HEADER_CELLS:
-            k = KEY_COLUMNS[path.name]
-            out[" ".join(row[:k])] = ";".join(row[k:])
-    return out
+    k = KEY_COLUMNS[path.name]
+    rows = (row for _, row in csvfile.rows(csvfile.read(path)) if row[0].lower() not in HEADER_CELLS)
+    return {" ".join(row[:k]): ";".join(row[k:]) for row in rows}
 
 
 def diff(mission: Path, kit: Path) -> dict[str, dict]:
@@ -181,15 +174,20 @@ def check(folder: Path) -> list[str]:
     return [f"Scan Profile {e}" for p in sp.read_profiles(text) for e in sp.validate(p, groups)]
 
 
-def export_zip(kit: Path) -> bytes:
-    if not any((kit / n).is_file() for n in FILES):
-        raise ValueError(f"There is no kit {kit.name} in {kit.parent}")
+def zip_files(files: dict[str, Path]) -> bytes:
+    """A zip of {name in the archive: file on disk}."""
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        for n in FILES:
-            if (kit / n).is_file():
-                zf.write(kit / n, n)
+        for arc, p in files.items():
+            zf.write(p, arc)
     return buf.getvalue()
+
+
+def export_zip(kit: Path) -> bytes:
+    files = {n: kit / n for n in FILES if (kit / n).is_file()}
+    if not files:
+        raise ValueError(f"There is no kit {kit.name} in {kit.parent}")
+    return zip_files(files)
 
 
 def import_zip(blob: bytes, dirs: list[Path], kit_dir: Path, name: str, overwrite: bool = False) -> Path:

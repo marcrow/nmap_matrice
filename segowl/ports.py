@@ -67,12 +67,20 @@ PortSet = dict[str, Ranges]  # proto -> ranges
 PROTOS = ("tcp", "udp", "sctp")
 
 
-def parse_port_set(spec: str) -> PortSet:
-    """'22,443,8000-8100,udp:161' -> {'tcp': [...], 'udp': [...]}; TCP is implied."""
+def parse_port_set(spec: str, groups: dict[str, PortSet] | None = None) -> PortSet:
+    """'22,443,8000-8100,udp:161' -> {'tcp': [...], 'udp': [...]}; TCP is implied.
+
+    With `groups`, a token @<name> adds that Port Group's ports."""
     raw: dict[str, list[tuple[int, int]]] = defaultdict(list)
     for token in spec.split(","):
         token = token.strip()
         if not token:
+            continue
+        if token.startswith("@") and groups is not None:
+            if token[1:] not in groups:
+                raise ValueError(f"unknown Port Group {token!r} (known: {', '.join(groups)})")
+            for proto, ranges in groups[token[1:]].items():
+                raw[proto] += ranges
             continue
         proto, _, ports = token.rpartition(":")
         proto = proto.lower() or "tcp"

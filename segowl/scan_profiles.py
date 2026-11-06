@@ -12,14 +12,16 @@ Source View like any other pair of Scans.
 from __future__ import annotations
 
 import csv
+import functools
 import io
 import re
 import shlex
 from dataclasses import dataclass
 from pathlib import Path
 
+from segowl import csvfile
 from segowl.port_groups import PortGroups
-from segowl.ports import PortSet, count_ports, format_ranges, merge_ranges, parse_port_set
+from segowl.ports import PortSet, count_ports, format_ranges, parse_port_set
 
 DEFAULTS = Path(__file__).resolve().parent / "defaults"
 NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$")  # used in file names and shell scripts
@@ -50,12 +52,7 @@ class Profile:
 
 
 def read_profiles(text: str) -> list[Profile]:
-    out = []
-    for row in csv.reader(io.StringIO(text.lstrip("﻿")), delimiter=";"):
-        row = [c.strip() for c in row]
-        if row and row[0] and not row[0].startswith("#") and row[0].lower() != "name":
-            out.append(Profile(*(row + [""] * 4)[:4]))
-    return out
+    return [Profile(*(r + [""] * 4)[:4]) for _, r in csvfile.rows(text) if r[0].lower() != "name"]
 
 
 def profiles_text(profiles: list[Profile]) -> str:
@@ -76,25 +73,15 @@ def denied_reason(token: str) -> str | None:
 
 def split_ports(p: Profile, groups: PortGroups) -> tuple[int, PortSet]:
     """(top-ports N or 0, explicit ports with Port Groups expanded). Raises ValueError."""
-    top, raw = 0, {}
+    top, rest = 0, []
     for token in (t.strip() for t in p.ports.split(",")):
-        if not token:
-            continue
-        if token.startswith("top:"):
-            n = token[4:]
-            if not n.isdigit() or not 1 <= int(n) <= 65535:
-                raise ValueError(f"invalid top ports {token!r}")
-            top = max(top, int(n))
-            continue
-        if token.startswith("@"):
-            if token[1:] not in groups:
-                raise ValueError(f"unknown Port Group {token!r}")
-            part = groups[token[1:]]
+        if not token.startswith("top:"):
+            rest.append(token)
+        elif not token[4:].isdigit() or not 1 <= int(token[4:]) <= 65535:
+            raise ValueError(f"invalid top ports {token!r}")
         else:
-            part = parse_port_set(token)
-        for proto, ranges in part.items():
-            raw[proto] = merge_ranges(raw.get(proto, []) + ranges)
-    return top, raw
+            top = max(top, int(token[4:]))
+    return top, parse_port_set(",".join(rest), groups)
 
 
 def validate(p: Profile, groups: PortGroups) -> list[str]:
@@ -174,14 +161,7 @@ def script(p: Profile, groups: PortGroups, mission: str, src: str, src_label: st
 
 # ---------------------------------------------------------------- port search
 def _csv_rows(path: Path) -> list[list[str]]:
-    if not path.is_file():
-        return []
-    with open(path, newline="", encoding="utf-8-sig") as fh:
-        return [
-            [c.strip() for c in r]
-            for r in csv.reader(fh, delimiter=";")
-            if r and r[0] and not r[0].startswith("#")
-        ]
+    return [r for _, r in csvfile.rows(csvfile.read(path))]
 
 
 def label_key(row) -> tuple[str, str]:
@@ -202,13 +182,9 @@ def load_labels(mission_file: Path | None = None) -> list[tuple[str, str, str, s
     return list(rows.values())
 
 
-_IANA: list[tuple[str, str, str, str]] = []
-
-
+@functools.cache
 def iana() -> list[tuple[str, str, str, str]]:
-    if not _IANA:
-        _IANA.extend((r + ["", "", "", ""])[:4] for r in _csv_rows(DEFAULTS / "iana_ports.csv")[1:])
-    return _IANA
+    return [tuple((r + ["", "", "", ""])[:4]) for r in _csv_rows(DEFAULTS / "iana_ports.csv")[1:]]
 
 
 def search_ports(q: str, groups: dict[str, str], labels: list[tuple[str, ...]], limit=60) -> list[dict]:

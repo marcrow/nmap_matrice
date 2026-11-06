@@ -25,7 +25,8 @@ from segowl.render.mermaid import mermaid_hosts, mermaid_source, mermaid_zone
 from segowl.scan_profiles import load_labels
 
 
-def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    """The CLI's arguments, with the paths a mission folder implies filled in."""
     ap = argparse.ArgumentParser(
         description="Segmentation matrix + Mermaid + HTML report.",
         epilog="Mission folder: inventory.csv, scans/<source_ip>/*.xml, report/ (generated).",
@@ -50,11 +51,6 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     args = ap.parse_args(argv)
     if not args.mission and not (args.inventory and args.scans):
         ap.error("give a mission folder, or both -i and -s")
-    return mission_defaults(args)
-
-
-def mission_defaults(args: argparse.Namespace) -> argparse.Namespace:
-    """Fill the paths a mission folder implies, keeping the ones given explicitly."""
     if args.mission:
         args.inventory = args.inventory or os.path.join(args.mission, "inventory.csv")
         args.scans = args.scans or os.path.join(args.mission, "scans")
@@ -73,7 +69,7 @@ def main() -> None:
 
         app_main(sys.argv[1:])
         return
-    print("\n".join(run(_parse_args())))
+    print("\n".join(run(parse_args())))
 
 
 def run(args: argparse.Namespace) -> list[str]:
@@ -104,7 +100,7 @@ def run(args: argparse.Namespace) -> list[str]:
         policy=policy,
         excluded=excluded,
         declared=discover_declared(args.scans),
-        labels=load_labels(Path(args.mission, "port_labels.csv") if getattr(args, "mission", None) else None),
+        labels=load_labels(Path(args.mission, "port_labels.csv") if args.mission else None),
     )
     matrix, missing, unknown, agg, exp = a.matrix, a.missing, a.unknown, a.agg, a.exp
 

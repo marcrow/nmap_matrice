@@ -1,15 +1,5 @@
 // SegOWL — Auditor Kit › Scan Profiles: the kit's catalogue (app-navigation 06). Building a scan is on /scans.
 "use strict";
-const $ = (s, r = document) => r.querySelector(s);
-const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-async function api(path, body) {
-  const opt = body === undefined ? {} : {method: "POST", headers: {"X-SegOWL": "1", "Content-Type": "application/json"}, body: JSON.stringify(body)};
-  const r = await fetch(path, opt), j = await r.json().catch(() => ({error: r.statusText}));
-  if (!r.ok) { const e = new Error(j.error || r.statusText); e.status = r.status; throw e; }
-  return j;
-}
-function toast(msg) { const t = $("#toast"); t.textContent = msg; t.style.opacity = 1; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = 0, 3500); }
-function status(text, cls = "") { const s = $("#st"); s.textContent = text; s.className = "status " + cls; }
 
 let D = null, descEdit = null, delRow = null;
 const EXP = new Set();

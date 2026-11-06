@@ -28,6 +28,7 @@ from segowl.render.mermaid import (
     POLICY_COLORS,
     SLATE,
     EdgeStatus,
+    _no_highlight,
     hid,
 )
 from segowl.verdict import ALIVE, BLOCK, NODATA, OPEN, REACH, STATE_RANK, VCLASS, VERDICT_NAME, Cell
@@ -57,10 +58,6 @@ def _provenance(c: Cell) -> str:
 
 
 Highlight = Callable[[Port], bool]
-
-
-def _no_highlight(port: Port) -> bool:
-    return False
 
 
 def _ports_attr(ports: Iterable[Port], highlight: Highlight) -> str:

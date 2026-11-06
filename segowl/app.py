@@ -15,6 +15,7 @@ import http.cookies
 import io
 import ipaddress
 import json
+import mimetypes
 import os
 import re
 import secrets
@@ -31,7 +32,7 @@ from pathlib import Path
 from segowl import cli, kits
 from segowl import mission_files as mf
 from segowl import scan_profiles as sp
-from segowl.inventory import load_inventory
+from segowl.inventory import BASE_COLUMNS, load_inventory
 from segowl.nmap import SCAN_EXT_PRIORITY
 from segowl.policy import _kind as policy_kind
 from segowl.policy import _ports as policy_ports
@@ -42,25 +43,8 @@ from segowl.ports import parse_port_set
 from segowl.scan_profiles import NAME_RE
 
 ASSETS = Path(__file__).parent / "assets"
-STATIC = {  # served under /static/
-    "logo.svg": "image/svg+xml",
-    "app.css": "text/css; charset=utf-8",
-    "app_inventory.js": "text/javascript; charset=utf-8",
-    "app_mission.js": "text/javascript; charset=utf-8",
-    "app_kits.js": "text/javascript; charset=utf-8",
-    "app_groups.js": "text/javascript; charset=utf-8",
-    "app_labels.js": "text/javascript; charset=utf-8",
-    "app_catalogue.js": "text/javascript; charset=utf-8",
-    "app_ports.js": "text/javascript; charset=utf-8",
-    "app_policy.js": "text/javascript; charset=utf-8",
-    "app_profiles.js": "text/javascript; charset=utf-8",
-    "app_scans.js": "text/javascript; charset=utf-8",
-    "tabulator.min.js": "text/javascript; charset=utf-8",
-    "tabulator.min.css": "text/css; charset=utf-8",
-}
 LOCK = threading.RLock()  # ponytail: one lock for regeneration and saves, per-file locks if it ever bites
 COOKIE = "segowl_session"
-INVENTORY_HEADER = "ip;zone;type;name\n"
 MAX_BODY = 20_000_000
 
 
@@ -138,7 +122,7 @@ def ensure_skeleton(mission: Path) -> None:
     (mission / "scans").mkdir(parents=True, exist_ok=True)
     inv = mission / "inventory.csv"
     if not inv.exists():
-        inv.write_text(INVENTORY_HEADER, encoding="utf-8")
+        inv.write_text(";".join(BASE_COLUMNS) + "\n", encoding="utf-8")
 
 
 def mission_state(mission: Path) -> tuple:
@@ -175,18 +159,8 @@ class Mission:
             state = mission_state(self.path)
             if state == self.state:
                 return
-            args = argparse.Namespace(
-                mission=str(self.path),
-                inventory=None,
-                scans=None,
-                port_groups=None,
-                policy=None,
-                out=None,
-                pn=False,
-                host_graph=True,
-            )
             try:
-                self.lines, self.error = cli.run(cli.mission_defaults(args)), ""
+                self.lines, self.error = cli.run(cli.parse_args([str(self.path), "--host-graph"])), ""
             except SystemExit as e:
                 self.lines, self.error = [], str(e.code)
             except Exception as e:  # a broken input file must not take the app down
@@ -253,15 +227,8 @@ class Mission:
 
     def _step_inventory(self) -> dict:
         rows, problems = self.rows(), []
-        if err := mf.check_inventory(self.text("inventory.csv")):
+        if err := mf.check_inventory(self.text("inventory.csv")):  # the CLI's own loader
             problems.append(err)
-        elif rows:
-            try:
-                load_inventory(
-                    str(self.file("inventory.csv"))
-                )  # the CLI's own loader, for what the editor misses
-            except SystemExit as e:
-                problems.append(str(e.code).replace(f"{self.path}/", ""))
         if n := sum(1 for r in rows if not r.get("zone")):
             problems.append(f"{n} Interface(s) without Zone")
         zones = {r["zone"] for r in rows if r.get("zone")}
@@ -321,10 +288,6 @@ class Mission:
     # ---- Port Groups
     def port_groups(self) -> dict:
         """Shipped and Mission groups as specs, and who uses each group (rules, profiles)."""
-
-        def specs(text: str) -> dict[str, str]:
-            return {r[0]: r[1] for r in mf._rows(text) if r[0].lower() != "group" and len(r) > 1}
-
         used: dict[str, dict] = {}
         for r in mf.read_policy(self.text("flow_policy.csv")):
             for g in {t.strip()[1:] for t in r["ports"].split(",") if t.strip().startswith("@")}:
@@ -335,8 +298,8 @@ class Mission:
                 used.setdefault(g, {"rules": [], "profiles": []})["profiles"].append(p.name)
         return {
             "fp": {n: fingerprint(self.file(n)) for n in GROUP_FILES},
-            "shipped": specs(GROUP_DEFAULTS.read_text(encoding="utf-8-sig")),
-            "mission": specs(self.text("port_groups.csv")),
+            "shipped": _group_specs(GROUP_DEFAULTS.read_text(encoding="utf-8-sig")),
+            "mission": _group_specs(self.text("port_groups.csv")),
             "used": used,
         }
 
@@ -362,7 +325,7 @@ class Mission:
                 errors.append(f"@{name} is used by {', '.join(by)}")
         if errors:
             raise ValueError("; ".join(errors))
-        text = with_notes(mf._write([["group", "ports"], *rows]), self.text("port_groups.csv"))
+        text = mf.with_notes(mf._write([["group", "ports"], *rows]), self.text("port_groups.csv"))
         return save_file(self.file("port_groups.csv"), text, data.get("fp", ""))
 
     def rename_group(self, old: str, new: str, fp: dict) -> dict:
@@ -401,7 +364,7 @@ class Mission:
         twice = sorted({f"{r[0]} · {r[1]}" for r, k in zip(rows, keys, strict=True) if keys.count(k) > 1})
         if twice:
             raise ValueError(f"Twice in this Mission: {', '.join(twice)}")
-        text = with_notes(mf._write([LABEL_COLUMNS, *rows]), self.text("port_labels.csv"))
+        text = mf.with_notes(mf._write([LABEL_COLUMNS, *rows]), self.text("port_labels.csv"))
         return save_file(self.file("port_labels.csv"), text, data.get("fp", ""))
 
     def add_label(self, row: list) -> dict:
@@ -419,14 +382,10 @@ class Mission:
     # ---- Scan Profiles
     def groups(self) -> tuple[dict, dict[str, str]]:
         """(Port Groups as port sets, as raw specs), shipped defaults overridden by the Mission's."""
-        specs = {}
-        for path in (GROUP_DEFAULTS, self.file("port_groups.csv")):
-            for row in mf._rows(path.read_text(encoding="utf-8-sig") if path.is_file() else ""):
-                if row[0].lower() != "group" and len(row) > 1:
-                    specs[row[0]] = row[1]
-        mission_groups = self.file("port_groups.csv")
+        specs = _group_specs(GROUP_DEFAULTS.read_text(encoding="utf-8-sig"))
+        specs.update(_group_specs(self.text("port_groups.csv")))
         try:
-            sets = load_port_groups(str(mission_groups) if mission_groups.is_file() else None)
+            sets = load_port_groups(str(self.file("port_groups.csv")))
         except SystemExit:
             sets = load_port_groups(None)
         return sets, specs
@@ -465,7 +424,7 @@ class Mission:
         errors += [f"two profiles named {n}" for n in sorted({n for n in names if names.count(n) > 1})]
         if errors:
             raise ValueError("; ".join(errors))
-        text = with_notes(sp.profiles_text(profiles), self.text("scan_profiles.csv"))
+        text = mf.with_notes(sp.profiles_text(profiles), self.text("scan_profiles.csv"))
         return save_file(self.file("scan_profiles.csv"), text, data.get("fp", ""))
 
     def preview(self, data: dict) -> dict:
@@ -560,17 +519,10 @@ class Mission:
         elif self.error:  # e.g. a rule the CLI refuses: the flows are still wanted to fix the policy
             groups = self.file("port_groups.csv")
             with tempfile.TemporaryDirectory() as tmp:
-                args = argparse.Namespace(
-                    inventory=str(self.file("inventory.csv")),
-                    scans=str(self.file("scans")),
-                    port_groups=str(groups) if groups.is_file() else None,
-                    policy=None,
-                    out=tmp,
-                    pn=False,
-                    host_graph=False,
-                )
+                argv = ["-i", str(self.file("inventory.csv")), "-s", str(self.file("scans")), "-o", tmp]
+                argv += ["--port-groups", str(groups)] if groups.is_file() else []
                 try:
-                    cli.run(args)
+                    cli.run(cli.parse_args(argv))
                     text = Path(tmp, "observed_zone_flows.csv").read_text(encoding="utf-8-sig")
                 except (SystemExit, Exception):  # broken inventory or Port Groups: nothing to show
                     text = ""
@@ -766,7 +718,8 @@ class Mission:
 
     # ---- client exchange
     def client_zip(self) -> bytes:
-        return _zip({n: self.file(n) for n in ("inventory.csv", "flow_policy.csv") if self.file(n).is_file()})
+        names = [n for n in ("inventory.csv", "flow_policy.csv") if self.file(n).is_file()]
+        return kits.zip_files({n: self.file(n) for n in names})
 
     def mission_zip(self) -> bytes:
         files = {}
@@ -774,7 +727,7 @@ class Mission:
             for n in names:
                 p = Path(root, n)
                 files[str(p.relative_to(self.path))] = p
-        return _zip(files)
+        return kits.zip_files(files)
 
     def import_client(self, blob: bytes, apply: bool) -> dict:
         """Check (and with apply=True write) the inventory and Flow Policy of a client zip."""
@@ -803,40 +756,19 @@ class Mission:
         return {"report": report, "ok": not errors, "applied": apply and not errors}
 
     def _check_policy(self, inv_text: str, pol_text: str) -> str:
-        with LOCK:
-            tmp_inv, tmp_pol = self.file(".import-inv.tmp"), self.file(".import-pol.tmp")
-            groups_file = self.file("port_groups.csv")
-            try:
-                tmp_inv.write_text(inv_text, encoding="utf-8")
-                tmp_pol.write_text(pol_text, encoding="utf-8")
-                groups = load_port_groups(str(groups_file) if groups_file.is_file() else None)
-                rules = load_policy(str(tmp_pol), load_inventory(str(tmp_inv)), groups)
-                return f"{len(rules)} rule(s)"
-            except SystemExit as e:
-                return (
-                    str(e.code)
-                    .replace(str(tmp_pol), "flow_policy.csv")
-                    .replace(str(tmp_inv), "inventory.csv")
-                )
-            finally:
-                tmp_inv.unlink(missing_ok=True)
-                tmp_pol.unlink(missing_ok=True)
-
-
-STEP_TITLES = {
-    "inventory": "Inventory & Zones",
-    "kit": "Auditor Kit",
-    "scans": "Scans",
-    "policy": "Flow Policy",
-    "report": "Report",
-}
+        try:
+            groups = load_port_groups(str(self.file("port_groups.csv")))
+            inv = load_inventory("inventory.csv", inv_text)
+            return f"{len(load_policy('flow_policy.csv', inv, groups, pol_text))} rule(s)"
+        except SystemExit as e:
+            return str(e.code)
 
 
 def _step(key: str, state: str, summary: str, problems: list[str], href: str, action: str) -> dict:
     """One Overview row; state: done, prog (in progress), todo (not started), warn (problem)."""
     return {
         "key": key,
-        "title": STEP_TITLES[key],
+        "title": dict(NAV)[key],
         "state": state,
         "summary": summary,
         "problem": "\n".join(problems),
@@ -845,11 +777,9 @@ def _step(key: str, state: str, summary: str, problems: list[str], href: str, ac
     }
 
 
-def with_notes(new: str, old: str) -> str:
-    """`new` with the `#` lines of `old` kept, right under the header (editors rewrite whole files)."""
-    head, _, rows = new.partition("\n")
-    notes = "".join(f"{x}\n" for x in old.splitlines() if x.lstrip().startswith("#"))
-    return f"{head}\n{notes}{rows}"
+def _group_specs(text: str) -> dict[str, str]:
+    """A port_groups.csv as {group: ports spec}."""
+    return {r[0]: r[1] for r in mf._rows(text) if r[0].lower() != "group" and len(r) > 1}
 
 
 def _is_scan(f: Path) -> bool:
@@ -874,14 +804,6 @@ def _label(row: list) -> list[str]:
         raise ValueError(f"{port} · {product}: cleartext is yes, no or empty")
     tags = ",".join(dict.fromkeys("-".join(t.lower().split()) for t in tags.split(",") if t.strip()))
     return [port, product, tags, vendor, clear]
-
-
-def _zip(files: dict[str, Path]) -> bytes:
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        for arc, p in files.items():
-            zf.write(p, arc)
-    return buf.getvalue()
 
 
 # ---------------------------------------------------------------- pages
@@ -933,7 +855,7 @@ def page(title: str, body: str, *, mission: Path | None = None, user="", active=
         f'<!doctype html><html lang="en"><head><meta charset="utf-8">'
         f"<title>{html.escape(title)} · SegOWL</title>"
         '<link rel="icon" href="/static/logo.svg"><link rel="stylesheet" href="/static/app.css">'
-        f"{head}</head><body>"
+        f'<script src="/static/app_common.js"></script>{head}</head><body>'
         f'<header><img src="/static/logo.svg" alt=""><div class="brand">Seg<b>OWL</b></div>{where}'
         f'<div class="user">{who if mission is not None else ""}</div></header>{nav}{body}'
         f'<div id="toast"></div></body></html>'
@@ -1063,13 +985,8 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
             if not self._host_ok():
                 return self._send(421, b"unexpected Host header", "text/plain")
             url = urllib.parse.urlsplit(self.path)
-            name = url.path.removeprefix("/static/")
-            if name in STATIC:
-                return self._send(200, (ASSETS / name).read_bytes(), STATIC[name])
-            if (
-                re.fullmatch(r"tutorial/[a-z0-9-]+\.svg", name) and (ASSETS / name).is_file()
-            ):  # Overview diagrams
-                return self._send(200, (ASSETS / name).read_bytes(), "image/svg+xml")
+            if url.path.startswith("/static/"):  # the app's assets, served before login like any page's
+                return self._static(ASSETS, url.path.removeprefix("/static/"))
             if url.path == "/login":
                 return self._send(200, page("Sign in", LOGIN_FORM.format(err="")))
             user = self._user()
@@ -1123,10 +1040,7 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                     mission.kit_zip(q.get("dir", [""])[0], q.get("name", [""])[0]),
                 ),
                 "/inventory": lambda: self._page(
-                    "Inventory",
-                    (ASSETS / "inventory.html").read_text(encoding="utf-8"),
-                    "inventory",
-                    tabulator,
+                    "Inventory", asset("inventory.html"), "inventory", tabulator
                 ),
             }
             if url.path in REDIRECTS:
@@ -1153,30 +1067,26 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
             target = (root / rel).resolve()
             if not target.is_relative_to(root.resolve()) or not target.is_file():
                 return self._send(404, b"not found", "text/plain")
-            types = {
-                ".html": "text/html; charset=utf-8",
-                ".csv": "text/csv; charset=utf-8",
-                ".md": "text/markdown; charset=utf-8",
-                ".mmd": "text/plain; charset=utf-8",
-            }
-            self._send(200, target.read_bytes(), types.get(target.suffix, "application/octet-stream"))
+            ctype = "text/plain" if target.suffix == ".mmd" else mimetypes.guess_type(target.name)[0]
+            ctype = ctype or "application/octet-stream"
+            self._send(200, target.read_bytes(), ctype + "; charset=utf-8" * ctype.startswith("text/"))
 
         def do_POST(self):
             if not self._host_ok():
                 return self._send(421, b"unexpected Host header", "text/plain")
             url = urllib.parse.urlsplit(self.path)
             n = int(self.headers.get("Content-Length") or 0)
+            if url.path == "/login":
+                return self._login(self.rfile.read(min(n, 10_000)))
+            if self._user() is None:
+                return self._json({"error": "Signed out: sign in again"}, 401)
+            if self.headers.get("X-SegOWL") != "1":  # a cross-site form cannot set it: CSRF guard
+                return self._json({"error": "Missing X-SegOWL header"}, 403)
             if url.path == "/api/scans/upload":
                 return self._upload(url, n)
             if n > MAX_BODY:
                 return self._json({"error": "Upload too large"}, 413)
             body = self.rfile.read(n)
-            if url.path == "/login":
-                return self._login(body)
-            if self._user() is None:
-                return self._json({"error": "Signed out: sign in again"}, 401)
-            if self.headers.get("X-SegOWL") != "1":  # a cross-site form cannot set it: CSRF guard
-                return self._json({"error": "Missing X-SegOWL header"}, 403)
             try:
                 if url.path == "/api/inventory":
                     return self._json({"fp": mission.save_inventory(json.loads(body))})
@@ -1232,10 +1142,6 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
             self._json({"error": "Not found"}, 404)
 
         def _upload(self, url, n: int):
-            if self._user() is None:
-                return self._json({"error": "Signed out: sign in again"}, 401)
-            if self.headers.get("X-SegOWL") != "1":
-                return self._json({"error": "Missing X-SegOWL header"}, 403)
             q = urllib.parse.parse_qs(url.query)
             try:
                 with LOCK:
@@ -1246,7 +1152,7 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                 return self._json({"error": str(e)}, 400)
 
         def _login(self, body: bytes):
-            form = urllib.parse.parse_qs(body[:10_000].decode(errors="replace"))
+            form = urllib.parse.parse_qs(body.decode(errors="replace"))
             login, password = form.get("login", [""])[0], form.get("password", [""])[0]
             stored = load_users(users_file).get(login)
             if stored is None or not check_password(password, stored):

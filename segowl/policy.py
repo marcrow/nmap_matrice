@@ -11,14 +11,13 @@ at equal specificity deny wins. A flow no rule covers is Undeclared, never a Fin
 
 from __future__ import annotations
 
-import csv
 import sys
-from collections import defaultdict
 from dataclasses import dataclass
 
+from segowl import csvfile
 from segowl.inventory import Host, Inventory
 from segowl.port_groups import PortGroups
-from segowl.ports import Port, PortSet, in_port_set, merge_ranges, parse_port_set
+from segowl.ports import Port, PortSet, in_port_set, parse_port_set
 
 ALLOW, DENY, UNDECLARED = "allow", "deny", "undeclared"
 SEVERITY = {DENY: 2, UNDECLARED: 1, ALLOW: 0}  # to colour an edge carrying several flows
@@ -70,50 +69,38 @@ def _kind(name: str, inv: Inventory, where: str) -> int:
 def _ports(spec: str, groups: PortGroups, where: str) -> PortSet | None:
     if spec in ("", "*"):
         return None
-    raw: dict[str, list[tuple[int, int]]] = defaultdict(list)
-    for token in spec.split(","):
-        token = token.strip()
-        if token.startswith("@"):
-            if token[1:] not in groups:
-                sys.exit(f"[!] {where}: unknown Port Group {token!r} (known: {', '.join(groups)})")
-            part = groups[token[1:]]
-        else:
-            try:
-                part = parse_port_set(token)
-            except ValueError as e:
-                sys.exit(f"[!] {where}: {e}")
-        for proto, ranges in part.items():
-            raw[proto] += ranges
-    return {proto: merge_ranges(r) for proto, r in raw.items()}
+    try:
+        return parse_port_set(spec, groups)
+    except ValueError as e:
+        sys.exit(f"[!] {where}: {e}")
 
 
-def load_policy(path: str, inv: Inventory, groups: PortGroups) -> list[Rule]:
+def load_policy(path: str, inv: Inventory, groups: PortGroups, text: str | None = None) -> list[Rule]:
+    """The Flow Policy at `path`, or in `text` (then `path` only names it in the messages)."""
     rules, skipped = [], 0
-    with open(path, newline="", encoding="utf-8-sig") as fh:
-        for line_no, row in enumerate(csv.reader(fh, delimiter=";"), 1):
-            row = [c.strip() for c in row] + [""] * 5
-            if not row[0] or row[0].startswith("#") or row[0].lower() == "src":
-                continue
-            where = f"{path}:{line_no}"
-            src, dst, ports, action, comment = row[:5]
-            if not action:
-                skipped += 1
-                continue
-            if action.lower() not in (ALLOW, DENY):
-                sys.exit(f"[!] {where}: action must be allow or deny, not {action!r}")
-            rules.append(
-                Rule(
-                    line_no,
-                    src,
-                    dst,
-                    ports or "*",
-                    action.lower(),
-                    comment,
-                    _kind(src, inv, where),
-                    _kind(dst, inv, where),
-                    _ports(ports, groups, where),
-                )  # fmt: skip
-            )
+    for line_no, row in csvfile.rows(csvfile.read(path) if text is None else text):
+        if row[0].lower() == "src":
+            continue
+        where = f"{path}:{line_no}"
+        src, dst, ports, action, comment = (row + [""] * 5)[:5]
+        if not action:
+            skipped += 1
+            continue
+        if action.lower() not in (ALLOW, DENY):
+            sys.exit(f"[!] {where}: action must be allow or deny, not {action!r}")
+        rules.append(
+            Rule(
+                line_no,
+                src,
+                dst,
+                ports or "*",
+                action.lower(),
+                comment,
+                _kind(src, inv, where),
+                _kind(dst, inv, where),
+                _ports(ports, groups, where),
+            )  # fmt: skip
+        )
     if skipped:
         print(f"[!] {path}: {skipped} row(s) without action skipped (no decision yet)", file=sys.stderr)
     return rules

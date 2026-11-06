@@ -2,16 +2,6 @@
 // Own scope: the scan builder (app_profiles.js) shares the page.
 "use strict";
 (() => {
-const $ = (s, r = document) => r.querySelector(s);
-const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-async function api(path, body, raw) {
-  const opt = body === undefined ? {} : {method: "POST", headers: {"X-SegOWL": "1"}, body: raw ? body : JSON.stringify(body)};
-  if (body !== undefined && !raw) opt.headers["Content-Type"] = "application/json";
-  const r = await fetch(path, opt), j = await r.json().catch(() => ({error: r.statusText}));
-  if (!r.ok) throw new Error(j.error || r.statusText);
-  return j;
-}
-function toast(msg) { const t = $("#toast"); t.textContent = msg; t.style.opacity = 1; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = 0, 3500); }
 const msg = (text, cls) => { $("#msg").innerHTML = text ? `<div class="${cls}"></div>` : ""; if (text) $("#msg").firstChild.textContent = text; };
 let D = null;
 const candLabel = c => [c.ip, c.name, c.zone].filter(Boolean).join(" · ");

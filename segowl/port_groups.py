@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import csv
 import os
 import sys
 from pathlib import Path
 
+from segowl import csvfile
 from segowl.ports import PortSet, parse_port_set
 
 DEFAULTS = Path(__file__).resolve().parent / "defaults" / "port_groups.csv"
@@ -17,17 +17,15 @@ PortGroups = dict[str, PortSet]
 
 def _read(path: str) -> PortGroups:
     groups: PortGroups = {}
-    with open(path, newline="", encoding="utf-8-sig") as fh:
-        for line_no, row in enumerate(csv.reader(fh, delimiter=";"), 1):
-            row = [c.strip() for c in row]
-            if not row or not row[0] or row[0].startswith("#") or row[0].lower() == "group":
-                continue
-            if len(row) < 2 or not row[1]:
-                sys.exit(f"[!] {path}:{line_no}: expected group;ports")
-            try:
-                groups[row[0]] = parse_port_set(row[1])
-            except ValueError as e:
-                sys.exit(f"[!] {path}:{line_no}: {e}")
+    for line_no, row in csvfile.rows(csvfile.read(path)):
+        if row[0].lower() == "group":
+            continue
+        if len(row) < 2 or not row[1]:
+            sys.exit(f"[!] {path}:{line_no}: expected group;ports")
+        try:
+            groups[row[0]] = parse_port_set(row[1])
+        except ValueError as e:
+            sys.exit(f"[!] {path}:{line_no}: {e}")
     return groups
 
 

@@ -1,16 +1,8 @@
 // SegOWL — shared by the Auditor Kit editors and the scan builder: port autocomplete, tag input with
-// suggestions derived from the data, and the "new Port Label" form. One global, Ports, so the page scripts
-// keep their own $ / esc / api.
+// suggestions derived from the data, and the "new Port Label" form. One global, Ports; $ / esc / api come
+// from app_common.js.
 "use strict";
 const Ports = (() => {
-  const $ = (s, r = document) => r.querySelector(s);
-  const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-  async function api(path, body) {
-    const opt = body === undefined ? {} : {method: "POST", headers: {"X-SegOWL": "1", "Content-Type": "application/json"}, body: JSON.stringify(body)};
-    const r = await fetch(path, opt), j = await r.json().catch(() => ({error: r.statusText}));
-    if (!r.ok) { const e = new Error(j.error || r.statusText); e.status = r.status; throw e; }
-    return j;
-  }
   const tokOk = t => { const m = String(t).trim().match(/^(?:(udp|tcp|sctp):)?(\d+)(?:-(\d+))?$/i); if (!m) return false; const a = +m[2], b = m[3] ? +m[3] : a; return a >= 1 && b <= 65535 && a <= b; };
   const toks = s => String(s ?? "").split(",").map(x => x.trim()).filter(Boolean);
   // ports as chips, folded beyond 10; `open` holds the ids the user expanded ("+N more")
@@ -152,5 +144,5 @@ const Ports = (() => {
     });
     $(port ? "#lf-prod" : "#lf-port", box).focus();
   }
-  return {esc, api, tokOk, toks, portChips, normTags, near, attachPorts, attachTags, labelForm, vocabOf, vendorsOf, setLabels: L => { LABELS = L; }};
+  return {tokOk, toks, portChips, normTags, near, attachPorts, attachTags, labelForm, vocabOf, vendorsOf, setLabels: L => { LABELS = L; }};
 })();

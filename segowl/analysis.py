@@ -126,17 +126,6 @@ def target_exposure(matrix: Matrix, inv: Inventory) -> Exposure:
     return exp
 
 
-def restrict(matrix: Matrix, keep: Callable[[Port], bool]) -> Matrix:
-    """The OPEN flows on the kept ports only (e.g. a Port Group view); everything else becomes unseen."""
-    out: Matrix = {}
-    for s, row in matrix.items():
-        out[s] = {}
-        for d, c in row.items():
-            ports = [p for p in c.open_ports if keep(p)]
-            out[s][d] = Cell(OPEN, ports, c.scans) if ports else Cell(scans=c.scans)
-    return out
-
-
 # machine -> [(source ip, reached interface ip, open ports)]
 Pivots = dict[str, list[tuple[str, str, list[Port]]]]
 
@@ -243,11 +232,6 @@ class Analysis:
     def in_group(self, group: str) -> Callable[[Port], bool]:
         port_set = self.port_groups.get(group, {})
         return lambda port: in_port_set(port, port_set)
-
-    @cached_property
-    def group_matrices(self) -> dict[str, Matrix]:
-        """One restricted matrix per Port Group, for the report's group filter."""
-        return {g: restrict(self.matrix, self.in_group(g)) for g in self.port_groups}
 
     def scan_row(self, scan: Scan) -> Row:
         """What one Scan alone saw of the inventory (Self excluded): the unit of a Scan Diff."""

@@ -2,17 +2,6 @@
 // Scan Profile: nothing is saved until "Save as a new profile version", "Update" or "Discard". Commands are
 // computed by the server (/api/profiles/preview). window.SegDraft tells the Sources grid which profile is modified.
 "use strict";
-const $ = (s, r = document) => r.querySelector(s);
-const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-async function api(path, body) {
-  const opt = body === undefined ? {} : {method: "POST", headers: {"X-SegOWL": "1", "Content-Type": "application/json"}, body: JSON.stringify(body)};
-  const r = await fetch(path, opt), j = await r.json().catch(() => ({error: r.statusText}));
-  if (!r.ok) { const e = new Error(j.error || r.statusText); e.status = r.status; throw e; }
-  return j;
-}
-function toast(msg) { const t = $("#toast"); t.textContent = msg; t.style.opacity = 1; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = 0, 3500); }
-function status(text, cls = "") { const s = $("#st"); s.textContent = text; s.className = "status " + cls; }
-const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 
 // ---------------------------------------------------------------- option metadata (help texts, not policy)
 const TCP = [["-sS", "SYN", "TCP SYN scan (needs root)"], ["-sT", "Connect", "TCP connect scan (no root, works through SOCKS)"], ["-sA", "ACK", "ACK scan: maps filtering (unfiltered = REACHABLE)"], ["", "none", "No TCP scan type given: nmap picks SYN as root, connect otherwise"]];
