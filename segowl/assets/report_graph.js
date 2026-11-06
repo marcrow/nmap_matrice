@@ -6,14 +6,13 @@ const COL = {deny: '#dc2626', undeclared: '#f59e0b', allow: '#16a34a'}, GREY = '
 const RANK = {deny: 3, undeclared: 2, allow: 1};
 const ICON = {deny: ['✕', '#dc2626', '#fff'], undeclared: ['?', '#f59e0b', '#3b2600'], allow: ['✓', '#16a34a', '#fff']};
 const WORD = {deny: 'Finding: denied by the Flow Policy', undeclared: 'undeclared', allow: 'allowed'};
-const ARR = {auto: 'auto', c1: 'one column', c2: 'two columns', r1: 'one row', r2: 'two rows', sq: 'square', ci: 'circle', arc: 'half moon'};
-const FREE = ['auto', 'sq', 'ci', 'arc'];  // arrangements that fit beside the Source as well as above or below it
+const ARR = {auto: 'auto', c1: 'one column', c2: 'two columns', r1: 'one row', r2: 'two rows', sq: 'square', ci: 'circle'};
+const FREE = ['auto', 'sq', 'ci'];  // arrangements that fit beside the Source as well as above or below it
 // Snap-layout style icons of the right-click menu (34 x 24).
 const SR = (x, y, w, h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1.5"/>`;
 const ARR_ICON = {auto: SR(3, 3, 28, 18) + '<text x="17" y="15.5" font-size="8" font-weight="700" text-anchor="middle" stroke="none">auto</text>',
   c1: SR(13, 3, 8, 18), c2: SR(8, 3, 8, 18) + SR(18, 3, 8, 18), r1: SR(3, 8, 28, 8), r2: SR(3, 4, 28, 7) + SR(3, 13, 28, 7),
-  sq: SR(9, 3, 7, 7) + SR(18, 3, 7, 7) + SR(9, 13, 7, 7) + SR(18, 13, 7, 7), ci: '<circle cx="17" cy="12" r="9"/>',
-  arc: '<path d="M11 3a12 9 0 0 1 0 18" fill="none" stroke-width="5" stroke-linecap="round"/>', col: SR(13, 3, 8, 18), row: SR(3, 8, 28, 8)};
+  sq: SR(9, 3, 7, 7) + SR(18, 3, 7, 7) + SR(9, 13, 7, 7) + SR(18, 13, 7, 7), ci: '<circle cx="17" cy="12" r="9"/>', col: SR(13, 3, 8, 18), row: SR(3, 8, 28, 8)};
 const MARR = {col: 'one column', row: 'one row'};  // a Machine in the centre
 const LAYOUTS = {sides: 'Zones facing the Source', lr: 'Zones on both sides', ring: 'Zones around the Source'};
 const SRC = '<rect x="13.5" y="9.5" width="7" height="5" rx="1" class="src"/>';
@@ -150,7 +149,6 @@ function elements(g) {
   const sideRank = z => ({L: 0, T: 0, R: 1, B: 1}[(D.sides || {})[z]] || 0);  // pinned sides read left to right
   const zones = [...new Set(rows.map(t => t.zone))].sort((a, b) => sideRank(a) - sideRank(b) || a.localeCompare(b));
   for (const z of zones) { const [f, s, c] = D.zones[z];
-    els.push({data: {id: 'bg:' + z, zone: z, w: 1, h: 1, img: svgUri(1, 1, '')}, classes: 'zbg off'});  // a half moon's banana
     els.push({data: {id: 'z:' + z, name: z, label: `${z} · ${rows.filter(t => t.zone === z).length}`, fill: f, stroke: s, text: c}, classes: 'zone'}); }
   for (const t of rows) {
     const m = O.mcol && t.multi ? D.machines[t.machine] : null, c = t.rows ? rowsCard(t) : card(t, t.bar || m), col = edgeCol(t);
@@ -203,8 +201,6 @@ const STYLE = [
   {selector: 'edge.tie', style: {'curve-style': 'straight', width: 1.2, 'line-color': GREY, 'line-style': 'dotted'}},
   {selector: 'node.sib', style: {'underlay-color': '#00C8FF', 'underlay-padding': 5, 'underlay-opacity': 0.35, 'underlay-shape': 'round-rectangle'}},
   {selector: 'edge.hl', style: {width: 2.6, 'z-index': 30}},
-  {selector: 'node.zbg', style: {shape: 'rectangle', width: 'data(w)', height: 'data(h)', 'background-opacity': 0, 'border-width': 0,
-    'background-image': 'data(img)', 'background-fit': 'contain', events: 'no', 'z-compound-depth': 'bottom'}},
   {selector: '.off', style: {display: 'none'}},
 ];
 
@@ -227,7 +223,6 @@ function block(g, z, dir) {
   const cmp = (a, b) => { const p = a.data('t'), q = b.data('t');
     return p.ord !== undefined && q.ord !== undefined && p.ord !== q.ord ? p.ord - q.ord : key(a).localeCompare(key(b)); };
   const kids = z.children().sort(cmp);
-  if (arrOf(g, z) === 'arc') return arcBlock(g, z, dir, kids);
   const lines = Math.min(linesFor(g, z, kids.length, v), kids.length);
   // Each line as wide as its widest node; the gap before a line holds that line's port tags ("ports on the
   // edges"), beside its nodes or under them: no wider than they need.
@@ -246,47 +241,13 @@ function block(g, z, dir) {
   // (a box W x H fits a stadium of radius r when the margin is >= (sqrt(2) - 1) / 2 of its short side).
   const round = arrOf(g, z) === 'ci', P = round ? PAD + 0.22 * Math.min(W, H) : PAD;
   const place = (pos, fx, fy) => {  // (fx, fy) = top-left corner of the frame; a B frame carries its title underneath
-    banana(g, z, null); z.style({padding: P, 'corner-radius': round ? Math.min(W, H) / 2 + P : 4});  // when the side is chosen, not while tried
+    z.style({padding: P, 'corner-radius': round ? Math.min(W, H) / 2 + P : 4});  // when the side is chosen, not while tried
     const x0 = fx + P, y0 = fy + (dir === 'B' ? 0 : TITLE) + P;
     kids.forEach((k, i) => { const off = offs[i % lines], w = k.data('w'), h = k.data('h'), t = a[i] - start;
       pos[k.id()] = dir === 'R' ? {x: x0 + off + w / 2, y: y0 + t} : dir === 'L' ? {x: x0 + W - off - w / 2, y: y0 + t}
         : dir === 'T' ? {x: x0 + t, y: y0 + H - off - h / 2} : {x: x0 + t, y: y0 + off + h / 2}; });
   };
   return {z, dir, FW: W + 2 * P, FH: H + 2 * P + TITLE, place};
-}
-// Half moon: the nodes on an arc bulging away from the Source, one per height (one per column above or below it),
-// in a banana drawn under the Zone (a Cytoscape parent node can only be a rectangle: the Zone frame is made
-// transparent, its title stays). Edges come in at right angles through the inner curve and cross no node.
-function arcBlock(g, z, dir, kids) {
-  const n = kids.length, v = dir === 'R' || dir === 'L', gap = v ? 12 : 16, q = 10, cap = 18;
-  const alOf = k => v ? k.data('h') : k.data('w'), crOf = k => v ? k.data('w') : k.data('h');
-  const tagOf = k => { const t = g.cy.$id('p:' + k.id()); return t.nonempty() ? (v ? t.data('lr').w : t.data('tb').h) + 10 : 0; };
-  const mAl = Math.max(...kids.map(alOf)), mCr = Math.max(...kids.map(crOf)), tg = Math.max(0, ...kids.map(tagOf));
-  const span = (n - 1) * (mAl + gap), L = 2 * cap + 2 * q + mAl + span, depth = n < 3 ? 0 : Math.max(24, span * 0.16);
-  const C = 2 * q + tg + depth + mCr, a0 = cap + q + mAl / 2;  // along / across sizes; a0 = first node
-  const d = a => { const u = span ? Math.max(-1, Math.min(1, (a - a0) / span * 2 - 1)) : 0; return depth * Math.sqrt(1 - u * u); };
-  const W = v ? C : L, H = v ? L : C;  // (along, across) -> box coordinates, across growing away from the Source
-  const xy = (a, c) => dir === 'R' ? [c, a] : dir === 'L' ? [W - c, a] : dir === 'B' ? [a, c] : [a, H - c];
-  const P = (a, c) => xy(a, c).map(x => x.toFixed(1)).join(' '), N = 24, a1 = cap, a2 = L - cap, k = cap * 1.25, band = C - depth;
-  const at = i => a1 + (a2 - a1) * i / N, ix = [...Array(N + 1).keys()];
-  const path = `M${P(a1, d(a1) + 1)}` + ix.map(i => `L${P(at(i), d(at(i)) + 1)}`).join('')
-    + `C${P(a2 + k, d(a2) + 1)} ${P(a2 + k, d(a2) + band - 1)} ${P(a2, d(a2) + band - 1)}`
-    + ix.reverse().map(i => `L${P(at(i), d(at(i)) + band - 1)}`).join('')
-    + `C${P(a1 - k, d(a1) + band - 1)} ${P(a1 - k, d(a1) + 1)} ${P(a1, d(a1) + 1)}Z`;
-  const name = z.data('name'), [fill, stroke] = g.D.zones[name];
-  const place = (pos, fx, fy) => {
-    const x0 = fx, y0 = fy + (dir === 'B' ? 0 : TITLE);
-    banana(g, z, {w: W, h: H, img: svgUri(W, H, `<path d="${path}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>`)}, cap + q);
-    pos['bg:' + name] = {x: x0 + W / 2, y: y0 + H / 2};
-    kids.forEach((k2, i) => { const a = a0 + i * (mAl + gap), [x, y] = xy(a, q + tg + d(a) + crOf(k2) / 2); pos[k2.id()] = {x: x0 + x, y: y0 + y}; });
-  };
-  return {z, dir, FW: W, FH: H + TITLE, place};
-}
-// The Zone frame: its own (rectangle) or, for a half moon, transparent over the banana drawn under it.
-function banana(g, z, img, pad) {
-  const bg = g.cy.$id('bg:' + z.data('name'));
-  if (!img) { z.removeStyle('background-opacity border-width'); bg.addClass('off'); return; }
-  z.style({'background-opacity': 0, 'border-width': 0, padding: pad}); bg.removeClass('off').data(img);
 }
 const visibleZones = g => g.cy.nodes('.zone').filter(z => !z.hasClass('off'));
 const tagRoom = (g, k, d) => { let w = 0; g.cy.nodes('.tag').forEach(t => { if (!t.hasClass('off')) w = Math.max(w, t.data(k)[d]); }); return w ? w + 14 : 0; };
@@ -443,7 +404,7 @@ function runLayout(g) {
 
 function hideZone(g, z, off) {
   const zn = g.cy.$id('z:' + z);
-  zn.union(zn.children()).union(g.cy.$id('bg:' + z)).union(g.cy.nodes('.tag').filter(k => k.data('zone') === z)).union(g.cy.edges('.zedge').filter(e => e.data('zone') === z)).toggleClass('off', off);
+  zn.union(zn.children()).union(g.cy.nodes('.tag').filter(k => k.data('zone') === z)).union(g.cy.edges('.zedge').filter(e => e.data('zone') === z)).toggleClass('off', off);
 }
 function drawGraph(g) {
   g.cy.elements().remove();

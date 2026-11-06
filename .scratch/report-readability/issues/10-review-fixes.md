@@ -140,3 +140,5 @@ Done:
   - the hint under them is as wide as the tiles (`width:0; min-width:100%`);
   - the other hints are capped at 260 px.
 - Checked headless: the sweep, every tile, Pivot sides with every arrangement, on demo and mission-lab.
+
+**2026-11-06, seventh pass.** The user removed the half moon ("ça va pas"): `arcBlock`, the banana drawn under the Zone and its node are gone. The Zone arrangements are now auto, one / two columns, one / two rows, square and circle (cloud).
