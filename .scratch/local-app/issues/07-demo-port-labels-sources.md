@@ -1051,3 +1051,278 @@ Ports are already sourced in 07-demo-port-labels-sources.md. Sources for the rea
 
 #### Dropped (no readable source, or not risky by default)
 Oracle TNS listener poison (Oracle alert page returned 403), Splunk default `changeme` (docs.splunk.com returned 403), Firebird SYSDBA/masterkey (guide URL 404), Cisco HSRP default auth string, GlusterFS `auth.allow`, Apache Derby, HSQLDB, Jaeger UI, Trino, IBM MQ CHLAUTH, XDMCP udp:177 (IANA port found, no risk source), Apple ARMS udp:3283, echo udp:7, Cloudera Manager, Kubernetes Dashboard (no fixed port), GlassFish/Payara 4848, WildFly 9990 and WebLogic Node Manager 5556 (auth on by default), Triton (safe default), SAP start service (no public risk source), Veeam / NDMP / Data Protector / TeamCity / ScreenConnect / MikroTik Winbox (single-CVE issues, not default-config risks).
+
+## Fourth pass: families not covered in pass three (2026-11-06)
+
+Same rules as above: vendor page, IANA, RFC, CISA or NVD only. `[checked]` = port read on the page with WebFetch (or a downloaded vendor PDF). `[checked via search extract]` = the page refused automated fetch and the port was read in the search text quoted from that vendor page. Nothing unverified was kept: drops are listed per family.
+
+### OT and ICS (Moxa, Digi, Mitsubishi, Honeywell, Emerson, ABB)
+
+#### Moxa
+- Moxa Command (DSCI) TCP 4900 and 14900, UDP 4800 [checked: "Moxa Command (DSCI) | TCP 14900, 4900 / UDP 4800 | For Moxa utility communication", enabled by default; suggested setting "Disable"] → https://www.moxa.com/getmedia/67b5e549-a125-4a6a-b99b-23017c75cfc1/moxa-the-security-hardening-guide-for-the-nport-5000-series-tech-note-v1.1.pdf (same table in the NPort 6000 guide v2.1: https://www.moxa.com/getmedia/fcc106e2-b933-4adf-ab87-062f25952f6a/moxa-the-security-hardening-guide-for-the-Nport-6000-series-tech-note-v2.1.pdf). 4900 "saving settings and firmware upgrades" and 4800 "broadcast discovery / reading current settings" also on the MGate FAQ below.
+- Moxa Service UDP 4800 risky [checked: NVD CVE-2020-12117 "Moxa Service in Moxa NPort 5150A firmware version 1.5 and earlier allows attackers to obtain sensitive configuration values via a crafted packet to UDP port 4800. NOTE: Moxa Service is an unauthenticated service"] → https://nvd.nist.gov/vuln/detail/CVE-2020-12117
+- NPort Real COM mode data 950-965, command 966-981; TCP Server / RFC2217 / Pair Connection / Ethernet Modem / Reverse Telnet 4001-4016; UDP mode udp:4001-4016 [checked: hardening guide table "Real COM Mode ... 950+ (Serial port No. -1) / 966+ (Serial port No. -1)", "TCP Server Mode ... User-defined (default: 4000+Serial port No.)", "UDP Mode ... UDP ... default: 4000+Serial port No."] → same NPort 5000 hardening guide. The formula is from Moxa. I set the upper bound at 16 serial ports, the same convention as the Cisco 2001-2016 row; Moxa does not state it. TCP Server mode default 4001 / command 966 also in https://www.moxa.com/getmedia/b7cfb9b4-0694-41c0-829e-f078d6c947a1/moxa-tcp-server-mode-for-nport-tech-note-v2.0.pdf (via search extract). Cleartext left empty: NPort 6000 offers secure modes on the same ports.
+- MGate high-priority Modbus TCP 7502, MB3000 packet monitor 4502 [checked: Moxa FAQ port tables] → https://www.moxa.com/en/support/product-support/product-faq/which-tcp-udp-ports-to-open-to-access-mgate-gateway-remotely
+- MXview remote communication 8883, polling engine 4430 [checked: "Comm. Port: ... default value of 8883", "Polling Engine Port: ... default value of 4430"] → https://www.moxa.com/getmedia/5646954b-0658-4105-afdd-cd7e7560ac13/moxa-mxview-series-manual-v2.5.pdf
+- MXview One Central Manager 8883, internal service ports 8883 and 8882 [checked: "The default port number is 8883", "Internal Service Port 1/2 ... The default ports are 8883 and 8882"] → https://www.moxa.com/getmedia/6252ae2a-1fdb-485a-bdcf-a5c739cbba3f/moxa-mxview-one-series-manual-v3.0.pdf
+
+#### Digi International
+- RealPort 771, Encrypted RealPort 1027, ADDP udp:2362, Telnet passthrough 2001, TCP passthrough 2101, Serial/UDP server udp:2101, SSH passthrough 2501, Secure Socket Service 2601, modem emulation pool 50000, modem emulation passthrough 50001 [checked: "set service" network services table; "base network port number + serial port number" on multi-port devices] → https://docs.digi.com/resources/documentation/digidocs/90000566/reference/r_set_service.htm
+- RealPort TCP 771, Encrypted RealPort TCP 1027, ADDP UDP 2362 [checked: "This is the default RealPort port and is configurable on both the Digi device and the driver host"] → https://www.digi.com/support/knowledge-base/which-firewall-ports-are-required-for-digi-navigat ; Encrypted RealPort 1027 is TLS ("TCP port for the device that should be used for TLS connections") → https://docs.digi.com/resources/documentation/digidocs/90000630/references/r_configure_encrypted_realport.htm
+- Digi Remote Manager EDP 3197 (non-SSL) and 3199 (SSL) [checked: "3197 (TCP): Non-SSL EDP connection used by older devices or older firmware", "3199 (TCP): SSL EDP connection used by newer firmware"] → https://digi.com/support/knowledge-base/firewall-concerns-for-outbound-edp-connections-to
+
+#### Mitsubishi Electric
+- iQ-R RJ71EN71: auto-open UDP udp:5000, MELSOFT transmission udp:5001 and 5002/TCP, MELSOFT direct connection udp:5003, module search udp:5009; iQ-R CPU: auto-open UDP udp:5005, MELSOFT transmission udp:5006 and 5007/TCP, MELSOFT direct connection udp:5008 [checked: Appendix 10 "Port Numbers Used by Ethernet-equipped Module"; "The auto-open UDP port is used for communication with SLMP"] → https://dl.mitsubishielectric.com/dl/fa/document/manual/plc/sh081257eng/sh081257engad.pdf
+- Q-series Ethernet module 5000 "Auto Open UDP Port", 5001 "over UDP/IP and Ethernet module", 5002 "over TCP/IP and Ethernet module"; L-series CPU 5006/5007 "MELSOFT communication port", 5008 "MELSOFT direct connection port" [checked: Appendix 2 "Port Numbers Used by Built-in Ethernet Port"] → https://dl.mitsubishielectric.com/dl/fa/document/manual/plc/sh080891eng/sh080891engs.pdf
+- Cleartext left empty on all rows (the manuals do not state it).
+
+#### Honeywell
+- Experion TCP 51000, Safety Builder 51010, risky [checked: NVD CVE-2022-30313 "Experion TCP (51000/TCP) and Safety Builder (51010/TCP). None of these protocols have any authentication features"] → https://nvd.nist.gov/vuln/detail/CVE-2022-30313
+- Experion LX CDA EpicMo 55565, risky [checked: NVD CVE-2022-30317 "Control Data Access (CDA) EpicMo protocol (55565/TCP) for device diagnostics and maintenance purposes. This protocol does not have any authentication features"] → https://nvd.nist.gov/vuln/detail/CVE-2022-30317
+- FSC information scan 51001 [checked via search extract: Experion PKS R516 "Honeywell FSC Integration Reference", "process data connections to the FSC are made on TCP port 51000. Information scan connections to the FSC are made on TCP port 51001"; Honeywell document hosted on manuals.plus, HTTP 403 on fetch] → https://manuals.plus/m/1cf778b756d6e0cb4b3954f774a9f4aec190519ef17c39c09275b3815c4c29f5
+
+#### Emerson
+- DeltaV Hawk services udp:18507, firmware upgrade 18508 and 18518, Plug-and-Play udp:18510, cold restart udp:18512, Wireless Gateway Protocol udp:18515, management 18519, SIS communications 12345, all risky [checked: NVD CVE-2022-29957 "None of these protocols have any authentication features, allowing any attacker capable of communicating with the ports in question to invoke (a subset of) desired functionality"; CISA ICSA-22-181-03 referenced] → https://nvd.nist.gov/vuln/detail/CVE-2022-29957
+- DeltaV Telnet 18550, risky [checked: NVD CVE-2022-29963 "TELNET on port 18550 provides access to a root shell via hardcoded credentials. This affects S-series, P-series, and CIOC/EIOC nodes"] → https://nvd.nist.gov/vuln/detail/CVE-2022-29963
+
+#### ABB
+- System 800xA Multisystem Integration 3340, Information Manager desktop tools 19014-19017, IM Open Data Access 1706, AC 800M MMS 102, SattBus on TCP/IP udp:2999 [checked: Table 11 "Summary of Port Numbers that may need to be opened"; "Multisystem Integration ... provides an encrypted connection between the systems ... TCP port 3340"] → https://library.e.abb.com/public/9c8b6c0dc8bdfe16c1257b400026feb3/3BSE034463-510_E_en_System_800xA_5.1_Network_Configuration.pdf (800xA 5.1 edition; the 6.0 System Planning guide 3BSE041389-600 points to this document for port numbers)
+
+#### Dropped
+- Red Lion Crimson programming / download TCP 789: only in a Tenable plugin and an industrialmonitordirect.com blog. redlion.net manuals now redirect to hms-networks.com, the HMS KB pages carry no port number or return 403, and the Internet Archive was offline. No vendor source → dropped. FlexEdge / Graphite: no vendor port table found.
+- Red Lion G3 / Crimson 2 remote update TCP 8000: third-party blog only.
+- Moxa EDS switches: the EDS CLI manuals and FAQ only show standard ports (Telnet, SSH, HTTP/S, SNMP). No vendor-specific port to add.
+- Moxa MXview One control panel 7100: shown only as an example URL in the manual, not as a default.
+- Moxa MXview / MXview One database 5432 and ABB 800xA Information Manager Oracle 1521: these are generic PostgreSQL / Oracle ports, already covered by the generic rows.
+- ABB 800xA Aspect Server 3338: third-party port site only.
+- Honeywell Experion Station / eServer 50000-50004, 2909-2911, FTE 55553 / 51966 / udp:12321: Tenable plugins and docs only. The Honeywell planning guide needs a login.
+- Mitsubishi Q-series QJ71E71 5002 DoS (CVE-2016-8368) and iQ-R MELSOFT DoS (CVE-2021-20591): these are DoS bugs, not dangerous-by-default services, so no risky tag. The ports themselves are kept from the manuals.
+- Emerson DeltaV maintenance Telnet 23 (CVE-2022-29965) and portmapper 111 (CVE-2012-1816): generic ports, already covered by the Telnet / RPC rows.
+- Digi VNC 5500 / 5900, HTTP / HTTPS, SNMP, LPD, rlogin / rsh: generic ports.
+
+
+### Building automation, access control, video, printers
+
+#### Johnson Controls
+- Metasys 9910 TCP+UDP (Microsoft Discovery Protocol, diagnostics), udp:9911 (Metasys Private Message, SCT discovery), 10050 (Turbo Boot, NAE Update Tool), 12000 (UberDebug Service), 9004 (JCI Licensing Service, Software Manager), udp:11001 (N1 protocol, NCM/NIE, Release 9.0 and earlier), udp:4050 (Wireless Many-to-One Sensing, WRS-RTN), internal-only ADS/ADX ports 3003 and 10000 (PhantomJS), 5291 (Action Queue), 5960 (Device Manager), 9003 (JCI Product Update), 9505 / 9506 / 9507 (JCI Rate Limit / Rewrite / Website) [checked] → https://docs.johnsoncontrols.com/bas/r/Metasys/en-US/Network-and-IT-Guidance-Technical-Bulletin/13.0.50/Network-and-IT-considerations/Protocols-ports-and-connectivity-for-the-Metasys-system/Protocols-and-ports-tables (Network and IT Guidance Technical Bulletin LIT-12011279, release 13.0.50; the internal ports are in a separate table "no external exposure", hence "(internal, keep blocked)"). The page is JS-rendered: read through WebFetch, not curl.
+- Metasys udp:4096 / udp:4097 (N2 Protocol trunk 1 / trunk 2, NAE55) [checked] → https://docs.johnsoncontrols.com/bas/r/Metasys/en-US/Network-and-IT-Guidance-Technical-Bulletin/10.1/Network-and-IT-considerations/Protocols-ports-and-connectivity-for-the-Metasys-system/Protocols-and-ports-tables (release 10.1 table; no longer listed in 13.0.50)
+- Metasys BACnet/SC 1443 [checked] → https://docs.johnsoncontrols.com/bas/r/Metasys/en-US/ADS/ADX-Commissioning-Guide/13.0/Appendix-Windows-firewall/Configuring-the-Windows-Defender-firewall ("BACnet Secure Connect … Note: This is the default port", administrator can configure an alternate port). Cleartext `no`: BACnet/SC is TLS-only by design.
+
+#### LenelS2
+The LenelS2 knowledge base (kb.lenels2.com) now answers every article URL with a 301 to the Honeywell portal home page, and kbtest.lenels2.com no longer resolves, so these rows rely on the KB's own text quoted in web-search extracts.
+- LNL-2220 / X-2220 / LNL-3300 / X-3300 controller host port 3001 [checked via search extract: "The LNL-3300, X-3300 or LNL-2220, X-2220 listen on port 3001 for Communication Server traffic. Port 3001 is the default value, but it can be changed"] → https://kb.lenels2.com/home/which-tcp-ports-are-used-by-the-lnl-3300-or-lnl-2220 . Cross-checked: Genetec's Access Control network diagram lists "Specific ports for integration with Mercury/Honeywell: Out TCP 3001" (LNL panels are Mercury OEM) → https://techdocs.genetec.com/api/khub/documents/mbliK4d8SJx6TaUm1W39Vg/content
+- OnGuard Alarm Monitoring 4001, 4004 [checked via search extract: "ensure TCP ports 4001 and 4004 are open on the OnGuard server for Alarm Monitoring clients to connect successfully"] → https://kb.lenels2.com/home/onguard-clients-having-issues-connecting-to-onguard-servers-running-windows-vista-or-windows-server-2008
+- OnGuard web console and web clients/modules 8080 [checked via search extract: "How to change the default port for the OnGuard web console and web clients/modules from 8080 to a custom port"] → https://kbtest.lenels2.com/home/how-to-change-default-port-8080-for-console-and-web-clientsmodules . Cleartext left empty (HTTP vs HTTPS not stated).
+- OnGuard License Server 8189 [checked via search extract: "Cannot connect to license server from the client" precheck "Port 8189 is open"] → https://kb.lenels2.com/home/cannot-connect-to-license-server-from-the-client
+
+#### Genetec
+Existing Genetec rows (5500, 4502, 555, 605, 5602, 558, 560, 960, 5004, 554, 654, 570, 4590, 8012, UDP ranges) were not repeated. Read through the Fluid Topics content API (raw HTML, footnote markers kept apart: WebFetch summaries merged them into the port, e.g. "5551", "9603", and turned 18731 into 8731).
+- Synergis udp:2000 (Synergis discovery), HID extension 4050 (VertX OPIN, legacy / EVO firmware < 3.7), 4433 (OPIN, HTTPS TLS 1.2, EVO secure mode firmware 3.7+), udp:4070 (VertX discovery, fixed) [checked] → https://techdocs.genetec.com/api/khub/maps/UcyH8tLrLLPQ1ENNjjrdYA/topics/XMIUVknof82cSbOWYOUWdA/content (Ports used by Synergis applications, Security Center 5.14)
+- Synergis Cloud Link inbound 2571 ("ASSA ABLOY R3 protocol", user-configurable), 9999 ("Aperio IP protocol", user-configurable); udp:4070 also as "DHCP enrollment" [checked] → https://techdocs.genetec.com/api/khub/documents/mbliK4d8SJx6TaUm1W39Vg/content (Network Diagram 5.14 - Access Control)
+- Genetec Update Service 4594 (deprecated, redirects to 4595), 4595 (HTTPS), 4596 (Sidecar); Mobile Server 9000-10000 (HTTP, adding mobile devices to an Archiver); Wearable Camera Manager 48830 and 48831-48833 (Clearance protocol, Axis SCU) [checked] → https://techdocs.genetec.com/api/khub/maps/UcyH8tLrLLPQ1ENNjjrdYA/topics/Oi~3x_UTBq8r9AnYkrpmvw/content (Ports used by core applications, 5.14)
+- Redirector to Privacy Protector 754 (RTSP over TLS when secure communication is enabled); Wearable Camera Manager API 48831-48833 [checked] → https://techdocs.genetec.com/api/khub/maps/UcyH8tLrLLPQ1ENNjjrdYA/topics/tARbCUkErqWP2W~swnv~mw/content (Ports used by Omnicast applications, 5.14)
+- AutoVu 2323 (SharpV extension selection), udp:2728 (appliance discovery), 4502-4534 (Silverlight / image feed, HTTP, pre-SharpV), 4545 (control, mobile), 8001 (control, fixed, HTTP), 9001 (LPM, SC 5.8, HTTPS), 10001 (LPM, HTTPS), 18731 (ALPR Manager / Patroller secure port), udp:5000 (Sharp discovery), 4546 (SNTP for Sharp), 8787 / 8788 (Pay-by-Plate Sync HTTP / HTTPS) [checked] → https://techdocs.genetec.com/api/khub/maps/UcyH8tLrLLPQ1ENNjjrdYA/topics/cxfRlZK0Dhq7r5Q9B1qDDg/content (Ports used by AutoVu applications, 5.14)
+- Sipelia 8202 (session transfer, TLS), udp:20000-20500 (RTP), 7550 (Sipelia Gateway Web API, HTTPS) [checked] → https://techdocs.genetec.com/api/khub/maps/UcyH8tLrLLPQ1ENNjjrdYA/topics/yeauUHED7dF~u0M2RGC7_Q/content (Ports used by Sipelia modules, 5.14)
+
+#### Hanwha Vision
+support.hanwhavision.com returns 403 to WebFetch; pages read through its public Zendesk API (`/api/v2/help_center/en-001/articles/<id>.json`), port tables are PNG attachments read as images.
+- Wisenet WAVE server 7001 [checked: "Wisenet WAVE requires only a single port, 7001, for access through a firewall, router, or VLAN. This port can be changed"] → https://support.hanwhavision.com/hc/en-001/articles/47257087414291-How-secure-is-WAVE ; same port used for http://, https:// and rtsp:// URLs in https://support.hanwhavision.com/hc/en-001/articles/47257317430803 and /47461557890579, hence cleartext empty.
+- Camera 4520 ("TCP, SNMP"), utility 7701 ("IP Installer"), NVR 558 (RTSP to NVR/DVR), legacy NVR/DVR table "554 or 4520 Streaming Protocol, 555 or 4521 User Authentication, Firmware Upgrade, 556 or 4522 Streaming Video/Audio, 557 or 4523 Setup Page HTML, 558 or 4524 CGI Command for Mobile App (iPOLIS)" (models before 2021) [checked] → https://support.hanwhavision.com/hc/en-001/articles/47782441336339-What-are-the-Default-Port-Number-on-my-Hanwha-Cameras-and-NVRs
+- "On older DVRs the RTSP port is 4524" [checked] → https://support.hanwhavision.com/hc/en-001/articles/47782453253139-What-ports-need-to-be-opened-to-connect-to-a-DVR-NVR-remotely
+
+#### Avigilon (Motorola Solutions)
+- ACC 7 server 38880 (HTTPS API), 38881 (HTTPS API, Media), udp:38883 (multicast 239.255.255.0, server discovery, not encrypted), 38980 (Postgres database replication), 38981 (Postgres database), 38982 (HTTPS clustering gossip), 38983 (MQTT clustering), udp:51000-55000 (RTP/RTCP media, not encrypted), 8443 (Web Endpoint REST API, Windows only), 49152 TCP (Web Endpoint SSDP, Windows only), udp:59595 (multicast, Pelco device driver SOAP) [checked: "Configuring Ports" tables, PDF text-extracted; Encrypted column used for cleartext] → https://d8eqw8u9b6kgn.cloudfront.net/documents/avigilon-acc7-installworkflowchecklist-en.pdf (Avigilon ACC 7 Install Workflow Checklist, 2023). 8443 cleartext left empty: the table says protocol HTTPS but Encrypted "No".
+
+#### Xerox
+- AltaLink 4000 (ThinPrint), 5909-5999 (remote access to local display panel, random port, TLS 1.2/1.3), 51333 (file sharing through Fleet Orchestrator), 53202 (WSD Transfer), 53303 (WSD Print), 53404 (WSD Scan) [checked: "Listening services (inbound ports)" table, PDF text-extracted] → https://securitydocs.business.xerox.com/wp-content/uploads/2024/09/Security-Guide-Information-Assurance-Disclosure-Xerox®-AltaLink-B82xx_C82xx.pdf
+
+#### Ricoh
+- IM C530 series 10021 (RFU, "Remote updating of firmware"), 53000 (WSD Device, variable), 53001 (WSD Printer, variable), 514 (RSH/RCP, "Transmissions that require RSH, Network TWAIN") [checked] → https://support.ricoh.com/services/device/ccmanual/IM_C530-re/en-GB/security/int/control.htm
+
+#### Dropped
+- Metasys TCP 1833 "MQTT" and 8883 MQTT/TLS: outbound from the NAE to vendor devices (port lives on the third-party device); 1833 looks like a doc typo for 1883, and generic 1883 / 8883 rows already exist.
+- Metasys 2103 / 2105 ("RPC over TCP" in the ADS/ADX firewall appendix): these are Microsoft MSMQ ports, the Metasys page gives no purpose; not vendor-specific.
+- Metasys generic ports in the tables (80, 443, 88, 135, 389, 445, 1025, 1433, 3389, 47808 …) skipped: already covered by standard rows.
+- LenelS2 OnGuard full "Ports Used by OnGuard" chapter (Advanced Installation Topics): not reachable (KB redirects to Honeywell portal, PDF not public). LS Application Server / OpenAccess port not found. 8888 (online license activation, OnGuard ≤ 8.2) skipped: outbound to the Internet.
+- Avigilon Unity Video / Unity Access (ACM) ports: help.avigilon.com does not resolve and no ACM port table was found on a vendor page. Rows are labelled ACC 7 only. ACC udp:38882 (Avigilon Cloud Services) and udp:38884 (usage analytics NTP) skipped: Internet-scope only.
+- Hanwha WAVE Sync relay / mediator 3345 TCP+UDP and NVR P2P (3478-3479, 4000, 5000, 32768-65535), DDNS udp:7016 / 7026: outbound to Hanwha / Network Optix cloud, not internal services.
+- Ricoh @Remote 7443 / 7444, RHPP 59100: seen only in manualslib.com mirrors of Ricoh manuals, not on a support.ricoh.com page I could read. 51443: no source at all.
+- Xerox 5354 (mDNS Responder IPC): Apple mDNSResponder, not Xerox-specific.
+- Genetec Health Monitor 4592: only in a WebFetch summary of the 5.13 page, absent from the 5.14 raw table; not verified.
+- Genetec Synergis Cloud Link to Salto 1234 (outbound, port belongs to Salto) skipped.
+
+
+### Network vendors (Huawei, Extreme, Mist, Zyxel, Ruijie, SAN)
+
+#### Huawei
+Huawei support pages are JavaScript apps (WebFetch returns an empty body), so every Huawei row is `[checked via search extract]` with the search restricted to support.huawei.com.
+- eSight web client 31943 [checked via search extract] → https://support.huawei.com/enterprise/en/doc/EDOC1100107076/894bf0f/logging-in-to-and-out-of-esight ("the default port number of eSight is 31943", login https://<IP>:31943/)
+- eSight 31942 (CAS SSO, "In most cases, the port number is 31942") [checked via search extract] → https://support.huawei.com/enterprise/en/doc/EDOC1000172371/ddf5dbbf/esight-as-a-cas-sso-client ; 31945 maintenance tool / management plane ("the maintenance tool's default port number ... is 31945") [checked via search extract] → https://support.huawei.com/enterprise/en/doc/EDOC1100011876/d007f040/managing-esight-maintenance-tool ; firewall template rules for 31942/31943/31945 "Allows HTTP and HTTPS connections" → https://support.huawei.com/enterprise/en/doc/EDOC1100107106/5bb242d4/adding-firewall-rules
+- eSight port redirections 21→31921 (FTP), udp 69→32182 (TFTP), udp 162→10162 (alarm), udp 514→32185 (syslog) [checked via search extract] → https://support.huawei.com/enterprise/en/doc/EDOC1100044379/90e3397f/single-node-system-eulerosgaussdbphysical-machine and https://support.huawei.com/enterprise/en/doc/EDOC1100107088/9ea68c5/local-high-availability-system-eulerosgaussdbommhaphysical-machine (note: udp:10162 is also IANA SNMP-trap-over-DTLS; the eSight row labels the Huawei reuse)
+- iMaster NCE-Campus 10020 NETCONF device registration ("Destination Port (Listening): 10020. Protocol: TCP. Description: Port used to establish a NETCONF channel for device registration"; NETCONF over SSH call home) [checked via search extract] → https://support.huawei.com/enterprise/de/doc/EDOC1100213304/a32ec0f/communication-matrix and https://support.huawei.com/enterprise/en/doc/EDOC1100127203/3f2f78bc/obtaining-the-netconf-enabling-configuration-and-imaster-nce-campus-s-address-information-through-a-registration-query-center
+- iMaster NCE-Campus 10031/10032 HTTP/2 performance data (legacy / new device certificate), 18008 browser login to the service plane, 18020/18021 file download channel (new / legacy certificate) [checked via search extract] → https://support.huawei.com/enterprise/de/doc/EDOC1100213304/a32ec0f/communication-matrix (V300R020C10; the V100R022C00 SD-WAN matrix adds 10033/10034 and 18022 for other certificate types / AR models, not emitted) → https://support.huawei.com/enterprise/en/doc/EDOC1100311145/4c52136c/communication-matrix
+
+#### Extreme Networks / Aerohive
+- ExtremeCloud IQ AP CAPWAP udp:12222 ("secure CAPWAP connection on port 12222", "redirector.aerohive.com:12222", fallback TCP 80) [checked] → https://documentation.extremenetworks.com/ExtremeIQ/OLH/GUID-8ECB9669-CAD7-481C-8D5D-A75DB90713F8.html
+- ExtremeCloud IQ Site Engine 8080, 8443, 8444, 8445, 20504, 20505, 20506; ExtremeAnalytics udp:2058, udp:2075, udp:2095 [checked, PDF text extracted with pdftotext, "ExtremeCloud IQ Site Engine Ports" tables pp. 15-20] → https://documentation.extremenetworks.com/netsight/XIQ-SE/25.08.10/ExtremeCloud_IQ_Site_Engine_25_08_10_Requirement_Configuration_Guide.pdf
+- ExtremeCloud IQ Controller udp:13907 (WASSP AP registration / discovery), udp:13910 (WASSP management and data tunnel), udp:13911 (mobility and availability tunnel), 5825 (appliance GUI HTTPS), 2002-2003 (RCAPD AP Real Capture), 20506 (Remote Langley Secure), 60606 (Mobility VN MGR), 6380 (REDIS HA pair config sync) [checked, "ExtremeCloud IQ Controller TCP/UDP Port Assignment Reference", pdftotext] → https://documentation.extremenetworks.com/ExtremeCloud_IQ_Controller_10_20_01_0029_Release_Notes.pdf
+
+#### Juniper Networks (Mist)
+- oc-term TCP 2200 (EX / SRX), srx-log-terminator TCP 6514 (SRX), RadSec TCP 2083 [checked] → https://networkingdocs.hpe.com/documentation/us/en/software/mist/mist-management/topics/ref/firewall-ports-to-open.html ("oc-term.mistsys.net (TCP 2200)", "srx-log-terminator.mist.com (TCP 6514)")
+- Mist Edge udp:1701 L2TPv3 tunnel ("the firewall must allow incoming traffic on UDP Port 1701" for non-IPsec campus / branch) [checked] → https://networkingdocs.hpe.com/documentation/us/en/software/mist/mist-edge-virtual-solution/topics/concept/vm-overview.html
+
+#### Zyxel
+- Nebula NCC access TCP 4335 and 6667 ("TCP: 22, 443, 4335 and 6667", "UDP: 123") [checked] → https://bulletin.nebula.zyxel.com/online-help/firewall/USG_LITE_60AX_OnCloud_UG-HTML_v2.00/USG%20LITE%2060AX_Cloud_UG-HTML/h_Trouble_NCCAccess.html ; NETCONF role [checked via search extract, page 403] → https://mysupport.zyxel.com/hc/en-us/articles/28553901308562-Nebula-Information-How-Devices-Communicate-with-NCC-Ports-used-for-NETCONF
+
+#### Ruijie Networks
+- Ruijie Cloud TCP 10000-12000 ("Cloud establishes tunnel connection with the gateway"), UDP 3478 / 3479 ("Ruijie Cloud server delivers the CLI commands to the device · AP, Switch, Gateway") [checked] → https://reyee.ruijie.com/en-global/support/documents/slide_75690 (Ruijie Cloud PoC Guide V1.2) ; same table on the Ruijie Cloud wiki [checked via search extract, page 403] → https://cloud-as.ruijienetworks.com/wiki/c/addressesPortsToBePermitted
+
+#### Broadcom (Brocade)
+- Brocade Extension WO-TCP 3225 and 3226 ("Brocade WO-TCP uses well-known TCP ports 3225 and 3226") [checked] → https://techdocs.broadcom.com/us/en/fibre-channel-networking/fabric-os/fabric-os-extension/9-2-x/configuring-the-wan-side-tunnel/wan-side-ip-network-considerations.html
+
+#### Cisco (MDS / DCNM SAN)
+- DCNM SAN 1099 (Java RMI), 3528 / 3529 (JBoss IIOP / IIOP over SSL), 9198 TCP+UDP (SNMP proxy), 61616 (SAN client messaging), udp:1163-1170 (SNMP traps to SAN Client / Device Manager), udp:2162 (SNMP trap from devices), 57500 (gRPC SAN telemetry) [checked] → https://www.cisco.com/c/en/us/td/docs/switches/datacenter/sw/11_3_1/installation/san/b_dcnm_installation_guide_for_san_11_3_1/m_running_dcnm_behind_firewall.html
+- MDS FCIP default TCP 3225 ("The default TCP port for FCIP is 3225") [checked] → https://www.cisco.com/c/en/us/td/docs/dcn/mds9000/sw/9x/configuration/ip-services/cisco-mds-9000-nx-os-ip-services-configuration-guide-9x/configuring-fcip.html (no row emitted: covered by the existing generic `3225;FCIP` row)
+
+#### Dropped
+- Huawei eSight full communication matrix (device-manager modules, HA, DB ports): the document is not public / not fetchable; only ports read in search extracts were kept.
+- Huawei iMaster NCE (non-Campus: NCE-Fabric / NCE-IP) ports: no vendor page read.
+- Huawei NCE-Campus 10033 / 10034 / 18022: version-specific variants (V100R022C00 SD-WAN, third-party certs / specific AR models); skipped to keep the row set version-stable.
+- Extreme NetSight / XMC legacy 4530-4533 and 4589: only in a third-party-summarised search answer; absent from the 21.11.10 and 25.08.10 requirement guides read with pdftotext.
+- Extreme ExtremeCloud IQ RadSec TCP 2083 and Juniper Mist Access Assurance / Mist Edge RadSec TCP 2083: already covered by the generic `2083;RADIUS over TLS (RadSec)` row.
+- Juniper Mist AP udp:443 / TCP 443 / TCP 80 to cloud, Mist Edge udp:500 / udp:4500 IPsec: generic ports already labelled.
+- Zyxel ZyWALL / USG FLEX on-prem management: no non-standard management port found on a vendor page (web / SSH are 443 / 22).
+- Zyxel NCC "TCP 4335 since AP firmware 5.50" nuance and the 6660-6668 ISP-block note: community / user-reported only.
+- Ruijie TCP 25857 (Reyee P206+): Ruijie community forum post only, no vendor documentation page.
+- Ruijie AC eWeb tunnel TCP 10000-10300: subset of the 10000-12000 row (same PoC guide).
+- Ruijie RG-WLAN AC-AP: standard CAPWAP udp:5246/5247 already labelled; no Ruijie-specific port found.
+- Brocade Fabric OS management 897 / 898 and the default IP filter "600-1023" range: 897/898 not found on any Broadcom page; 600-1023 is an RPC / ephemeral range, not a service.
+- Cisco DCNM SAN 2443 (install-time only, closed after installation), 5989 SMI-S (generic WBEM row exists), 5432 / 1521 external DB (generic).
+
+
+### Security appliances (Stormshield, WatchGuard, SonicWall, Barracuda, Imperva)
+
+#### Stormshield
+- SNS NSRPC command-line administration 1300 [checked: "an administration client connected port 1300 (NSRPC)"] → https://documentation.stormshield.eu/SNS/v4/en/Content/CLI_Serverd_Commands_reference_Guide_v4/Introduction.htm ; same port used by serverd when a firewall joins an HA cluster [checked] → https://documentation.stormshield.eu/SNS/v4/en/Content/High_Availability/Necessary-Network-Flows.htm
+- SNS HA udp:44242 (kernel-to-kernel sync), 16058-16059 (gatewayd IPsec status sync), udp:5405 (corosync) [checked: "based on UDP port 44242 (only in IPv4)", "TCP ports 16058 and 16059 (gatewayd daemon)", "UDP port 5405 (corosync daemon)"] → https://documentation.stormshield.eu/SNS/v4/en/Content/High_Availability/Necessary-Network-Flows.htm (also rsync over SSH on 22, not emitted)
+- SNS SSL VPN udp:1194 [checked: OpenVPN client to SNS "UDP/1194 (SSL VPN)", TCP/443 fallback not emitted] → https://documentation.stormshield.eu/SNS/v5/en/Content/SSL_VPN_Installation/SSL_VPN_Information.htm
+- SMC server 1754 [checked: "the SMC server's ports (1754 by default)", firewall initiates the connection] → https://documentation.stormshield.eu/SMC/v3/en/Content/SMC_Administration_Guide/Connecting_a_firewall_prod.htm
+- SES Evolution agent handler 17000 [checked: "TCP 17000 with an agent version lower than 2.7.1"; 443 for 2.7.1+ not emitted] → https://documentation.stormshield.eu/SES/v2/en/Content/Installation_Guide/agent_handler_prerequisites.htm
+- SES Evolution backend 8443 and 10443 [checked: incoming "TCP 8443", "TCP 10443 (Public API)"] → https://documentation.stormshield.eu/SES/v2/en/Content/Installation_Guide/backend_prerequisites.htm ; 8443 purpose [checked via search extract: 2.7.2 install guide "TCP Incoming 8443 HTTPS connections from the administration console or agent handler"; public API "not enabled by default"] → https://documentation.stormshield.eu/SES/v2/en/Content/PDF/ses-en-installation_guide-v2.7.2.pdf
+
+#### WatchGuard
+- Firebox management (WatchGuard policy) 4105, 4117, 4118 [checked: "The WatchGuard policy controls access to the Firebox on these TCP ports: 4105, 4117, 4118."] → https://www.watchguard.com/help/docs/help-center/en-US/Content/en-US/Fireware/basicadmin/manage_firebox_remote_loc_c.html (no per-port function given by WatchGuard for 4105 / 4117)
+- Firebox CLI 4118 over SSH [checked: CLI Reference v12.11, "connect to and manage a Firebox ... on port 4118", "connection type is set to SSH"] → https://www.watchguard.com/help/docs/fireware/12/en-US/CLI/CLI_Reference_v12_11.pdf
+- Fireware Web UI 8080 [checked: "By default, the port used for the Web UI is 8080." / "encrypted with HTTPS"] → https://www.watchguard.com/help/docs/help-center/en-US/Content/en-US/Fireware/system_status/connecting_about_web.html
+- WG-Auth authentication portal 4100 [checked: "The WG-Auth policy controls access to port 4100 on your Firebox."] → http://www.watchguard.com/help/docs/help-center/en-US/Content/en-US/Fireware/authentication/wg_auth_about_c.html
+- WSM Management Server 4112, 4113 and WebCenter 4130 [checked] → https://www.watchguard.com/help/docs/help-center/en-US/content/en-us/Fireware/installation/install_WSM_with_firewalls_wsm.html
+- Dimension 4115 [checked: "4115 — For Firebox connections to send log messages to Dimension"; 443/22/3269 not emitted] → https://www.watchguard.com/help/docs/help-center/en-US/Content/en-US/Fireware/dimension/about-dimension_d.html
+- Log Server 4107, 4115 [checked: "receives information on TCP ports 4107 and 4115", log messages "encrypted for transit with an SSL connection"; Log Server deprecated in 12.8, unsupported 12.9+] → http://www.watchguard.com/help/docs/help-center/en-US/content/en-us/Fireware/logging/logging_log_server_about_c.html
+
+#### SonicWall
+- SonicOS SSL VPN / Virtual Assist 4433, SSO udp:2258, TSA udp:2259 [checked: table rows "SSL VPN / Virtual Assist | Incoming | TCP | 4433", "Single Sign-On | Incoming | UDP | 2258", "Terminal Server Agent (TSA) | Incoming | UDP | 2259"] → https://www.sonicwall.com/support/knowledge-base/ports-used-in-sonicwall-utm-appliance/kA1VN0000000Hk60AE ; SSL VPN default 4433 also in SonicOS 7.1 doc [checked via search extract: "The default is 4433."] → https://www.sonicwall.com/support/technical-documentation/docs/sonicos-7-1-ssl_vpn/Content/ssl-vpn-configuring-server.htm
+- GMS web 8443, CLI 5595, Zero Touch 21021 [checked: "8443 - HTTPS Port (TCP)", "5595 - GMSVP CLI Secured Server (TCP)", "Zero Touch Ports 21021 443"; internal-only control ports 2999/21000-21015, DB ports and generic syslog/SNMP not emitted] → https://www.sonicwall.com/support/knowledge-base/ports-used-by-gms/170502386960381
+- SMA 1000 AMC/CMC 8443 and health check 1888 [checked: "Management Console (AMC/CMC) | TCP 8443", "Health check service | TCP 1888"] → https://www.sonicwall.com/support/knowledge-base/what-are-the-sma-1000-series-default-assigned-ports/180524191604517/
+
+#### Barracuda
+- CloudGen Firewall / Control Center ports 691 TCP+UDP, 680, 688, udp:689, 692 TCP+UDP, 694, 801, udp:801, 803, 805, 806, 807, 808 TCP+UDP, 809, 810, 811, 814, 818, 844, 845, 889, 1807, 8001, 8443, 44000-44001 [checked: "Ports Overview" table, e.g. "807 | TCP | box | SPoE (Single Point of Entry firewall)", "689 | UDP | box | controld/HA-Sync", "691 and 443 | TCP/UDP | service | vpn"; page read with curl because WebFetch truncated it] → https://documentation.campus.barracuda.com/wiki/spaces/CGFv90/pages/9568584/Best+Practice+-+Core+System+Configuration+Files+and+Ports+Overview ; TINA = Barracuda proprietary VPN protocol → https://documentation.campus.barracuda.com/wiki/spaces/CGFv91/pages/9371951
+- Email Security Gateway web interface 8000 HTTP [checked: "the Barracuda Email Security Gateway web interface listens on port 8000 for HTTP and port 443 for HTTPS"] → https://documentation.campus.barracuda.com/wiki/spaces/BSFv51/pages/6685140/How+to+Deploy+the+Barracuda+Email+Security+Gateway+on+Amazon+Web+Services
+- Web Application Firewall web interface 8000 HTTP / 8443 HTTPS [checked: "listens on port 8000 for HTTP and port 8443 for HTTPS"] → https://documentation.campus.barracuda.com/wiki/display/BWAFv76/Barracuda+Web+Application+Firewall+Deployment+and+Quick+Start+Guide+for+Amazon+Web+Services
+
+#### Imperva
+- SecureSphere management server (MX) 8083 [checked: "Make sure that the required ports are open between the management server and the gateway: Management server: 8083 / Gateway: 443." and console URL "https://<Your Management IP address>:8083/"] → https://ftp-public.imperva.com/SecureSphere_Documentation/v13.0/Imperva-SecureSphere-v13.0-WAF-on-Amazon-AWS-On-Demand-Configuration-Guide.pdf (gateway 443 not emitted: generic HTTPS port)
+
+#### Dropped
+- Imperva DAM agent → gateway data channel 5555 (agent listener default) and agent control on 443: only community forum posts and a Scribd copy of a support article; docs.imperva.com is JS-rendered and the agent/admin guide could not be read.
+- WatchGuard 4103 (old WSM/Firebox config port): only in the v9.1 reference guide via search, not current docs.
+- SonicWall NSM reporting udp:16001 / udp:16002: vendor-listed, but outbound to the NSM cloud (AWS) — not an internal segmentation flow.
+- SonicWall SMA 100 management port: no vendor page giving a dedicated admin port (SSL port 443 shared with portals).
+- SonicWall GMS 9443 / 21009: not found on any vendor page.
+- Stormshield SMC Active Update 8081: only an example value in a config.ini sample (search extract), not a stated default.
+- Barracuda CloudGen 450, 802 (local listener only), 815, 816, 817, 850, 880: verified on the same table, skipped as user-facing or low audit value.
+
+
+### Backup, storage, data platforms (Rubrik, PowerScale, Vertica, Teradata)
+
+#### Rubrik
+docs.rubrik.com redirects every page to a login (onepassport.rubrik.com), so all Rubrik rows are read from the search text quoted from the vendor pages.
+- CDM replication 7785 [checked via search extract: "The replication service is a TCP service that listens to port 7785 on both the source and target Rubrik cluster."] → https://docs.rubrik.com/en-us/9.2/ug/cdm/replication_port_information.html
+- CDM inter-cluster / inter-node 7096 [checked via search extract: "7096 TCP | Rubrik cluster | Allows secure communication among Rubrik clusters and between nodes within a cluster."] → https://docs.rubrik.com/en-us/8.1/ug/cdm/ports_rubrik_cluster_inbound_ports.html
+- Rubrik Backup Service (RBS) 12800-12801 [checked via search extract: "12800-12801 TCP … required for the Rubrik Backup Service on the Oracle Server, SAP HANA host, and SQL Server to communicate with the cluster"; "Registration of the host with the Rubrik cluster will fail if the ports are not open."] → https://docs.rubrik.com/en-us/7.0/ug/cdm_user_guide/ports_rubrik_cluster_inbound_ports.html , https://docs.rubrik.com/en-us/8.1/ug/rbs/rbs_firewall_rules.html
+- CDM cloud consolidation / SSH debugging 8077 [checked via search extract: 8.1 inbound table ties it to cloud consolidation with a temporary compute instance in AWS or Azure and to SSH for debugging; the HotAdd proxy page lists 8077 for diagnostics] → https://docs.rubrik.com/en-us/8.1/ug/cdm/ports_rubrik_cluster_inbound_ports.html
+
+#### Dell PowerScale / Isilon (OneFS)
+- SyncIQ 2098 pworker, 3148-3149 bandwidth, 5667 sworker, 5668 sworker encrypted [checked: "2098: SyncIQ : isi_migr_pworker", "3148/3149: SyncIQ: isi_migr_bandwidth", "5667: SyncIQ: isi_migr_sworker", "5668: SyncIQ: isi_migr_sworker (encryption)"; only 5667/5668 need firewall openings, the others are cluster-internal] → https://www.dell.com/support/kbdoc/en-us/000009393/onefs-tcp-ports-used-by-synciq
+- OneFS host firewall default services: mountd 300, statd 302, lockd 304, nfsrquotad 305, nfsmgmtd 306 (TCP/UDP), hdfs-datanode 585, isi_dm_d 7722, hdfs-namenode 8020, isi_webui 8080, webhdfs 8082, s3-http 9020, s3-https 9021, isi_esrs_d 9443 [checked: output of `isi network firewall services list`] → https://www.dell.com/en-us/infohub/articles/onefs-firewall-configuration-part-2
+- Web administration interface 8080 HTTPS [checked: "Verify that the IP is listening on port 8080", the sample webui_httpd.conf has `Listen …:$$WEBUI_PORT$$ https`] → https://www.dell.com/support/kbdoc/en-us/000019305/onefs-how-to-exclusively-specify-which-ip-address-is-listening-on-a-node-for-web-administration-interface-webui-connections
+- Platform API (PAPI) on 8080 [checked via search extract: "the default setting is 8080", example `https://192.168.1.100:8080/platform/14/protocols/smb/shares`] → https://www.dell.com/support/manuals/en-us/isilon-onefs/ifs_pub_onefs_api_reference/onefs-api-access?guid=guid-fa46d99d-7df9-4b86-81a0-687893d9644c&lang=en-us
+- Datamover / SmartSync 7722 [checked via search extract: "Inbound TCP port 7722 must be opened in firewalls."; service is `isi_dm_d`] → https://www.dell.com/support/manuals/en-us/isilon-onefs/ifs_pub_9700_administration_guide_cli/datamover-smartsync-overview?guid=guid-4fab5681-1068-4dfd-adeb-cb3ef04ffd11&lang=en-us
+
+#### Vertica (Rocket Software; docs.vertica.com now redirects to docs.rocketsoftware.com)
+- 22, 4803 TCP Spread client, 4803/4804 UDP Spread daemon-to-daemon, 5433 TCP client (vsql/ODBC/JDBC), 5433 UDP Spread monitoring and MC cluster import, 5434 TCP intra/inter-cluster ("client port +1"), 5444 TCP MC-to-node and node-to-node (agent), 5450 TCP MC web UI, 5554 TCP Node Management Agent, 6543 UDP Spread monitor-to-daemon, 8443 TCP HTTPS service ("To change the port, use HTTPServerPortOffset.") [checked: "Reserved ports" table, 26.2.x docs RSS feed; the docs.rocketsoftware.com page is a JS app] → https://docs.vertica.com/26.2.x/en/setup/set-up-on-premises/before-you-install/configure-network/index.xml
+- Same table, older release (no 5554 / 8443) [checked] → https://www.vertica.com/docs/9.2.x/HTML/Content/Authoring/InstallationGuide/BeforeYouInstall/EnsurePortsAreAvailable.htm
+
+#### Teradata
+docs.teradata.com is a JS app and answers 404 to automated fetch, so all Teradata rows are read from the search text quoted from the vendor pages.
+- Database gateway 1025 (TDMST) [checked via search extract: "TDMST Port Number | Default = 1025 Lists the port number to use to access the database."; CLIv2: "The server responded on the legacy port (1025)…"] → https://docs.teradata.com/r/Enterprise_IntelliFlex_Lake_VMware/ODBC-Driver-for-Teradata-User-Guide-17.20/Configuration-for-Apple-macOS/Teradata-ODBC-Driver-Advanced-Options , https://docs.teradata.com/r/Enterprise_IntelliFlex_Lake_VMware/Workstation-Attached-Call-Level-Interface-Version-2-CLIv2-Messages/250-EM_MUSTUSETLS-TLS-connection-is-required.
+- QueryGrid Manager 9443 (HTTPS from Viewpoint / browser, cluster join), 9444 (HTTPS from nodes), 9445 (HTTPS between managers in a fabric), 5000-5002 (bidirectional between all QueryGrid nodes, recommended) [checked via search extract, QueryGrid 3.01 "Disponibilidad de puertos": "Conexión HTTPS bidireccional entre los Teradata QueryGrid Manager agrupados en un tejido."] → https://docs.teradata.com/r/Enterprise_IntelliFlex_Lake_VMware/Teradata-QueryGridTM-Guia-de-instalacion-y-uso-3.01/Preparacion-para-la-instalacion-del-software/Comprobaciones-previas-a-la-instalacion/Disponibilidad-de-puertos
+- Viewpoint 61617 internal alerts via ActiveMQ [checked via search extract: Viewpoint table lists 22, 80, 443, 5432 Teradata Alerts, 61616 ActiveMQ, 61617 internal alerts] → https://docs.teradata.com/r/VantageCloud-Enterprise-on-Azure-DIY-Installation-and-Administration-Guide-2.4.6/Before-Deploying-VantageCloud-on-Azure-DIY/Network-Security-Groups-and-Ports/Network-Security-Groups-for-Other-Teradata-Software
+- Unity Sequencer 5344 [checked via search extract: unityadmin `-p` option, "The default value is 5344."] → https://docs.teradata.com/reader/~cLPRf7tcoxGkA0wY~kVjg/ZOq9AAliS3ixbM2_cRIw7g
+
+#### Dropped
+- Rubrik node IPMI udp:623, iKVM 5900, WS-Management 5985, plus 22/443/111/2049/445 (CDM 9.0 security guide, port spec): generic protocols, already in the file as vendor-neutral rows.
+- Rubrik 7096 second description (9.0 spec: "communication between Rubrik clusters that use the Rubrik Backup Service"): conflicts with the 8.1 wording. Kept the 8.1 wording only.
+- PowerScale inter-node (back-end) traffic: no port table found on any Dell page (the back-end network is private InfiniBand/Ethernet).
+- PowerScale tcp-2097, tcp-8083, tcp-8443, tcp-8470, tcp-28080, isi_ph_rpcd 6557: listed in the OneFS firewall defaults with no service description.
+- PowerScale ambari-handshake 8440 / ambari-heartbeat 8441: Apache Ambari, not a Dell product. cee 12228: already in the file (Dell CAVA). ndmp 10000 and nfsrdma 20049: already in the file.
+- PowerScale 5667 cleartext left empty: the KB only labels 5668 as "(encryption)" and does not say 5667 is plaintext.
+- Teradata QueryGrid Manager 9300-9303 and 7000-7001: listed as custom rules in the Azure guide with no stated purpose.
+- Teradata Viewpoint 5432 (PostgreSQL) and 61616 (ActiveMQ): already in the file as generic PostgreSQL / Apache ActiveMQ rows.
+- Teradata Unity Endpoint 1025: the same port as the database gateway, shown only in a status example.
+- Vertica 22: SSH is already in the file. Spread and client cleartext left empty, because encryption is configurable and the docs do not state the default.
+
+
+### RMM, SAP, Citrix, Avaya Aura
+
+#### Splashtop
+- Splashtop On-Prem Streamer LAN direct connection 6783 [checked via search extract] → https://support-splashtoponprem.splashtop.com/hc/en-us/articles/56952118977561-Firewall-and-Network-Requirements-for-Splashtop-On-Prem (page returns 403 to fetch; search extract of the page: 6783/TCP for LAN direct connections between the client app and a Streamer on the same local network, skipping the relay). The Gateway itself listens on 443 by default (configurable, System > Network > Change Port): generic, not added.
+
+#### Kaseya
+- VSA agent check-in 5721 TCP, Kaseya Live Connect udp:5721 [checked] → https://helpdesk.kaseya.com/hc/en-gb/articles/229026208-What-ports-does-Kaseya-use ("default is TCP port 5721"; "KLC connections use the UDP protocol") and https://help.vsa9.kaseya.com/help/Content/VSA/install/10292.htm ("The Kaseya agents connect inbound to the Kaseya Server on TCP port 5721"). Web UI 80/443 and SQL 1433 are generic, not added.
+
+#### N-able
+- N-central UI 8443, agents to probe 10004, probe patch cache 15000, agent/probe XMPP 5280, MSP Connect UDP 1234/1235, Backup Manager 8014 [checked] → https://documentation.n-able.com/N-central/userguide/Content/ReleaseDocs/Install_Config/PortAccessRequirements.htm ("The default port for the N-central UI"; "N-able N-central Agents must be able to communicate with a Probe on the network over port 10004"; "port 15000 must be accessible for inbound traffic on the Probe device"; "Used by Agents and Probes for XMPP traffic"; "Used by MSP Connect in UDP mode"; "Backup Manager requires access to port 8014", inbound from local LAN only)
+- Take Control UDP 1234/1235 P2P and TCP 3377 fail-over [checked via search extract] → https://documentation.n-able.com/takecontrol/userguide/Content/Port-access-requirements.htm and https://documentation.n-able.com/N-central/troubleshooting/Content/kb/Take-Control-Take-Control-N-able-Firewall-Ports-and-Domain-Integrations-in-N-able-N-central-and-N-able-RMM.htm (both JS-rendered, empty to fetch; extract: UDP 1234/1235 bidirectional for P2P, TCP 3377 outbound fail-over when 443 is not accessible). Merged with MSP Connect in one udp:1234-1235 row.
+
+#### SAP
+- Gateway secure port sapgwNNs 4800-4899 [checked] → https://help.sap.com/doc/saphelp_nw73ehp1/7.31.19/en-US/23/3a91f8d1724bc6b9e693eb735bcf2f/content.htm ("sapgw<nn>s/tcp 4800-4899"; "The gateway denies any incoming requests over the secure port that are not SNC-protected")
+- AS Java dispatcher ports 5NN00 HTTP, 5NN01 HTTPS, 5NN02 IIOP initial context, 5NN03 IIOP SSL, 5NN04 P4, 5NN05 P4 over HTTP, 5NN06 P4 SSL, 5NN07 IIOP, 5NN08 Telnet, 5NN10 JMS [checked] → https://help.sap.com/saphelp_scm70/helpdata/ru/a2/f9d7fed2adc340ab462ae159d19509/content.htm ("50000+100*instance_number+port_index"). Not contiguous across instances, so written for instance 00 only (5000x), like the existing 50013/50113 start-service rows; add 501xx rows for instance 01 if wanted.
+- 39NN (message server internal), 80NN / 443NN (ICM), 5NN13 / 5NN14 (start service): already in the file, not repeated.
+
+#### Citrix
+- Workspace Environment Management 8284, 8286, 8287, 8288, 49752 [checked] → https://docs.citrix.com/en-us/workspace-environment-management/2411/reference/ports ("Administration port", "Agent service port", "WEM monitoring port", "Cached data synchronization port", "Agent port": listening port on the agent host)
+- Provisioning SOAP console 54321, SOAP SSL 54323 [checked] → https://docs.citrix.com/en-us/provisioning/2511/install/install-wizard-silent ("SoapPort=54321", "SSLPort=54323")
+- Provisioning two-stage boot udp:6969 [checked] → https://support.citrix.com/external/article/CTX227725/citrix-provisioning-services-boot-proces.html ("is downloaded from the PVS server using a TFTP protocol (UDP port 6969)")
+
+#### Avaya
+- Aura System Manager Data Replication Service 2009 (TCP/JMX), Aura Session Manager Cassandra database 9042 (TLS / proprietary) [checked: PDF read with pdftotext] → https://support.avaya.com/css/public/documents/101083647 (Avaya Port Matrix: Aura Device Services 10.1.1.0, tables "Ports for AADS Management Interface": destination "Avaya System Manager" 2009 TCP/JMX "Avaya System Manager Data Replication Service (DRS)"; destination "Avaya Session Manager" 9042 "TLS / Proprietary" "Avaya Session Manager Cassandra database")
+- Communication Manager AE Services link local port 8765 [checked via search extract] → https://documentation.avaya.com/en-us/home/bundle/application-enablement-services/administeringaeservicesr102x/administering-applicationenablementservices/AdministeringCommunicationManagerForAEServices/EnablingAEServices.html (JS-only page; extract: "In the Local Port field, accept the default value 8765.")
+- Call Management System HA sync 3077-3079, Informix ODBC / JDBC 50000-50001 [checked: PDF read with pdftotext] → https://support.avaya.com/css/public/documents/101085921 (Avaya Port Matrix: Call Management System R20: "High Availability option data sync utility"; "Informix ODBC / JDBC Agent for CMS database")
+
+#### Dropped
+- Splashtop Gateway 443 and loopback-only ports 9080, 5432, 7080, 7081, 5080: 443 is generic, the others never leave the host.
+- Splashtop 6784-6785: only third-party sites and a forum post; the Splashtop page names 6783 only.
+- N-able N-sight RMM / Advanced Monitoring Agent: no N-able port table found for it.
+- N-able N-central 22 (SSH remote control), 80/443, 20/21, 1433, 10000 (deprecated after 2025.4, purpose not stated): generic or obsolete.
+- N-able Backup Manager local port 5000: local only.
+- Kaseya VSA 80/443/1433: generic.
+- SAP AS Java instance 01+ rows: not added (non-contiguous); see SAP note.
+- SAP 47NN: SAP's port reference says there is no sapdpNNs secure dispatcher port; nothing to add.
+- Citrix Federated Authentication Service: SOAP over HTTP on port 80 by default (docs.citrix.com FAS "security and network configuration") — generic port 80, skipped per the brief.
+- Citrix Delivery Controller VDA registration 80: already in the file, generic.
+- Citrix Provisioning SOAP 54322 and TFTP udp:69: 54322 not found on a Citrix page; udp:69 is generic TFTP.
+- Citrix WEM cache synchronization port of 1909 and earlier (8285): not on the current Citrix page.
+- Avaya Aura Session Manager / System Manager / Communication Manager port matrices: behind the support.avaya.com login; documentation.avaya.com pages are JS-only. SIP 5060/5061 covered by generic rows. CM SSH 5022 and other remembered ports could not be read on an Avaya page.
+- Avaya Aura Device Services 8442 / 8445 / 8448 and Aura Web Gateway ports: read in public matrices but outside the requested products (SM, SMGR, CM); add if wanted.
+- Alcatel-Lucent Enterprise OmniPCX Enterprise: only CSTA 2555 is on a public ALE page (already in the file). SMDR/accounting 2533 is third-party only (pbxdom, tri-line); NOE/IP Touch signaling 32512/32513 and 32640 are behind the ALE Business Portal login; api.dspp.al-enterprise.com refused connections.
+
