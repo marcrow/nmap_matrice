@@ -48,7 +48,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--cyan2);border-co
 .zlist .dot{width:10px;height:10px;border-radius:3px;flex:none}
 .zlist .n{margin-left:auto;font-size:11px;color:var(--slate)}
 .zlist input{width:120px;padding:2px 5px}
-.zonechip{display:inline-block;padding:1px 7px;border-radius:4px;font-size:11.5px;color:#fff}
+.zonechip{display:inline-block;padding:0 6px;border:1.5px solid;border-radius:4px;font-size:11.5px;font-weight:600}
 /* tabulator */
 .tabulator{border-radius:8px;border:1px solid var(--line);font-size:12.5px;background:#fff}
 .tabulator .tabulator-header,.tabulator .tabulator-header .tabulator-col{background:var(--mist)}

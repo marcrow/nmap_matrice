@@ -280,9 +280,9 @@ def _vb(verdict: int) -> str:
     return f'<span class="vb {VCLASS[verdict]}">{VERDICT_NAME[verdict]}</span>'
 
 
-def _line(col: str, dash: bool = False) -> str:
+def _line(col: str, dash: bool = False, width: float = 2.5) -> str:
     da = ' stroke-dasharray="5 4"' if dash else ""
-    line = f'<line x1="1" y1="5" x2="27" y2="5" stroke="{col}" stroke-width="2.5"{da}/>'
+    line = f'<line x1="1" y1="5" x2="27" y2="5" stroke="{col}" stroke-width="{width}"{da}/>'
     return f'<svg width="28" height="10">{line}</svg>'
 
 
@@ -358,8 +358,10 @@ def _zone_tag(z: str) -> str:
     return f'<span class="tag">{html.escape(z)}</span>'
 
 
-FROM, INTO = "Source Zones", "its other Zones"  # the two frames of a Pivot Machine diagram
-REBOUND, BYPASS = "#FFB020", POLICY_COLORS[DENY]  # rebound: brand amber (user's choice); bypass: red
+FROM, INTO = "Reached from", "Rebound into"  # the two frames of a Pivot Machine diagram
+# Rebound: brand amber (user's choice), thicker for a bypass; grey dotted when it adds nothing. Never red: a
+# rebound is not a Flow Policy decision.
+REBOUND, NOTHING = "#FFB020", "#94a3b8"
 
 
 def _names(a: Analysis, ips: list[str], cap: int = 5) -> str:
@@ -367,42 +369,65 @@ def _names(a: Analysis, ips: list[str], cap: int = 5) -> str:
     return txt + (f" +{len(ips) - cap}" if len(ips) > cap else "")
 
 
+def _worst_ports(ports: Iterable[dict]) -> list[dict]:
+    """Diagram ports merged by label, each with its worst Flow Policy status."""
+    rank, out = {DENY: 3, UNDECLARED: 2, ALLOW: 1}, {}
+    for p in ports:
+        if p["l"] not in out or rank.get(p["st"], 0) > rank.get(out[p["l"]]["st"], 0):
+            out[p["l"]] = p
+    return list(out.values())
+
+
 def _pivot_graph(a: Analysis, machine: str, hits: list, rbs: list[Rebound]) -> dict:
     """In: each Source Zone -> the Interfaces its Sources reach (ports). Out: each rebound Interface -> its
     Zone."""
-    inv, multi = a.inv, set(machine_palette(a.inv))
+    inv, multi, pal = a.inv, set(machine_palette(a.inv)), zone_palette(a.inv)
     ifaces = [ip for ip in ordered_ips(inv) if inv[ip].machine == machine]
     nodes = []
     for z in sorted({inv[s].zone for s, _, _ in hits}):
         srcs = sorted({s for s, _, _ in hits if inv[s].zone == z})
         links = []
         for d in sorted({d for s, d, _ in hits if inv[s].zone == z}):
-            ports: dict[str, dict] = {}
-            for s in srcs:
-                if d in a.matrix[s] and a.matrix[s][d].verdict == OPEN:
-                    for p in _link(a, s, d)["ports"]:
-                        if p["l"] not in ports or p["st"] == DENY:
-                            ports[p["l"]] = p
-            links.append(
-                {"to": d, "verdict": "OPEN", "ports": list(ports.values()), "cross": z != inv[d].zone}
+            ports = _worst_ports(
+                p
+                for s in srcs
+                if d in a.matrix[s] and a.matrix[s][d].verdict == OPEN
+                for p in _link(a, s, d)["ports"]
             )
+            links.append({"to": d, "verdict": "OPEN", "ports": ports, "cross": z != inv[d].zone})
         names = ", ".join(html.escape(inv[x].short) for x in srcs)
         tip = f"<h4>{html.escape(z)}</h4>Sources: {names}<br>reach {', '.join(lk['to'] for lk in links)}"
-        nodes.append({"ip": f"from:{z}", "name": z, "sub": "", "zone": FROM, "links": links, "tip": tip})
+        sub = ""
+        if (
+            len(links) > 1
+        ):  # several Interfaces: one edge to the Machine, the detail in the hover and the In table
+            sub = f"reaches {len(links)} of its Interfaces"
+            ports = _worst_ports(p for lk in links for p in lk["ports"])
+            links = [
+                {"to": "S", "verdict": "OPEN", "ports": ports, "cross": any(lk["cross"] for lk in links)}
+            ]
+        nodes.append({"ip": f"from:{z}", "name": z, "sub": sub, "zone": FROM, "links": links, "tip": tip})
+        nodes[-1]["bar"] = pal[z][1]
     for r in rbs:
         best = max(r.gain.values(), key=len)
         bypass = any(r.bypass(z) for z in r.gain)
         note = (
-            "bypass, all of it" if bypass else f"+{len(best)} not reached directly" if best else "nothing new"
+            f"bypass: +{len(best)}, all of it"
+            if bypass
+            else f"+{len(best)} not reached directly"
+            if best
+            else ""
         )
+        kind = "bypass" if bypass else "gain" if best else "none"
         nodes.append(
             {
                 "ip": f"into:{r.into}",
                 "name": r.into,
                 "zone": INTO,
                 "sub": f"through {r.through}",
-                "note": note,
-                "noteCol": BYPASS if bypass else "#6B7C93",
+                "note": note or "nothing new",
+                "noteCol": "#9a5b00" if best else "#6B7C93",
+                "bar": pal[r.into][1],
                 "links": [
                     {
                         "to": r.through,
@@ -412,7 +437,8 @@ def _pivot_graph(a: Analysis, machine: str, hits: list, rbs: list[Rebound]) -> d
                         "keep": True,
                         "inward": False,
                     }
-                    | {"col": BYPASS if bypass else REBOUND, "dash": True}
+                    | {"col": REBOUND if best else NOTHING, "dash": True, "kind": kind}
+                    | {"label": ("bypass +" if bypass else "+") + str(len(best)) if best else ""}
                 ],
                 "tip": f"<h4>into {html.escape(r.into)}</h4>"
                 + "<br>".join(
@@ -426,9 +452,9 @@ def _pivot_graph(a: Analysis, machine: str, hits: list, rbs: list[Rebound]) -> d
         "file": f"pivot-{machine}",
         "center": {"machine": machine, "ifaces": [_node(a, d, multi) for d in ifaces]},
         "zones": {
-            **zone_palette(inv),
+            **pal,
             FROM: ("#f4f7fa", "#6B7C93", "#2b3743"),
-            INTO: ("#fffaf0", REBOUND, "#7a4a00"),
+            INTO: ("#f4f7fa", "#6B7C93", "#2b3743"),
         },
         "machines": {},
         "nodes": nodes,
@@ -575,9 +601,10 @@ def _global_tab(a: Analysis) -> str:
 
 def _pivots_tab(a: Analysis) -> str:
     rebound = (
-        f"<span>{_line(REBOUND, True)} rebound: from this Machine, its other Zones</span>"
-        f"<span>{_line(BYPASS, True)} bypass: the Source Zone reaches nothing else there directly</span>"
-        "</div>"
+        f"<span>{_line(REBOUND, True)} rebound, +n: Interfaces the Source Zones do not reach directly</span>"
+        f"<span>{_line(REBOUND, True, 4)} bypass: they reach none of that Zone directly, "
+        "the rebound opens all of it</span>"
+        f"<span>{_line(NOTHING, True, 1.5)} the rebound adds nothing</span></div>"
     )
     return (
         '<div class="explain">A <b>Pivot Machine</b> has Interfaces in several Zones and a Source reaches it '

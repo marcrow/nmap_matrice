@@ -6,7 +6,15 @@ from pathlib import Path
 
 import pytest
 
-from segowl.analysis import aggregate_zones, analyze, build_matrix, pivot_machines, rebounds, restrict
+from segowl.analysis import (
+    Analysis,
+    aggregate_zones,
+    analyze,
+    build_matrix,
+    pivot_machines,
+    rebounds,
+    restrict,
+)
 from segowl.cli import main
 from segowl.inventory import Host, load_inventory
 from segowl.nmap import HostRecord, Scan, discover_declared, discover_excluded, discover_scans, parse_scan
@@ -15,7 +23,7 @@ from segowl.port_groups import load_port_groups
 from segowl.ports import in_port_set
 from segowl.render.common import zone_cell
 from segowl.render.exports import write_observed_zone_flows
-from segowl.render.html import _nmap_ports, write_html
+from segowl.render.html import _nmap_ports, _pivot_graph, write_html
 from segowl.render.mermaid import mermaid_zone, zid
 from segowl.verdict import ALIVE, BLOCK, NODATA, OPEN, REACH, Cell, classify
 
@@ -319,3 +327,13 @@ def test_rebound_gain_bypass_nothing_new_and_partial():
     assert by_zone["C"].gain["A"] == ["10.0.2.2"] and not by_zone["C"].bypass("A")  # partial: +1 of 2
     assert by_zone["D"].gain["A"] == ["10.0.3.1"] and by_zone["D"].bypass("A")  # adds everything
     assert by_zone["E"].gain["A"] == [] and not by_zone["E"].bypass("A")  # nothing new
+    # the diagram: one edge per rebound, marked by what it adds; one Interface reached: an edge to it
+    a = Analysis(inv, {}, [], matrix, [], [], 0, {}, {})
+    g = _pivot_graph(a, "m", hits, list(by_zone.values()))
+    out = {n["name"]: n["links"][0] for n in g["nodes"] if n["zone"] == "Rebound into"}
+    assert [(out[z]["kind"], out[z]["label"]) for z in "CDE"] == [
+        ("gain", "+1"),
+        ("bypass", "bypass +1"),
+        ("none", ""),
+    ]
+    assert [lk["to"] for n in g["nodes"] if n["zone"] == "Reached from" for lk in n["links"]] == ["10.0.1.9"]

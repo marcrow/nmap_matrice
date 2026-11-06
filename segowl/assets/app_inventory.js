@@ -3,9 +3,11 @@
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
 const BASE = ["ip", "zone", "type", "name"];
-// The report's Zone hues (render/common.py ZONE_COLORS, dark tone for white chip text), in Zone name order as
+// The report's Zone hues (render/common.py ZONE_COLORS: pale fill, hue, dark text), in Zone name order as
 // the report assigns them; never red, amber or green, which belong to the Flow Policy.
-const ZONE_COLORS = ["#174276", "#723555", "#0c535f", "#32266f", "#58381a"];
+const ZONE_COLORS = [["#eff8ff", "#1565c0", "#0b3c75"], ["#fff3ee", "#8d6e63", "#51352c"], ["#f6f5ff", "#7c4dff", "#3c3072"],
+  ["#eafafe", "#1597ad", "#00495e"], ["#f5f5ff", "#3d2a8a", "#3a3173"], ["#eafbfd", "#80deea", "#004954"],
+  ["#eafbf9", "#0b5f5a", "#004944"], ["#f7f5ff", "#b9a6f2", "#432e6f"]];
 
 async function api(path, body, raw) {
   const opt = body === undefined ? {} : {method: "POST", headers: {"X-SegOWL": "1"},
@@ -26,7 +28,7 @@ const rows = () => table.getData();
 const zoneNames = () => { const s = [...D.zones.map(z => z.name)]; rows().forEach(r => { if (r.zone && !s.includes(r.zone)) s.push(r.zone); }); return s; };
 // ponytail: zoneNames() scans the rows on every chip; cache the sorted list if a large inventory feels slow
 const zoneColor = z => ZONE_COLORS[Math.max(0, [...zoneNames()].sort().indexOf(z)) % ZONE_COLORS.length];
-const zoneChip = z => `<span class="zonechip" style="background:${zoneColor(z)}">${esc(z)}</span>`;
+const zoneChip = z => { const [f, s, t] = zoneColor(z); return `<span class="zonechip" style="background:${f};border-color:${s};color:${t}">${esc(z)}</span>`; };
 const machineNames = () => [...new Set(rows().map(r => r.name).filter(Boolean))].sort();
 const ipOk = v => /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/.test(v) || (v.includes(":") && /^[0-9a-fA-F:.]+$/.test(v));
 const zoneUse = z => ({ifs: rows().filter(r => r.zone === z).length, rules: D.refs[z] || 0});
@@ -82,7 +84,7 @@ function analyse() {
 function refreshSide() {
   $("#zl").innerHTML = `<li class="${filterZone ? "" : "on"}" data-z=""><span class="dot" style="background:#c3cad6"></span>All Zones<span class="n">${rows().length}</span></li>`
     + zoneNames().map(z => { const u = zoneUse(z), d = (D.zones.find(x => x.name === z) || {}).desc || "";
-      return `<li class="${filterZone === z ? "on" : ""}" data-z="${esc(z)}" title="${esc(d)}${u.rules ? ` · ${u.rules} Flow Policy reference(s)` : ""}"><span class="dot" style="background:${zoneColor(z)}"></span><span class="zn">${esc(z)}</span><span class="n">${u.ifs}</span>${u.ifs || u.rules ? "" : `<span class="x muted" data-del="${esc(z)}" title="Delete (unused)">✕</span>`}</li>`; }).join("");
+      return `<li class="${filterZone === z ? "on" : ""}" data-z="${esc(z)}" title="${esc(d)}${u.rules ? ` · ${u.rules} Flow Policy reference(s)` : ""}"><span class="dot" style="background:${zoneColor(z)[1]}"></span><span class="zn">${esc(z)}</span><span class="n">${u.ifs}</span>${u.ifs || u.rules ? "" : `<span class="x muted" data-del="${esc(z)}" title="Delete (unused)">✕</span>`}</li>`; }).join("");
   $("#fz").innerHTML = filterZone ? `<span class="pill">Zone: ${esc(filterZone)} <span class="x" id="fzx">✕</span></span>` : "";
   if ($("#fzx")) $("#fzx").onclick = () => { filterZone = null; applyFilter(); refreshSide(); };
   $("#zl").querySelectorAll("li").forEach(li => {

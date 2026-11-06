@@ -7,6 +7,7 @@ const RANK = {deny: 3, undeclared: 2, allow: 1};
 const ICON = {deny: ['✕', '#dc2626', '#fff'], undeclared: ['?', '#f59e0b', '#3b2600'], allow: ['✓', '#16a34a', '#fff']};
 const WORD = {deny: 'Finding: denied by the Flow Policy', undeclared: 'undeclared', allow: 'allowed'};
 const ARR = {auto: 'auto', c1: 'one column', c2: 'two columns', r1: 'one row', r2: 'two rows'};
+const MARR = {col: 'Interfaces in one column', row: 'Interfaces in one row'};  // a Machine in the centre
 const LAYOUTS = {sides: 'Zones facing the Source', lr: 'Zones on both sides', ring: 'Zones around the Source'};
 const gesc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 const gctx = document.createElement('canvas').getContext('2d');
@@ -17,8 +18,9 @@ const svgUri = (W, H, body) => 'data:image/svg+xml;utf8,' + encodeURIComponent(
 // Options, the same for every diagram, remembered per viewer (browser storage, best effort).
 const ODEF = {lay: 'sides', edges: 'iface', ports: 'nodes', mcol: true, mtie: false, arr: 'auto', open: false};
 const O = {...ODEF};
-try { Object.assign(O, JSON.parse(localStorage.getItem('segowl.graph') || '{}')); } catch (e) { /* defaults */ }
-const saveO = () => { try { localStorage.setItem('segowl.graph', JSON.stringify(O)); } catch (e) { /* not stored */ } };
+try { Object.assign(O, JSON.parse(localStorage.getItem('segowl.graph') || '{}'), {arr: 'auto'}); } catch (e) { /* defaults */ }
+// The Zone arrangement is not remembered: every load starts on auto.
+const saveO = () => { try { localStorage.setItem('segowl.graph', JSON.stringify({...O, arr: undefined})); } catch (e) { /* not stored */ } };
 const GRAPHS = [];  // every drawn diagram: {el, D, cy, arr, pin, side, hidden}
 
 // The nodes around the centre, each with its links (flows to the centre; one implicit link to the Source when a
@@ -100,16 +102,21 @@ const linkEnd = to => to === 'S' ? 'S' : 'i:' + to;
 
 function elements(g) {
   const D = g.D, rows = viewNodes(D), tags = !portsIn(), dir = D.inward ? ' in' : '';
-  const els = centre(D);
+  const els = centre(D), at = {};
+  // A Machine in the centre: each node sorts by the mean rank of the Interfaces it links to, so fewer edges cross.
+  (D.center.ifaces || []).forEach((i, k) => { at[i.ip] = k; });
+  if (D.center.ifaces) at.S = (D.center.ifaces.length - 1) / 2;  // a link to the Machine itself: its middle
+  if (D.center.ifaces) rows.forEach(t => { const ks = t.links.map(l => at[l.to]).filter(k => k !== undefined);
+    t.ord = ks.length ? ks.reduce((a, b) => a + b, 0) / ks.length : 0; });
   const zones = [...new Set(rows.map(t => t.zone))].sort();
   for (const z of zones) { const [f, s, c] = D.zones[z];
     els.push({data: {id: 'z:' + z, name: z, label: `${z} · ${rows.filter(t => t.zone === z).length}`, fill: f, stroke: s, text: c}, classes: 'zone'}); }
   for (const t of rows) {
-    const m = O.mcol && t.multi ? D.machines[t.machine] : null, c = card(t, m), col = edgeCol(t);
+    const m = O.mcol && t.multi ? D.machines[t.machine] : null, c = card(t, t.bar || m), col = edgeCol(t);
     els.push({data: {id: t.ip, parent: 'z:' + t.zone, t, ...c, bc: m || '#c3cfdc'}, classes: 'tgt'});
     if (O.edges === 'zone') continue;
-    for (const l of t.links) els.push({data: {id: `e:${t.ip}>${l.to}`, source: linkEnd(l.to), target: t.ip, col: edgeCol(l), z: RANK[status(l)] || 0},
-      classes: (l.verdict === 'OPEN' && !l.dash ? 'flow' : 'flow dash') + ((l.inward ?? D.inward) ? ' in' : '')});
+    for (const l of t.links) els.push({data: {id: `e:${t.ip}>${l.to}`, source: linkEnd(l.to), target: t.ip, col: edgeCol(l), z: RANK[status(l)] || 0, label: l.label || ''},
+      classes: (l.verdict === 'OPEN' && !l.dash ? 'flow' : 'flow dash') + ((l.inward ?? D.inward) ? ' in' : '') + (l.kind ? ' k-' + l.kind : '') + (l.label ? ' lab' : '')});
     if (tags && t.ports.length) { const lr = tag(t, 150), tb = tag(t, Math.max(c.w - 10, 110));  // beside the node / over or under it
       els.push({data: {id: 'p:' + t.ip, of: t.ip, zone: t.zone, col, lr, tb, ...lr}, classes: 'tag'}); }
   }
@@ -146,6 +153,11 @@ const STYLE = [
   {selector: 'edge.zedge', style: {width: 2.2, 'arrow-scale': 0.9}},
   {selector: 'edge.in', style: {'target-arrow-shape': 'none', 'source-arrow-shape': 'triangle', 'source-arrow-color': 'data(col)'}},
   {selector: 'edge.dash', style: {'line-style': 'dashed', 'line-dash-pattern': [5, 4]}},
+  {selector: 'edge.lab', style: {label: 'data(label)', 'font-size': 11, 'font-weight': 700, color: '#7a4a00', 'font-family': FONT,
+    'text-background-color': '#fff', 'text-background-opacity': 1, 'text-background-padding': 2, 'text-background-shape': 'round-rectangle'}},
+  {selector: 'edge.k-gain', style: {width: 2}},
+  {selector: 'edge.k-bypass', style: {width: 3.4, 'arrow-scale': 0.8}},
+  {selector: 'edge.k-none', style: {width: 1, 'line-style': 'dotted'}},
   {selector: 'edge.tie', style: {'curve-style': 'straight', width: 1.2, 'line-color': GREY, 'line-style': 'dotted'}},
   {selector: 'node.sib', style: {'underlay-color': '#00C8FF', 'underlay-padding': 5, 'underlay-opacity': 0.35, 'underlay-shape': 'round-rectangle'}},
   {selector: 'edge.hl', style: {width: 2.6, 'z-index': 30}},
@@ -167,7 +179,9 @@ function block(g, z, dir) {
   const cy = g.cy, tagW = k => { const t = cy.$id('p:' + k.id()); return t.nonempty() ? t.data('tb').w : 0; };  // a row leaves room for its tags
   const v = dir === 'R' || dir === 'L', al = k => v ? k.data('h') : Math.max(k.data('w'), tagW(k)), ac = k => v ? k.data('w') : k.data('h');
   const key = n => { const t = n.data('t'); return (t.multi ? '0' + t.machine : '1') + '|' + t.ip.split('.').map(x => x.padStart(3, '0')).join('.'); };
-  const kids = z.children().sort((a, b) => key(a).localeCompare(key(b))), lines = Math.min(linesFor(g, z, kids.length, v), kids.length);
+  const cmp = (a, b) => { const p = a.data('t'), q = b.data('t');
+    return p.ord !== undefined && q.ord !== undefined && p.ord !== q.ord ? p.ord - q.ord : key(a).localeCompare(key(b)); };
+  const kids = z.children().sort(cmp), lines = Math.min(linesFor(g, z, kids.length, v), kids.length);
   const ga = v ? 16 : 12, gc = v ? 26 : 18, lw = Math.max(...kids.map(ac));
   // Staggered lines: every node in one virtual line, shared out (node i -> line i % lines), so an edge to the far
   // line passes between two nodes of the near one.
@@ -195,7 +209,8 @@ const midOrder = (bs, size) => { const o = []; [...bs].sort((p, q) => size(q) - 
 function around(g, dirs) {
   const zs = visibleZones(g), S = g.cy.$id('S'), box = g.cy.container().getBoundingClientRect();
   const allowed = zs.map(z => { const n = z.data('name'), a = arrOf(g, z);
-    const pin = (g.pin && g.pin[n]) || (g.D.sides && g.D.sides[n]);  // pinned by a right-click, or by the diagram
+    let pin = (g.pin && g.pin[n]) || (g.D.sides && g.D.sides[n]);  // pinned by a right-click, or by the diagram
+    if (pin && !dirs.includes(pin)) pin = {L: 'T', R: 'B', T: 'L', B: 'R'}[pin];
     if (pin && dirs.includes(pin) && (a === 'auto' || (a[0] === 'c') === 'RL'.includes(pin))) return [pin];
     const ok = [...dirs].filter(d => a === 'auto' || (a[0] === 'c') === 'RL'.includes(d));
     return ok.length ? ok : [...dirs]; });
@@ -245,7 +260,7 @@ function ring(g) {
   if (best) bs.forEach((b, i) => { const p = best.c[i]; b.place(pos, p.x - b.FW / 2, p.y - b.FH / 2); });
   return {pos, side: {}};
 }
-const LAYOUT = {sides: g => around(g, 'RLTB'), lr: g => around(g, 'RL'), ring};
+const LAYOUT = {sides: g => around(g, 'RLTB'), lr: g => around(g, 'RL'), tb: g => around(g, 'TB'), ring};
 
 // Edge geometry once the positions are known: leave / enter by the facing sides, at right angles. Beside the
 // Source the turn is near it (one trunk); above / below it, just outside the target frame. Ring: straight.
@@ -257,12 +272,23 @@ function shapeEdges(g, side) {
   const lane = {};
   if (g.D.inward) for (const d of 'RLTB') cy.nodes('.tgt').filter(n => side[n.parent().id()] === d)
     .sort((a, b) => 'RL'.includes(d) ? a.position('y') - b.position('y') : a.position('x') - b.position('x')).forEach((n, i) => { lane[n.id()] = i * 10; });
+  // A Machine centre: the edges leaving one Interface (or the Machine) on one side start apart (in the order of their other end),
+  // so two edges never share a segment.
+  const off = {};
+  if (g.D.center.ifaces) cy.nodes('.iface, .mframe').forEach(i => { const by = {};
+    i.connectedEdges('.flow').forEach(e => { const d = side[(e.target().hasClass('zone') ? e.target() : e.target().parent()).id()];
+      if (d) (by[d] = by[d] || []).push(e); });
+    for (const [d, es] of Object.entries(by)) { const v = 'TB'.includes(d), ax = v ? 'x' : 'y', room = (v ? i.width() : i.height()) - 10;
+      const step = Math.min(10, room / Math.max(1, es.length - 1));
+      es.sort((a, b) => a.target().position(ax) - b.target().position(ax)).forEach((e, k) => { off[e.id()] = (k - (es.length - 1) / 2) * step; }); } });
   cy.batch(() => {
     cy.nodes('.zone').forEach(z => z.style(side[z.id()] === 'B' ? {'text-valign': 'bottom', 'text-margin-y': 5} : {'text-valign': 'top', 'text-margin-y': -5}));
     cy.edges('.flow').forEach(e => {
       const t = e.target(), z = t.hasClass('zone') ? t : t.parent(), d = side[z.id()] || '';
       e.data('side', d);
       const st = d ? {'source-endpoint': END[d][0], 'target-endpoint': END[d][1]} : {'source-endpoint': 'outside-to-node', 'target-endpoint': 'outside-to-node'};
+      const o = off[e.id()];
+      if (d && o) st['source-endpoint'] = 'TB'.includes(d) ? `${o}px ${END[d][0].split(' ')[1]}` : `${END[d][0].split(' ')[0]} ${o}px`;
       if (d) {
         const bb = box[z.id()], v = d === 'T' || d === 'B', p = e.source().position();  // with node-position, the turn counts from the centre end
         const hang = v ? Math.max(0, ...cy.nodes('.tag').filter(k => k.data('zone') === z.data('name')).map(k => k.data('tb').h + 7 - PAD)) : 0;
@@ -288,18 +314,29 @@ function placeTags(g) {
     k.position({x: p.x + u.x * (ext(w, h) + 7 + ext(k.width() / 2, k.height() / 2)), y: p.y + u.y * (ext(w, h) + 7 + ext(k.width() / 2, k.height() / 2))});
   }));
 }
-// A Machine centre: its Interfaces in one column (edges leave them sideways, so the Zones go beside it).
+// A Machine centre: its Interfaces in one column (edges leave them sideways, so the Zones go beside it) or, by a
+// right-click on the Machine, in one row (the Zones go above and below it).
 function stackCentre(g) {
   const S = g.cy.$id('S'), kids = S.children(), pos = {};
   if (!kids.nonempty()) return pos;
-  const H = kids.reduce((h, k) => h + k.data('h'), 0) + 12 * (kids.length - 1), W = Math.max(...kids.map(k => k.data('w')));
-  let y = -H / 2 + TITLE / 2;
-  kids.forEach(k => { pos[k.id()] = {x: 0, y: y + k.data('h') / 2}; y += k.data('h') + 12; });
-  S.data({w: W + 2 * PAD, h: H + 2 * PAD + TITLE});
+  const row = g.marr === 'row', gap = row ? 16 : 12, al = k => k.data(row ? 'w' : 'h');
+  const L = kids.reduce((h, k) => h + al(k), 0) + gap * (kids.length - 1), C = Math.max(...kids.map(k => k.data(row ? 'h' : 'w')));
+  let a = -L / 2;
+  kids.forEach(k => { pos[k.id()] = row ? {x: a + al(k) / 2, y: TITLE / 2} : {x: 0, y: a + TITLE / 2 + al(k) / 2}; a += al(k) + gap; });
+  S.data(row ? {w: L + 2 * PAD, h: C + 2 * PAD + TITLE} : {w: C + 2 * PAD, h: L + 2 * PAD + TITLE});
+  S.style(row ? {'text-valign': 'center', 'text-halign': 'left', 'text-margin-x': -6, 'text-margin-y': 0}  // edges come in above and below
+    : {'text-valign': 'top', 'text-halign': 'center', 'text-margin-x': 0, 'text-margin-y': -5});
   return pos;
 }
+// The layout a diagram really uses: a Machine centre has its Zones on both sides of its column (or above and
+// below its row); a diagram that pins its Zones (Pivot Machines) ignores the ring.
+function layoutOf(g) {
+  if (!g.D.center.ifaces) return O.lay;
+  if (g.marr === 'row') return 'tb';
+  return O.lay === 'ring' && !g.D.sides ? 'ring' : 'lr';
+}
 function runLayout(g) {
-  const inner = stackCentre(g), lay = g.D.center.ifaces && O.lay === 'sides' ? 'lr' : O.lay;
+  const inner = stackCentre(g), lay = layoutOf(g);
   const {pos, side} = (LAYOUT[lay] || LAYOUT.sides)(g);
   Object.assign(pos, inner);
   if (g.D.center.ifaces) delete pos.S;  // a frame's position follows its Interfaces
@@ -331,21 +368,26 @@ function drawGraph(g) {
 function controls(g) {
   const radio = (name, v, label) => `<label><input type="radio" name="${name}" value="${v}"${O[name] === v ? ' checked' : ''}>${label}</label>`;
   const box = (name, label) => `<label><input type="checkbox" name="${name}"${O[name] ? ' checked' : ''}>${label}</label>`;
+  // Only the layouts that change this diagram: a Machine centre has no "facing" layout, Pivot Machines pin theirs.
+  const lays = g.D.sides ? {} : g.D.center.ifaces ? {lr: LAYOUTS.lr, ring: LAYOUTS.ring} : LAYOUTS;
+  const pick = Object.keys(lays).length ? `<label class="pick">Layout <select class="glay">${
+    Object.entries(lays).map(([k, l]) => `<option value="${k}"${layoutOf(g) === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>` : '';
   g.el.insertAdjacentHTML('afterbegin',
-    `<div class="gbar"><div class="gzones"></div><span class="gact"><label class="pick">Layout <select class="glay">${
-      Object.entries(LAYOUTS).map(([k, l]) => `<option value="${k}"${O.lay === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>`
+    `<div class="gbar"><div class="gzones"></div><span class="gact">${pick}`
     + '<button class="btn greset">Reset layout</button><button class="btn gpng">Export PNG</button></span></div>'
     + `<details class="gopts"${O.open ? ' open' : ''}><summary>Options</summary><div class="ggroups">`
     + `<fieldset><legend>Edges</legend>${radio('edges', 'iface', 'one per Interface')}${radio('edges', 'zone', 'one per Zone')}</fieldset>`
     + `<fieldset><legend>Ports</legend>${radio('ports', 'nodes', 'in the nodes')}${radio('ports', 'edges', 'on the edges')}</fieldset>`
     + `<fieldset><legend>Zone arrangement</legend><select name="arr">${Object.entries(ARR).map(([k, l]) => `<option value="${k}"${O.arr === k ? ' selected' : ''}>${l}</option>`).join('')}</select>`
     + '<div class="hint">Auto: beside the Source 1 column up to 8 Interfaces, 2 up to 16, 3 beyond; above or below it 1 row up to 6, '
-    + '2 up to 12, 3 beyond; ports on the edges, 1. Right-click a Zone to arrange it alone.</div></fieldset>'
+    + '2 up to 12, 3 beyond; ports on the edges, 1. Right-click a Zone to arrange it alone'
+    + (g.D.center.ifaces ? ', the Machine to put its Interfaces in a row.' : '.') + '</div></fieldset>'
     + `<fieldset><legend>Machine</legend>${box('mcol', 'colour bar')}${box('mtie', 'dotted link')}`
     + '<div class="hint">Hover an Interface: the other Interfaces of its Machine are ringed.</div></fieldset></div></details>');
   const q = s => g.el.querySelector(s), redrawAll = () => { saveO(); GRAPHS.forEach(x => { x.dirty = true; }); drawVisibleGraphs(document); };
-  q('.glay').onchange = e => { O.lay = e.target.value; g.pin = null; redrawAll(); GRAPHS.forEach(x => { const l = x.el.querySelector('.glay'); if (l) l.value = O.lay; }); };
-  q('.greset').onclick = () => { g.arr = {}; g.pin = null; runLayout(g); };
+  if (q('.glay')) q('.glay').onchange = e => { O.lay = e.target.value; g.pin = null; redrawAll();
+    GRAPHS.forEach(x => { const l = x.el.querySelector('.glay'); if (l && x.cy) l.value = layoutOf(x); }); };
+  q('.greset').onclick = () => { g.arr = {}; g.pin = null; g.marr = 'col'; runLayout(g); };
   q('.gpng').onclick = () => { const a = document.createElement('a');
     a.href = URL.createObjectURL(g.cy.png({full: true, scale: 2, bg: '#ffffff', output: 'blob'})); a.download = g.D.file + '.png'; a.click(); };
   q('.gopts').ontoggle = e => { O.open = e.target.open; saveO(); };
@@ -355,16 +397,26 @@ function controls(g) {
   q('.gzones').onchange = e => { const z = e.target.value; e.target.checked ? g.hidden.delete(z) : g.hidden.add(z); hideZone(g, z, !e.target.checked); runLayout(g); };
 }
 
-// Right-click on a Zone frame: arrange that Zone alone; the other Zones keep their side.
-function zoneMenu(g, z, ev) {
+// Right-click menu at the pointer: a title, one button per choice (the current one marked).
+function menu(g, ev, title, choices, cur, pick) {
   document.querySelectorAll('.gmenu').forEach(m => m.remove());
   const m = document.createElement('div'), r = g.cy.container().getBoundingClientRect(), p = ev.renderedPosition;
   m.className = 'gmenu'; m.style.left = (r.left + window.scrollX + p.x) + 'px'; m.style.top = (r.top + window.scrollY + p.y) + 'px';
-  m.innerHTML = `<b>${gesc(z)}</b>` + Object.entries(ARR).map(([k, l]) => `<button data-a="${k}"${arrOf(g, g.cy.$id('z:' + z)) === k ? ' class="on"' : ''}>${l}</button>`).join('');
-  m.onclick = e => { const a = e.target.dataset.a; if (!a) return;
-    g.pin = {...g.side}; delete g.pin[z]; g.arr[z] = a; m.remove(); runLayout(g); };
+  m.innerHTML = `<b>${gesc(title)}</b>` + Object.entries(choices).map(([k, l]) => `<button data-a="${k}"${cur === k ? ' class="on"' : ''}>${l}</button>`).join('');
+  m.onclick = e => { const a = e.target.dataset.a; if (!a) return; m.remove(); pick(a); runLayout(g); };
   document.body.appendChild(m);
   setTimeout(() => document.addEventListener('click', () => m.remove(), {once: true}));
+}
+// Right-click anywhere on a Zone (its frame or a node in it): arrange that Zone alone, the other Zones keep their
+// side. On a Machine in the centre (its frame or an Interface): its Interfaces in a column or a row.
+function rightClick(g, ev) {
+  const n = ev.target;
+  if (n === g.cy || !n.isNode()) return;
+  if (n.hasClass('mframe') || n.hasClass('iface')) { menu(g, ev, g.D.center.machine, MARR, g.marr || 'col', a => { g.marr = a; g.pin = null; }); return; }
+  const z = n.hasClass('zone') ? n : n.parent();
+  if (!z.nonempty() || !z.hasClass('zone')) return;
+  const name = z.data('name');
+  menu(g, ev, name, ARR, arrOf(g, z), a => { g.pin = {...g.side}; delete g.pin[name]; g.arr[name] = a; });
 }
 
 function showTip(g, t, ev) {
@@ -381,6 +433,9 @@ function showTip(g, t, ev) {
   tip.style.display = 'block'; tip.style.left = Math.min(x + 16, r.width - 350) + 'px'; tip.style.top = (y + 16) + 'px';
 }
 
+// Cytoscape keeps the position of its box: when the page moves under a diagram (a fold opens above it), clicks
+// land off the pointer. It re-reads the box each time the pointer comes in.
+function sync(g) { g.el.querySelector('.gwrap').addEventListener('mouseenter', () => g.cy.resize()); }
 function initGraph(el) {
   const g = {el, D: JSON.parse(el.querySelector('script').textContent), arr: {}, pin: null, side: {}, hidden: new Set(), dirty: true, draw: drawGraph};
   GRAPHS.push(g);
@@ -389,9 +444,10 @@ function initGraph(el) {
   controls(g);
   el.insertAdjacentHTML('beforeend', '<div class="gwrap"><div class="gcy"></div><div class="gtip"></div></div>');
   g.cy = cytoscape({container: el.querySelector('.gcy'), style: STYLE, wheelSensitivity: 0.3, minZoom: 0.15, maxZoom: 4});
+  sync(g);
   const cy = g.cy, hide = () => { el.querySelector('.gtip').style.display = 'none'; };
   cy.on('drag', 'node', () => { placeTags(g); hide(); });
-  cy.on('cxttap', 'node.zone', ev => zoneMenu(g, ev.target.data('name'), ev));
+  cy.on('cxttap', ev => rightClick(g, ev));
   cy.on('mouseover', 'node.tgt', ev => { const t = ev.target.data('t');
     if (t.multi) cy.nodes('.tgt').filter(n => n.data('t').machine === t.machine).addClass('sib');
     ev.target.connectedEdges('.flow').addClass('hl'); showTip(g, t, ev); });
@@ -476,6 +532,7 @@ function initZones(el, g) {
     + '<button class="btn gpng">Export PNG</button></span></div>');
   el.insertAdjacentHTML('beforeend', '<div class="gwrap"><div class="gcy"></div><div class="gtip"></div></div>');
   g.cy = cytoscape({container: el.querySelector('.gcy'), style: ZSTYLE, wheelSensitivity: 0.3, minZoom: 0.15, maxZoom: 4});
+  sync(g);
   el.querySelector('.greset').onclick = () => drawZones(g);
   el.querySelector('.gpng').onclick = () => { const a = document.createElement('a');
     a.href = URL.createObjectURL(g.cy.png({full: true, scale: 2, bg: '#ffffff', output: 'blob'})); a.download = g.D.file + '.png'; a.click(); };

@@ -165,7 +165,7 @@ td.st-closed{color:#5a6678;background:#f1f4f8}
 .pivot .ph{font-size:13px;line-height:1.6;margin:12px 0 6px}.pivot .pm{font-size:15px;margin-right:6px}
 .pivot.calm{background:#fbfcfe}
 .pivot details>summary{cursor:pointer;color:#0369a1;font-size:12.5px;margin:4px 0 8px}
-.byp{display:inline-block;background:#fde4e4;color:#991b1b;border:1px solid #f2a7a7;border-radius:10px;padding:0 7px;font-size:11.5px;font-weight:700}
+.byp{display:inline-block;background:#fff4dc;color:#7a4a00;border:1px solid #FFB020;border-radius:10px;padding:0 7px;font-size:11.5px;font-weight:700}
 .pv{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:14px;margin-top:10px}
 .pv h4{margin:4px 0 6px;font-size:12.5px;color:var(--slate)}
 .pv table.pd{width:100%}.pv td{white-space:normal}

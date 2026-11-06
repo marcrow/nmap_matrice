@@ -11,11 +11,13 @@ async function api(path, body) {
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.style.opacity = 1; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = 0, 3500); }
 function status(text, cls = "") { const s = $("#st"); s.textContent = text; s.className = "status " + cls; }
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
-// The report's Zone hues (render/common.py ZONE_COLORS, dark tone for white chip text), in Zone name order as
+// The report's Zone hues (render/common.py ZONE_COLORS: pale fill, hue, dark text), in Zone name order as
 // the report assigns them; never red, amber or green, which belong to the Flow Policy.
-const ZONE_COLORS = ["#174276", "#723555", "#0c535f", "#32266f", "#58381a"];
+const ZONE_COLORS = [["#eff8ff", "#1565c0", "#0b3c75"], ["#fff3ee", "#8d6e63", "#51352c"], ["#f6f5ff", "#7c4dff", "#3c3072"],
+  ["#eafafe", "#1597ad", "#00495e"], ["#f5f5ff", "#3d2a8a", "#3a3173"], ["#eafbfd", "#80deea", "#004954"],
+  ["#eafbf9", "#0b5f5a", "#004944"], ["#f7f5ff", "#b9a6f2", "#432e6f"]];
 const zoneColor = z => ZONE_COLORS[Math.max(0, [...D.zones].sort().indexOf(z)) % ZONE_COLORS.length];
-const zoneChip = z => `<span class="zonechip" style="background:${zoneColor(z)}">${esc(z)}</span>`;
+const zoneChip = z => { const [f, s, t] = zoneColor(z); return `<span class="zonechip" style="background:${f};border-color:${s};color:${t}">${esc(z)}</span>`; };
 const MARK = {allow: "✓", deny: "✕", "": "?"};
 
 let D = null, dirty = false, saving = false, popCell = null, edits = 0;
