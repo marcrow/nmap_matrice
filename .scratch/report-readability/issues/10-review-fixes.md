@@ -123,3 +123,20 @@ Done:
   - Layout: the Source in navy, with the Zone frames facing it, on both sides, or around it;
   - `syncPanels` marks the current tile in every diagram.
 - Checked headless: every tile clicked, Pivot sides with every arrangement, the sweep on demo and mission-lab.
+
+**2026-11-06, sixth pass (user feedback).**
+
+The user's points:
+- the half moon's frame did not take the shape; it should be rounded on the far side and straight on the near side, or a banana (otherwise remove it);
+- the options bar should only wrap when it fills the screen width.
+
+Done:
+- **Half moon**:
+  - a Cytoscape parent node can only be a rectangle, so a banana is drawn as an SVG under the Zone (node `bg:<zone>`, `z-compound-depth: bottom`) and the Zone frame is made transparent (`banana()`), keeping its title;
+  - the banana follows the arc of the nodes: inner and outer curves, rounded ends;
+  - the edges enter through the inner curve.
+- **Options bar**:
+  - the arrangement tiles stay on one line;
+  - the hint under them is as wide as the tiles (`width:0; min-width:100%`);
+  - the other hints are capped at 260 px.
+- Checked headless: the sweep, every tile, Pivot sides with every arrangement, on demo and mission-lab.
