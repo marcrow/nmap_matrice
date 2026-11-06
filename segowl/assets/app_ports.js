@@ -3,7 +3,9 @@
 // from app_common.js.
 "use strict";
 const Ports = (() => {
-  const tokOk = t => { const m = String(t).trim().match(/^(?:(udp|tcp|sctp):)?(\d+)(?:-(\d+))?$/i); if (!m) return false; const a = +m[2], b = m[3] ? +m[3] : a; return a >= 1 && b <= 65535 && a <= b; };
+  // one port token, as segowl/ports.py reads it: {proto, lo, hi} or null
+  const tok = t => { const m = String(t).trim().match(/^(?:(udp|tcp|sctp):)?(\d+)(?:-(\d+))?$/i); if (!m) return null; const lo = +m[2], hi = m[3] ? +m[3] : lo; return lo <= hi && hi <= 65535 ? {proto: (m[1] || "tcp").toLowerCase(), lo, hi} : null; };
+  const tokOk = t => tok(t) !== null;
   const toks = s => String(s ?? "").split(",").map(x => x.trim()).filter(Boolean);
   // ports as chips, folded beyond 10; `open` holds the ids the user expanded ("+N more")
   function portChips(v, id, open) {
@@ -144,5 +146,5 @@ const Ports = (() => {
     });
     $(port ? "#lf-prod" : "#lf-port", box).focus();
   }
-  return {tokOk, toks, portChips, normTags, near, attachPorts, attachTags, labelForm, vocabOf, vendorsOf, setLabels: L => { LABELS = L; }};
+  return {tok, tokOk, toks, portChips, normTags, near, attachPorts, attachTags, labelForm, vocabOf, vendorsOf, setLabels: L => { LABELS = L; }};
 })();

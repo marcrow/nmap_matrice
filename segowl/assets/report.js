@@ -42,7 +42,7 @@ function freeze(scope){
 }
 function groupSet(){ return GROUP===''?null:JSON.parse(document.getElementById('port-groups').textContent)[+GROUP]; }
 // Changes only the port text of each element (data-p); the Flow Policy icon, bold and tile stay. A tile with no
-// port of the group reads as unseen, as in the restricted matrices.
+// port of the group reads as unseen.
 function filterPorts(set){
   document.querySelectorAll('[data-p]').forEach(el=>{
     if(el.dataset.orig===undefined){el.dataset.orig=el.innerHTML; el.dataset.cls=el.className;}

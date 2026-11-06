@@ -1,6 +1,6 @@
 // SegOWL — Port Labels editor (app-navigation ticket 05). The server checks and normalises every row.
 "use strict";
-const {tokOk, toks, normTags} = Ports;
+const {tok, tokOk, toks, normTags} = Ports;
 const ORD = {shipped: 0, override: 1, mission: 2};
 const badge = o => ({shipped: `<span class="badge shipped">shipped</span>`, mission: `<span class="badge b-mission">Mission</span>`,
   override: `<span class="badge override" title="completes the shipped label of the same port + product">Mission · replaces</span>`}[o]);
@@ -10,7 +10,7 @@ let D = null, table = null, shippedTags = new Set();
 const vocab = () => Ports.vocabOf(D);
 function rows() {
   const mk = new Set(D.mission.map(key)), sk = new Set(D.shipped.map(key));
-  const pn = p => +String(p).replace(/^\D+:/, "").split("-")[0];
+  const pn = p => tok(p)?.lo ?? 0;
   const mk1 = (r, origin, i) => ({id: origin === "shipped" ? "s" + key(r) : "m" + i, mi: i, port: r[0], product: r[1], tags: r[2], vendor: r[3], cleartext: r[4], origin});
   return [...D.shipped.filter(r => !mk.has(key(r))).map(r => mk1(r, "shipped")), ...D.mission.map((r, i) => mk1(r, sk.has(key(r)) ? "override" : "mission", i))]
     .sort((a, b) => pn(a.port) - pn(b.port) || a.port.localeCompare(b.port) || a.product.localeCompare(b.product));

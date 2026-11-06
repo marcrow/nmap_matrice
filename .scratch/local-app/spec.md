@@ -1,6 +1,6 @@
 # Local app: a web UI around the Mission folder
 
-Status: ready-for-agent
+Status: done (tickets 01-06); ticket 07 waits on a human with vendor logins
 
 Vocabulary: `GLOSSARY.md` (Mission, Scan Profile, Auditor Kit, Port Label…). Decisions: `docs/adr/0003` (Mission folder is the only state), `docs/adr/0004` (stdlib server, file auth).
 

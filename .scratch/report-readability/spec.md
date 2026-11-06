@@ -1,6 +1,6 @@
 # Report readability: one look with the app, matrices like the Flow Policy one, legends that explain themselves, more visuals
 
-Status: ready-for-agent
+Status: done
 
 Vocabulary: `GLOSSARY.md` (Finding, Flow Policy, Pivot Machine, Port Group, Source, Undeclared Flow, Zone). Raised by the user on 2026-11-05 while trying the app on the lab (`lab/`).
 
@@ -42,7 +42,7 @@ So red stands for three things (blocked cell, denied edge, admin port), and OPEN
 - **Pivot Machines, explained**: each card says in plain words why the Machine is a rebound (its Interfaces, who reaches which one OPEN on which ports) and draws both sides: in, the Source Zones → the Interface they reach; out, each other Interface → its Zone, with what that Zone holds and what the Source's Zone already reaches there directly (bypass when nothing, else "k / N reached directly"). If the Machine is itself a Source, what it was seen reaching there. Legend: "rebound: from this Machine, its other Zones". Cards with a bypass first; the detailed list folded below.
 - **BLOCKED and UNSEEN stay distinct** (tested and blocked vs never seen, cf. Coverage): BLOCKED a filled grey tile with ×, UNSEEN an empty dashed tile with –.
 - **Per target works per Machine**: the search (name, IP, Zone) offers Machines; a multi-Interface Machine is drawn as a frame holding all its Interfaces, the Sources grouped by Zone; the table gets an Interface column.
-- **Exposure overview kept**: under the Per target picker, a folded "All targets" table (one row per target × Source reaching it: target, Zone, Source, verdict, open ports, Flow Policy), searchable and sortable.
+- **Exposure overview kept**: above the Per target picker, a folded "All targets" table (one row per target × Source reaching it: target, Zone, Source, verdict, open ports, Flow Policy), searchable and sortable.
 - **Port Group selector as chips** in the sticky bar (`all ports`, then one chip per group, active one filled); a dropdown beyond about 8 groups.
 - **Sections delimited**: each section is a white card with its title.
 - **Per target tab**, mirror of Per source, replaces Exposure per target: a picker with search, a diagram of the Sources reaching the target grouped by Zone, the detail table. Mermaid text generated per target, drawn only when selected.
@@ -67,7 +67,7 @@ So red stands for three things (blocked cell, denied edge, admin port), and OPEN
 
 ## Next
 
-Prototype done (`issues/01-prototype.md`, branch `prototype/report-readability`). Implementation: `issues/02` to `issues/09`.
+Prototype done (`issues/01-prototype.md`, branch `prototype/report-readability`). Implementation: `issues/02` to `issues/10`, all done (2026-11-06, PR #3).
 
 ## Out of scope
 

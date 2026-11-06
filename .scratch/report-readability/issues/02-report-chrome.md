@@ -12,7 +12,7 @@ Reference: branch `prototype/report-readability`, `segowl/render/html.py` `_tabs
 
 ## Acceptance
 
-- `report.html` opened as a file and inside `/report` of the app: one header each time, the seven big tabs with their counts, the hash reopens the same tab
+- `report.html` opened as a file and inside `/report` of the app: one header each time, the seven big tabs with their counts (six when the Mission has no Flow Policy), the hash reopens the same tab
 - the Port Group chips filter every tab and stay visible while scrolling
 - no external request (offline constraint)
 

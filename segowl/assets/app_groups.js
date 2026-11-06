@@ -2,9 +2,9 @@
 "use strict";
 
 // ---------------------------------------------------------------- ports helpers (shared shape with the prototype)
-const {tokOk, toks} = Ports;
+const {tok, tokOk, toks} = Ports;
 const portsOk = s => toks(s).length > 0 && toks(s).every(tokOk);
-function countPorts(s) { const c = {tcp: 0, udp: 0}; toks(s).forEach(x => { const m = x.match(/^(?:(udp|tcp|sctp):)?(\d+)(?:-(\d+))?$/i); if (m) c[m[1] === "udp" ? "udp" : "tcp"] += m[3] ? +m[3] - +m[2] + 1 : 1; }); return c; }
+function countPorts(s) { const c = {tcp: 0, udp: 0, sctp: 0}; toks(s).map(tok).filter(Boolean).forEach(t => { c[t.proto] += t.hi - t.lo + 1; }); return c; }
 const ORD = {shipped: 0, override: 1, mission: 2};
 const badge = o => ({shipped: `<span class="badge shipped">shipped</span>`, mission: `<span class="badge b-mission">Mission</span>`,
   override: `<span class="badge override" title="this Mission's group replaces the shipped one">Mission · replaces</span>`}[o]);
@@ -51,7 +51,7 @@ table = new Tabulator("#grid", {data: [], index: "id", layout: "fitColumns", hei
       tooltip: (e, c) => c.getRow().getData().origin === "mission" ? "click to rename (rewrites the Flow Policy and the Scan Profiles)" : "a shipped group keeps its name"},
     {title: "ports", field: "ports", editor: portsEditor, formatter: c => { const d = c.getRow().getData(); c.getElement().classList.toggle("bad", !portsOk(c.getValue()));
       return portChips(c.getValue(), d.id) + (d.origin === "override" ? `<div class="small muted" title="${esc(d.shippedPorts)}">shipped: ${toks(d.shippedPorts).length} ports</div>` : ""); }},
-    {title: "count", field: "count", width: 110, headerSort: false, formatter: c => { const n = countPorts(c.getRow().getData().ports); return `${n.tcp} TCP${n.udp ? ` · ${n.udp} UDP` : ""}`; }},
+    {title: "count", field: "count", width: 110, headerSort: false, formatter: c => { const n = countPorts(c.getRow().getData().ports); return `${n.tcp} TCP${n.udp ? ` · ${n.udp} UDP` : ""}${n.sctp ? ` · ${n.sctp} SCTP` : ""}`; }},
     {title: "used by", field: "usedby", width: 220, headerSort: false, formatter: c => { const u = used(c.getRow().getData().name);
       return u.rules.length || u.profiles.length ? `<span class="uses">${u.rules.length ? `<span class="small" style="border-bottom:1px dotted">${u.rules.length} rule(s)</span>` : ""}${u.profiles.map(x => `<span class="pill">${esc(x)}</span>`).join("")}</span>` : `<span class="muted">unused</span>`; },
       tooltip: (e, c) => { const u = used(c.getRow().getData().name); return [...u.rules.map(x => "rule  " + x), ...u.profiles.map(x => "Scan Profile  " + x)].join("\n") || "unused"; }},

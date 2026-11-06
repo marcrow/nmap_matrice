@@ -187,7 +187,7 @@ row wins and keeps the reason; tags are unioned); Ray worker range 10002-19999 i
 ## Existing rows: vendor, cleartext and re-verification
 
 
-Only what changed: the 7 items that were `[unverified]` in 07-sources.md, label corrections, and the vendor pages read for the new `cleartext` column.
+Only what changed: the 7 items that were `[unverified]` in 07-demo-port-labels-sources.md, label corrections, and the vendor pages read for the new `cleartext` column.
 "via search extract" means the vendor page could not be fetched (login, 403, 404 to bots) and its indexed text was read through web search.
 
 #### The 7 previously unverified items
@@ -651,7 +651,7 @@ Note: the shared WebSearch budget ran out midway; the rest was done with WebFetc
 - HPE Aruba ClearPass 6658 (OnGuard), 5433 (Insight database), 7432 (cluster diagnostics) [checked via search extract] → https://arubanetworking.hpe.com/techdocs/ClearPass/6.11/PolicyManager/Content/Deploy/About%20ClearPass/Accessing_ClearPass.htm (Akamai returns 403 to WebFetch and curl)
 - Forescout eyeSight 13000, SecureConnector 10003 / 10005 / 10006, HA SSH 2222 [checked] → https://docs.forescout.com/eyesight/eyesight-install-8-5-x/eyesight-install-8-5-x/c-network-access-requirements.htm ; 2200 (Linux SecureConnector, older releases) [checked via search extract] → https://www.forescout.com/wp-content/uploads/2018/04/CounterACT_Installation_Guide_8.0-2.pdf
 - Fortinet FortiNAC 4568, udp:4567, 1050, 5555, 8443, 8080, 8000, 8180, 8543 [checked] → https://docs.fortinet.com/document/fortinac/9.2.0/administration-guide/482422/open-ports
-- CyberArk Vault udp:1858, Remote Control Agent 9022 [checked] → https://docs.cyberark.com/pam-self-hosted/latest/en/content/pas%20sysreq/standard%20ports%20-%20vault.htm and https://docs.cyberark.com/pam-self-hosted-legacy/latest/en/content/pas%20sysreq/network%20ports%20overview.htm ; IANA agrees: 1858 privateark, 9022 paragent ("PrivateArk Remote Agent"). **The existing row 1858 "CyberArk Vault", marked unverified in 07-sources.md, is now verified by these pages.**
+- CyberArk Vault udp:1858, Remote Control Agent 9022 [checked] → https://docs.cyberark.com/pam-self-hosted/latest/en/content/pas%20sysreq/standard%20ports%20-%20vault.htm and https://docs.cyberark.com/pam-self-hosted-legacy/latest/en/content/pas%20sysreq/network%20ports%20overview.htm ; IANA agrees: 1858 privateark, 9022 paragent ("PrivateArk Remote Agent"). **The existing row 1858 "CyberArk Vault", marked unverified in 07-demo-port-labels-sources.md, is now verified by these pages.**
 - Delinea Secret Server 3390 (RDP proxy), 8443 (RDP Gateway), 8672 / 8671 (MemoryMQ) [checked] → https://docs.delinea.com/online-help/secret-server/networking/general/secret-server-ports/index.htm
 - BeyondTrust passive Jump Client 5832 [checked] → https://www.beyondtrust.com/docs/archive/privileged-remote-access/22-2/pra-admin-22-2.pdf ("Passive Jump Client Port … The default port is 5832")
 - HashiCorp Boundary 9200, 9201, 9202, 9203 [checked] → https://developer.hashicorp.com/boundary/docs/configuration/listener
@@ -730,7 +730,7 @@ Vendor documentation, IETF RFCs and the IANA registry only; nothing taken from n
 #### Security appliances (management and HA)
 - Fortinet FortiManager 542, 8888 TCP/UDP, 8889, 8890, 8900, 5199, 300, 8080, 8082, udp:9443 [checked] → https://docs.fortinet.com/document/fortimanager/7.4.0/fortimanager-ports ; FortiAnalyzer 5199 and 8080 [checked] → https://docs.fortinet.com/document/fortianalyzer/7.4.0/fortianalyzer-ports (8900 is a FortiManager local FortiGuard port, not FortiAnalyzer)
 - Palo Alto Networks HA 28, 28764-28767, 28770, 28771, udp:29281 [checked] → https://docs.paloaltonetworks.com/pan-os/11-1/pan-os-admin/firewall-administration/reference-port-number-usage/ports-used-for-ha ; Panorama 28270, 9300-9302 [checked] → https://docs.paloaltonetworks.com/pan-os/11-1/pan-os-admin/firewall-administration/reference-port-number-usage/ports-used-for-panorama
-- Check Point 264, 18181-18184, 18202, 18205, 18208, 18210, 18211, 18221, udp:259, udp:18233, udp:18234 [checked] → https://support.checkpoint.com/results/sk/sk17745 (public, no login). This page also confirms the shipped rows 256, 257, 18190, 18191, 18192 and 18264, still marked unverified in 07-sources.md. ClusterXL CCP udp:8116 [checked: IANA cp-cluster]. 19009 dropped (not in sk17745; sk52421 needs a login).
+- Check Point 264, 18181-18184, 18202, 18205, 18208, 18210, 18211, 18221, udp:259, udp:18233, udp:18234 [checked] → https://support.checkpoint.com/results/sk/sk17745 (public, no login). This page also confirms the shipped rows 256, 257, 18190, 18191, 18192 and 18264, still marked unverified in 07-demo-port-labels-sources.md. ClusterXL CCP udp:8116 [checked: IANA cp-cluster]. 19009 dropped (not in sk17745; sk52421 needs a login).
 
 #### Extra rows (network-extra.csv)
 These were verified during the same research pass, then trimmed from network.csv for size. They are restored here, with no new searches.
@@ -807,7 +807,7 @@ Markers:
 ##### Dell Avamar and Data Domain
 - Avamar 27000, 28001, 28002, 29000; Data Domain 2051, 2052, 3008, 5001 (iPerf) [checked] → https://www.dell.com/support/kbdoc/en-us/000004184/port-requirements-for-allowing-access-to-a-data-domain-through-a-firewall
 - Avamar 28001/30001 (MCS / utility node), 28002/30002 (avagent, NDMP 30002 with certificates) [checked] → https://www.dell.com/support/kbdoc/en-us/000065540/avamar-client-browsing-and-backup-issues
-- Data Domain 2051/2052 also [checked] in the NetBackup DataDomain OST page → https://docs.cohesity.com/docs/netbackup/10.5/80731497-165998031-0/v124789736-165998031 (this resolves the "2051 removed" note in 07-sources.md)
+- Data Domain 2051/2052 also [checked] in the NetBackup DataDomain OST page → https://docs.cohesity.com/docs/netbackup/10.5/80731497-165998031-0/v124789736-165998031 (this resolves the "2051 removed" note in 07-demo-port-labels-sources.md)
 - Not added: 28003+, 30003, 30102-30109 (only community posts).
 
 ##### Cohesity
@@ -995,7 +995,7 @@ The WebSearch budget ran out partway through, so the later pages were reached by
 - Intel AMT 16992, 16993, 16994, 16995 [checked] → IANA `amt-soap-http`, `amt-soap-https`, `amt-redir-tcp`, `amt-redir-tls` (https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.xhtml?search=amt-) ; https://nvd.nist.gov/vuln/detail/CVE-2017-5689 (KEV 2022-01-28)
 
 #### Retag reasons (risky-retag.txt)
-Ports are already sourced in 07-sources.md. Sources for the reasons only:
+Ports are already sourced in 07-demo-port-labels-sources.md. Sources for the reasons only:
 - Checkmk agent 6556 [checked] → https://docs.checkmk.com/latest/en/agent_linux_legacy.html (legacy mode: unencrypted output on 6556; process table "can already provide valuable clues"; `only_from` IPs are spoofable)
 - Docker Engine 2375 [checked] → https://docs.docker.com/engine/daemon/remote-access/ ("remote non-root users to gain root access on the host")
 - Redis 6379 [checked] → https://redis.io/docs/latest/operate/oss_and_stack/management/security/

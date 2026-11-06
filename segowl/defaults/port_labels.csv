@@ -1,5 +1,5 @@
 # Shipped demo Port Labels (descriptive only: tags help search, they filter nothing).
-# A mission/port_labels.csv adds to these rows; its vendor and cleartext columns are optional.
+# A mission/port_labels.csv row with the same port + product replaces the shipped one, other rows are added; its vendor and cleartext columns are optional.
 # Ports: one token per row | 22 (TCP implied) | ranges 5900-5903 | udp:161 | udp:5405-5412
 # Sources: vendor documentation, IETF RFCs and the IANA registry only (never nmap-services).
 # Rows named "<Service> — common alternate port" are convention, not vendor-documented.
