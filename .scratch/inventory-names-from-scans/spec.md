@@ -1,6 +1,6 @@
 # Fill inventory names from the names resolved in the Scans
 
-Status: ready-for-agent
+Status: done
 
 Vocabulary: `GLOSSARY.md` (Interface, Machine, Scan, Source, Zone, Flow Policy, Pivot Machine, verdicts). Decisions: `docs/adr/0003` (Mission folder is the only state). Idea raised by the user on 2026-11-04 (out of the scope of `app-navigation`). Grilled on 2026-11-06.
 

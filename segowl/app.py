@@ -260,6 +260,9 @@ class Mission:
         summary = f"{len(done)} / {len(sources)} Source(s) with a Scan"
         if left := len(sources) - len(done):
             summary += f" · {left} to go"
+        names = self.scan_names()["names"] if done else {}
+        if k := sum(1 for r in self.rows() if not r.get("name") and names.get(r["ip"])):
+            summary += f" · {k} empty name(s) resolved by the Scans: Inventory › Names from Scans"
         return _step("scans", state, summary, [], "/scans", "Download the scripts" if left else "Open")
 
     def _step_policy(self) -> dict:

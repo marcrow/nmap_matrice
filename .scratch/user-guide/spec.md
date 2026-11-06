@@ -17,6 +17,8 @@ A guide for the auditor (not the developer), with:
 - Create a Port Group only when it is really useful (reused across profiles, in the Flow Policy or in a kit). To scan the ports of a search once, select the results; do not make a group for it (see `.scratch/select-search-results/`).
 - Flow Policy comments: a rule's comment is edited in the cell popover (click a cell of the Flow Policy matrix: each rule has its comment field); the matrix itself does not show comments. Noted 2026-11-06 while reviewing the report; whether the matrix should show them is left open.
 
+- The audit path comes in two versions, as the user asked on 2026-11-06 (`inventory-names-from-scans`): a short one (the seven-step figure `work-process.svg`) and a detailed one (the Overview's step list); both include "Names from the Scans" between the Scans and the Flow Policy. The guide should keep the two in step.
+
 ## Questions for the grilling
 
 - Where does it live: `docs/guide/*.md` in the repo, a page inside the app (offline, served by the local server), or both from the same source?
