@@ -19,6 +19,12 @@ A guide for the auditor (not the developer), with:
 
 - The audit path comes in two versions, as the user asked on 2026-11-06 (`inventory-names-from-scans`): a short one (the seven-step figure `work-process.svg`) and a detailed one (the Overview's step list); both include "Names from the Scans" between the Scans and the Flow Policy. The guide should keep the two in step.
 
+## Decided (2026-11-06)
+
+- Lives in `docs/` (Markdown readable on GitHub), published on GitHub Pages at https://marcrow.github.io/segowl/ by Zensical (`zensical.toml`, `.github/workflows/docs.yml`), no custom domain.
+- The README is the short visual entry point (what, why, quick start with `git clone` + `python3 -m segowl`); the reference manual moved to `docs/guide/` (getting started, Mission folder, scanning, Auditor Kit, Flow Policy, report, lab).
+- Still to write: philosophy, best practices, tips and tricks (this grilling).
+
 ## Questions for the grilling
 
 - Where does it live: `docs/guide/*.md` in the repo, a page inside the app (offline, served by the local server), or both from the same source?

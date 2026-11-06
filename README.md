@@ -76,7 +76,7 @@ python3 -m segowl ~/missions/acme/         # or just regenerate the offline repo
 
 **Want to run real scans without a client network?** `lab/` rebuilds the demo network with Docker (one
 network per Zone, a firewall applying the expected flows): `python3 lab/lab.py up`.
-See the [lab guide](https://marcrow.github.io/segowl/lab/).
+See the [lab guide](https://marcrow.github.io/segowl/guide/lab/).
 
 ## Documentation
 
