@@ -26,3 +26,10 @@ Where a layout choice is open (place of the Undo button, how the selection and t
 ## Comments
 
 2026-11-06 prototype ready: branch `prototype/policy-copy-cells` (worktree `../nmap_matrice-proto-policy`), open `prototype_policy/index.html` by double-click. Built on a copy of the real editor (popover, exceptions, bootstrap) with saving faked; a "Prototype only" card shows the clipboard text and the `flow_policy.csv` that would be saved. Switcher: click opens the popover (today) vs click selects and Enter / double-click opens; selection A tint vs B frame; Undo A toolbar vs B bottom bar; block text A `flow_policy.csv` lines (with a `# SegOWL Flow Policy cells · rows: … · columns: …` header, also accepts lines pasted straight from a `flow_policy.csv`) vs B spreadsheet grid (tab-separated, `allow @web,3128 (comment) | deny @db` per cell). Checked headless: copy a cell onto a row, a row onto another row in both formats, garbage and unknown `@group` refused with nothing changed, Shift+click rectangle, Delete, exceptions untouched, Ctrl+Z back to the starting rules, Ctrl+Y. Waiting for the user's verdicts.
+
+2026-11-06 user verdicts, first pass:
+- **Ctrl+click** (missing in the first mockup): the user expects to pick scattered cells with Ctrl+click and paste into all of them; the paste went only into the last one. Added: Ctrl+click adds a cell (Ctrl+click again drops it), Ctrl+click on a Zone header adds its row or column; one copied cell fills every picked cell, a copied block lands once at each picked cell (top left of each range). Copy itself still takes one cell or one rectangle (a toast says so on a scattered selection).
+- **Selection: B frame**, more readable than the tint; one frame per range.
+- **Undo: B bottom bar**: the toolbar buttons went unnoticed.
+- **Toasts in amber** instead of navy: navy toasts are not seen enough.
+- Still open: click opens the popover vs click selects; block text A `flow_policy.csv` lines vs B grid.
