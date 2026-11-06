@@ -344,4 +344,47 @@ $("#boot").onclick = () => {
   const n = D.errors.filter(Boolean).length;
   status(n ? `${n} rule(s) the report refuses: fix them` : "Saved ✓", n ? "err" : "ok");
   draw();
+  namesModal();
 })();
+
+// ---------------------------------------------------------------- "update the inventory first" (inventory-names-from-scans 05)
+// On opening: (a) no Scan yet: once per Mission; (b) the Scans bring names or IPs the inventory lacks: again only when a new
+// proposal appears. What was seen is a per-browser display memory (localStorage), not Mission state (ADR-0003).
+async function namesModal() {
+  const w = await namesWaiting().catch(() => null);
+  if (!w || !w.rows.length) return;
+  const key = "segowl.names-modal." + ($(".mission")?.textContent || ""), get = () => { try { return JSON.parse(localStorage.getItem(key)) || {}; } catch { return {}; } };
+  const keep = v => { try { localStorage.setItem(key, JSON.stringify(v)); } catch { /* private window: the modal shows each time */ } };
+  const m = get(), trail = i => `<div class="trail">${["Scans", "Names into the inventory", "Flow Policy"]
+    .map((t, k) => `<span class="${k < i ? "done" : k === i ? "now" : ""}">${k < i ? "✓ " : ""}${t}</span>`).join("<i>→</i>")}</div>`;
+  if (!w.sn.scans) {
+    if (m.a) return;
+    return modal("Run the Scans first", `<p>The Flow Policy talks about <b>Zones and Machines</b>. The Scans usually bring the names of the
+      Interfaces (DNS), and with them the Machines spanning several Zones, the ones a Pivot is made of.</p>
+      <p>Writing the Flow Policy now means writing it against Machines that will change.</p>${trail(0)}<div class="why">Shown once for this Mission.</div>`,
+      "Go to the Scans →", "/scans", () => keep({...m, a: true}));
+  }
+  const p = w.pending, seen = new Set(m.b || []);
+  if (!p.any || p.keys.every(k => seen.has(k))) return;
+  const n = p.fills.length + p.conflicts.length, x = p.extra.length;
+  modal(seen.size ? "New names arrived from the Scans" : "Names are waiting in the inventory",
+    `<p>${n ? `<b>${n} name(s)</b>` : ""}${n && x ? " and " : ""}${x ? `<b>${x} IP(s)</b> missing from the inventory` : ""} came from the Scans and are not in the inventory yet.</p>
+     <p>Taking them first gives the Flow Policy its real Machines: Interfaces that share a name become one Machine, and a Machine spanning two Zones can be a Pivot.</p>${trail(1)}
+     <div class="why">You won't see this again unless new Scans bring new names.</div>`,
+    "Update the inventory →", "/inventory#names", () => keep({...m, b: [...new Set([...seen, ...p.keys])]}));
+}
+function modal(title, html, go, href, onClose) {
+  const back = document.createElement("div"); back.className = "mback";
+  back.innerHTML = `<div class="modal" role="dialog" aria-modal="true" aria-labelledby="mt"><div class="top"><img src="/static/logo.svg" alt="">
+    <div><div class="kicker">Before the Flow Policy</div><h3 id="mt">${esc(title)}</h3></div><button class="x" title="Close (Esc)">✕</button></div>
+    <div class="bd">${html}</div><div class="ft"><button class="btn" data-c>Continue anyway</button><a class="btn pri" href="${href}">${esc(go)}</a></div></div>`;
+  document.body.append(back); requestAnimationFrame(() => back.classList.add("vis"));
+  let open = true;
+  const close = () => { if (!open) return; open = false; onClose(); document.removeEventListener("keydown", esc_, true); back.classList.remove("vis"); setTimeout(() => back.remove(), 180); };
+  const esc_ = e => { if (e.key === "Escape") { e.stopPropagation(); close(); } };
+  document.addEventListener("keydown", esc_, true);
+  back.onclick = e => { if (e.target === back) close(); };
+  back.querySelector(".x").onclick = back.querySelector("[data-c]").onclick = close;
+  back.querySelector("a").onclick = onClose; // leaving for the inventory counts as seen
+  back.querySelector("a").focus();
+}

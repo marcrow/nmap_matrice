@@ -17,12 +17,13 @@
         <span><svg width="24" height="10"><line x1="1" y1="5" x2="23" y2="5" stroke="#16a34a" stroke-width="2.5"/></svg><i class="pg pg-allow">✓</i>open, allowed</span><span><svg width="24" height="10"><line x1="1" y1="5" x2="23" y2="5" stroke="#64748b" stroke-width="2.5" stroke-dasharray="5 4"/></svg>reachable, no open port</span>
         <span>port numbers: <b>bold</b> = admin port, <span style="color:#dc2626">red</span> = denied by the Flow Policy</span></div></div></div>
   <h3>The work process</h3>
-  <div class="figwrap"><img class="flow" src="/static/tutorial/work-process.svg" alt="Work process in six steps"></div>
+  <div class="figwrap"><img class="flow" src="/static/tutorial/work-process.svg" alt="Work process in seven steps"></div>
   <ol class="tsteps">
     <li><b>Define the inventory</b><div class="d">One line per Interface: IP and Zone (the segmentation intent: T0, users, DMZ, OOB…), then type and Machine name, both optional: names can later be filled from the Scans' DNS resolution. From the client's spreadsheet or the client's zip. <a href="/inventory">Inventory &amp; Zones</a></div></li>
     <li><b>Select your Auditor Kit</b><div class="d">Apply your kit (Scan Profiles, Port Groups, Port Labels): every Source runs the same method. <a href="/kit/kits">Auditor Kit › Kits</a></div></li>
     <li><b>Configure <span class="opt-tag">optional</span></b><div class="d">Tune a profile for this client: ports found by product or tag, options, the command shown live. Save it as a new version to keep it in your kit. <a href="/scans">Scans</a></div></li>
     <li><b>Run on the Sources</b><div class="d">One script per Source, targets = the whole inventory minus the Source's Machine. Drop the .xml / .gnmap / .nmap on the Source's row: the views regenerate. <a href="/scans">Scans</a></div></li>
+    <li><b>Take the names from the Scans</b><div class="d">The Scans resolve the name of each target (DNS). Before the Flow Policy, take them into the inventory: Interfaces sharing a name become one Machine, the Pivot Machines appear, and the Flow Policy is written against the real Machines. Only empty names are filled, never yours; conflicts and IPs missing from the inventory are shown to you. <a href="/inventory#names">Inventory › Names from Scans</a></div></li>
     <li><b>Define the Flow Policy <span class="opt-tag">optional</span></b><div class="d">Allow or deny, Zone by Zone, starting from the flows you observed. Only an explicit deny makes a Finding; the rest stays undeclared, listed apart. <a href="/policy">Flow Policy</a></div></li>
     <li><b>Matrices &amp; diagrams</b><div class="d">Zone and Source views, Findings, retests compared. Select a client or a target set and drop them into your pentest or audit report, or hand over the offline HTML report. <a href="/report">Report</a></div></li>
   </ol>

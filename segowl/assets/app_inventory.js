@@ -5,7 +5,7 @@ const BASE = ["ip", "zone", "type", "name"];
 
 // ---------------------------------------------------------------- state
 let D = null, table = null, filterZone = null, dirty = false, saving = false, again = false, timer = null, hold = false, H = null;
-let dupSet = new Set(), nameCount = {};
+let dupSet = new Set(), nameCount = {}, SN = null; // SN: GET /api/scan-names
 const rows = () => table.getData();
 const zoneNames = () => { const s = [...D.zones.map(z => z.name)]; rows().forEach(r => { if (r.zone && !s.includes(r.zone)) s.push(r.zone); }); return s; };
 // ponytail: zoneNames() scans the rows on every chip; cache the sorted list if a large inventory feels slow
@@ -95,7 +95,7 @@ async function renameEverywhere(kind, old, nw) {
     const r = await api("/api/rename", {kind, old, new: nw, fp: D.fp});
     D.fp = r.fp;
     const field = kind === "zone" ? "zone" : "name";
-    table.getRows().forEach(row => { if (row.getData()[field] === old) row.update({[field]: nw}); });
+    table.getRows().forEach(row => { const d = row.getData(); if (d[field] === old || (kind === "machine" && !d.name && d.ip === old)) row.update({[field]: nw}); });
     if (kind === "zone") { D.zones.forEach(z => { if (z.name === old) z.name = nw; }); if (filterZone === old) filterZone = nw; }
     if (D.refs[old]) { D.refs[nw] = (D.refs[nw] || 0) + D.refs[old]; delete D.refs[old]; }
     analyse(); refreshSide(); dirty = false; H.clear(); status("Saved ✓", "ok"); toast(r.message); // the server rewrote several files: undo stops here
@@ -111,7 +111,9 @@ function columns() {
       c.getElement().classList.toggle("bad", dupSet.has(v) || (Object.values(row).some(x => x) && !ipOk(v))); return esc(v); }},
     {title: "zone", field: "zone", width: 150, ...ac("zone"), formatter: c => c.getValue() ? zoneChip(c.getValue()) : (c.getRow().getData().ip ? `<span style="color:#dc2626">— missing —</span>` : "")},
     {title: "type", field: "type", width: 120, ...ac("type")},
-    {title: "name", field: "name", width: 160, ...ac("name"), formatter: c => { const n = c.getValue(), k = nameCount[n] || 0; return esc(n) + (k > 1 ? ` <span class="pill" title="${k} Interfaces">${k} ifs</span>` : ""); }},
+    {title: "name", field: "name", width: 260, ...ac("name"), formatter: c => { const n = c.getValue(), k = nameCount[n] || 0; const d = namesDns(c.getRow().getData(), SN);
+      return esc(n) + (k > 1 ? ` <span class="pill" title="${k} Interfaces">${k} ifs</span>` : "")
+        + (d ? `<span class="dns" title="Name from the Scans' DNS resolution: ${esc(d.fqdn)}&#10;resolved by ${esc(srcList(d.by))}&#10;Names from Scans may update it; edit it and it becomes yours.">DNS</span>` : ""); }},
     ...D.columns.map(f => ({title: f, field: f, editor: "input", width: 130})),
   ];
 }
@@ -299,8 +301,96 @@ function wireToolbar() {
   };
 }
 
+// ---------------------------------------------------------------- Names from Scans (inventory-names-from-scans 03)
+// An inline panel with four tabs; Apply is one undo step, then the usual autosave. Only empty names and "⇄ DNS" names
+// are written, so running it again in the other mode (short / FQDN) switches them all.
+const NP = {mode: "short", choice: {}, own: {}, add: null, tab: "fill"};
+const srcList = ips => ips.map(s => { const r = rows().find(x => x.ip === s); return r && r.zone ? `${s} (${r.zone})` : s; }).join(", ");
+const npProposal = () => namesProposal({rows: rows().filter(r => r.ip), zones: zoneNames(), refs: D.refs, sn: SN, mode: NP.mode, choice: NP.choice});
+const ownOk = v => !!v && !zoneNames().includes(v) && !v.includes(";");
+const ownFills = p => p.skipped.filter(x => x.kind === "zone" && ownOk(NP.own[x.r.ip] ?? x.fqdn)).map(x => ({...x, target: NP.own[x.r.ip] ?? x.fqdn}));
+async function openNames() {
+  try { SN = await api("/api/scan-names"); } catch (e) { toast("Cannot read the Scans: " + e.message); return; }
+  const p = npProposal();
+  if (!p.fills.length && !p.conflicts.length && !p.skipped.length && !p.extra.length) {
+    $("#np").hidden = true; table.redraw(true);
+    toast(SN.scans ? "No name to fill from the Scans" : "No Scan imported yet: run the Scans first"); return;
+  }
+  NP.add = new Set(p.extra.map(e => e.ip)); $("#np").hidden = false; drawNames(); table.redraw(true);
+}
+function drawNames() {
+  const p = npProposal(), own = ownFills(p), amb = p.fills.filter(x => x.keptFqdn);
+  const nren = [...p.fills, ...own].filter(x => x.r.name).length, nfill = p.fills.length + own.length - nren;
+  const nadd = p.extra.filter(e => NP.add.has(e.ip)).length, none = `<div class="small muted np-pad">Nothing.</div>`;
+  const tabs = [
+    ["fill", "To fill", p.fills.length, false, "Empty names, and names marked DNS.", fillHtml(p)],
+    ["conf", "Conflicts", p.conflicts.length, p.conflicts.some(c => !NP.choice[c.r.ip]), "The Sources resolved different names: pick one, or leave it as it is.", confHtml(p)],
+    ["skip", "Skipped", p.skipped.length, p.skipped.length > 0, "Left as they are, why, and what you can do instead.", skipHtml(p)],
+    ["add", "Not in the inventory", p.extra.length, false, "These IPs answered a Scan but are missing from the inventory.", addHtml(p)],
+  ];
+  const cur = tabs.find(t => t[0] === NP.tab);
+  $("#np").innerHTML = `<div class="np-hd"><b>⇄ Names from Scans</b><span class="small muted">${SN.scans} Scan(s) · names as nmap resolved them (PTR)</span>
+      <span class="np-mode small">Write names as <span class="seg">${[["short", "Short name", "dc01 (keeps the FQDN when two domains share the short name)"], ["fqdn", "FQDN", "dc01.corp.local"]]
+        .map(([m, t, h]) => `<button data-m="${m}" class="${NP.mode === m ? "on" : ""}" title="${h}">${t}</button>`).join("")}</span></span></div>
+    <div class="np-hint">Only <b>empty names</b> and names marked <span class="dns">DNS</span> are written: run this again in the other mode to switch them all.
+      ${p.kept.length ? `<b>${p.kept.length}</b> name(s) you typed differ from DNS and are kept (${p.kept.slice(0, 8).map(r => esc(r.name)).join(", ")}${p.kept.length > 8 ? "…" : ""}).` : ""}
+      ${amb.length ? `<br>${amb.length} name(s) keep their FQDN in short mode: two domains share their short name (${[...new Set(amb.map(x => shortName(x.fqdn)))].map(esc).join(", ")}).` : ""}</div>
+    <div class="np-tabs">${tabs.map(([k, t, n, w]) => `<button class="np-tab ${NP.tab === k ? "on" : ""}" data-t="${k}">${t} <span class="n ${w ? "w" : ""}">${n}</span></button>`).join("")}</div>
+    <div class="np-body"><div class="small muted np-pad">${cur[4]}</div>${cur[2] ? cur[5] : none}</div>
+    <div class="np-ft"><button class="btn pri" id="npapply" ${nfill + nren + nadd ? "" : "disabled"}>Apply: ${nfill} filled${nren ? `, ${nren} renamed` : ""}${nadd ? `, ${nadd} row(s) added` : ""}</button>
+      <button class="btn" id="npclose">Close</button><span class="small muted">One change: <span class="kbd">Ctrl+Z</span> undoes it all.</span></div>`;
+  const np = $("#np");
+  np.querySelectorAll("[data-m]").forEach(b => b.onclick = () => { NP.mode = b.dataset.m; drawNames(); });
+  np.querySelectorAll("[data-t]").forEach(b => b.onclick = () => { NP.tab = b.dataset.t; drawNames(); });
+  np.querySelectorAll("input[type=radio]").forEach(i => i.onchange = () => { if (i.value) NP.choice[i.name] = i.value; else delete NP.choice[i.name]; drawNames(); });
+  np.querySelectorAll("input.np-add").forEach(i => i.onchange = () => { i.checked ? NP.add.add(i.value) : NP.add.delete(i.value); drawNames(); });
+  np.querySelectorAll("[data-all]").forEach(b => b.onclick = () => { NP.add = new Set(b.dataset.all === "1" ? p.extra.map(e => e.ip) : []); drawNames(); });
+  np.querySelectorAll("input.np-own").forEach(i => i.onchange = () => { NP.own[i.dataset.ip] = i.value.trim().toLowerCase(); drawNames(); });
+  np.querySelectorAll("[data-ren]").forEach(b => b.onclick = async () => {
+    const m = b.dataset.ren, nw = np.querySelector(`input.np-ren[data-m="${CSS.escape(m)}"]`).value.trim();
+    if (!ownOk(nw) || nw === m) { toast("Give a new name that is not a Zone"); return; }
+    await renameEverywhere("machine", m, nw); drawNames(); table.redraw(true);
+  });
+  $("#npapply").onclick = () => applyNames(p, own);
+  $("#npclose").onclick = () => { np.hidden = true; setTimeout(placeHandle, 50); };
+  setTimeout(placeHandle, 50); // the panel moved the grid
+}
+const npZone = r => r.zone ? zoneChip(r.zone) : "";
+const fillHtml = p => `<table class="np-t">${p.fills.map(x => `<tr><td class="ip">${esc(x.r.ip)}</td><td class="z">${npZone(x.r)}</td>
+  <td>${x.r.name ? `<span class="old">${esc(x.r.name)}</span> → ` : ""}<b>${esc(x.target)}</b>${x.keptFqdn ? ` <span class="small muted" title="another domain has a ${esc(shortName(x.fqdn))}">(FQDN kept)</span>` : ""}</td>
+  <td>${x.merge ? `<span class="merge" title="Interfaces with the same name are one Machine: Self and the Pivot Machines may change">${esc(x.merge)}</span>` : ""}</td></tr>`).join("")}</table>`;
+const confHtml = p => p.conflicts.map(c => `<div class="np-conf"><b class="mono">${esc(c.r.ip)}</b> ${npZone(c.r)}
+  ${Object.entries(c.ns).map(([f, by]) => `<label><input type="radio" name="${esc(c.r.ip)}" value="${esc(f)}" ${NP.choice[c.r.ip] === f ? "checked" : ""}> <b>${esc(f)}</b> <span class="small muted">seen by ${esc(srcList(by))}</span></label>`).join("")}
+  <label class="muted"><input type="radio" name="${esc(c.r.ip)}" value="" ${NP.choice[c.r.ip] ? "" : "checked"}> Don't decide: leave ${c.r.name ? "the name as it is" : "it empty"}</label></div>`).join("");
+const skipHtml = p => `<table class="np-t">${p.skipped.map(x => {
+  const why = x.kind === "zone" ? `"${esc(x.target)}" is the name of a Zone: an Interface named like a Zone would make the Flow Policy ambiguous.`
+    : `The Flow Policy names the Machine "${esc(x.machine)}"; this ${x.r.name ? "rename" : "name"} alone would make it disappear and the Flow Policy would no longer load.`;
+  const v = NP.own[x.r.ip] ?? x.fqdn;
+  const fix = x.kind === "zone"
+    ? `<span>Use instead:</span><input type="text" class="np-own" data-ip="${esc(x.r.ip)}" value="${esc(v)}">${ownOk(v) ? `<span class="small np-ok">✓ applied with the rest</span>` : `<span class="small np-bad">still a Zone name</span>`}`
+    : `<span>Rename the Machine <b>${esc(x.machine)}</b> in the inventory <b>and</b> the Flow Policy to</span><input type="text" class="np-ren" data-m="${esc(x.machine)}" value="${esc(x.target)}">
+       <button class="btn sm pri" data-ren="${esc(x.machine)}">Rename everywhere</button><span class="small muted">applies now, rewrites the Flow Policy: not undone by Ctrl+Z</span>`;
+  return `<tr><td class="ip">${esc(x.r.ip)}</td><td class="z">${x.r.name ? esc(x.r.name) + " → " : ""}<span class="old">${esc(x.target)}</span></td><td>${why}<div class="np-fix">${fix}</div></td></tr>`;
+}).join("")}</table>`;
+const addHtml = p => `<div class="small np-pad">Rows are added <b>without Zone</b>: sort them afterwards. <button class="btn sm" data-all="1">All</button> <button class="btn sm" data-all="0">None</button></div>
+  <table class="np-t">${p.extra.map(e => `<tr><td style="width:24px"><input type="checkbox" class="np-add" value="${esc(e.ip)}" ${NP.add.has(e.ip) ? "checked" : ""}></td><td class="ip">${esc(e.ip)}</td>
+  <td>${e.target ? esc(e.target) : `<span class="muted">${e.names.length ? "names differ: " + e.names.map(esc).join(", ") : "no name"}</span>`}</td><td><span class="vd ${esc(e.verdict)}">${esc(e.verdict)}</span></td><td class="small muted">seen by ${esc(srcList(e.by))}</td></tr>`).join("")}</table>`;
+function applyNames(p, own) {
+  const fills = [...p.fills, ...own], adds = p.extra.filter(e => NP.add.has(e.ip)), by = new Map(fills.map(x => [x.r.ip, x.target]));
+  table.getRows().forEach(r => { const ip = r.getData().ip; if (by.has(ip)) r.update({name: by.get(ip)}); });
+  const go = adds.length ? table.addData(adds.map(e => ({...blank(), zone: "", ip: e.ip, name: e.target})), true) : Promise.resolve();
+  go.then(() => {
+    table.redraw(true); $("#np").hidden = true; setTimeout(placeHandle, 50);
+    changed(`Names from Scans: ${fills.length} name(s)${adds.length ? `, ${adds.length} row(s) added` : ""}`);
+    toast(`${fills.length + adds.length} change(s) applied · Ctrl+Z to undo`);
+  });
+}
+
 // ---------------------------------------------------------------- boot
 (async () => {
   try { D = await api("/api/inventory"); } catch (e) { status("Cannot load: " + e.message, "err"); return; }
+  SN = await api("/api/scan-names").catch(() => null);
   buildGrid(); wireToolbar();
+  $("#npb").onclick = openNames;
+  if (location.hash === "#names") table.on("tableBuilt", () => setTimeout(openNames)); // from the Scans line or the Flow Policy modal
 })();

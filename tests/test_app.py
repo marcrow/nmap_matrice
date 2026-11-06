@@ -604,3 +604,20 @@ def test_port_search_matches_every_word_and_offers_to_select_all_the_results():
     # a typed port and a lone tag keep their own entries, no "select all" on top
     assert not any(h["src"] == "search" for h in sp.search_ports("338", {}, labels))
     assert not any(h["src"] == "search" for h in sp.search_ports("backup", {}, labels))
+
+
+def test_scan_names_give_names_by_source_and_only_the_ips_that_answered(mission, tmp_path):
+    demo = Mission(Path(__file__).parent.parent / "demo").scan_names()
+    assert demo["names"]["10.20.0.254"]["fw-01.corp.local"] == ["10.10.0.10", "10.20.0.50", "10.40.0.10"]
+    seen = mission.scan_names()["seen"]
+    assert seen["172.31.250.10"]["verdict"] == "OPEN"
+    assert "172.31.250.30" not in seen and "172.31.251.40" not in seen  # down or never scanned: not proposed
+
+
+def test_a_machine_named_by_its_ip_is_renamed_everywhere(mission):
+    inv = mission.file("inventory.csv")
+    inv.write_text(inv.read_text().replace(";ghost-01;", ";;"))  # no name: the Machine is its IP
+    mission.file("flow_policy.csv").write_text("src;dst;ports;action;comment\ndmz;172.31.250.30;*;deny;\n")
+    mission.rename("machine", "172.31.250.30", "ghost", mission.inventory()["fp"])
+    assert "172.31.250.30;data;vm;ghost" in mission.text("inventory.csv")
+    assert "dmz;ghost;*;deny" in mission.text("flow_policy.csv")

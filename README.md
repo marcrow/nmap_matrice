@@ -28,7 +28,7 @@ port numbers: **bold** = admin port, red = denied by the Flow Policy
 
 ## The work process
 
-<p align="center"><img src="segowl/assets/tutorial/work-process.svg" width="100%" alt="Work process in six steps"></p>
+<p align="center"><img src="segowl/assets/tutorial/work-process.svg" width="100%" alt="Work process in seven steps"></p>
 
 ## Why SegOWL
 
@@ -144,6 +144,8 @@ mission/
    `scans/<source_ip>/excluded/`: it is no longer read, only listed as excluded.
    A source folder that is not an inventory IP is **ignored** and listed in the terminal and
    the Anomalies tab. The legacy layout `scans/<source_ip>.xml` is still accepted.
+   Without `-n`, nmap resolves the name of each target: the web app's **Names from Scans**
+   (Inventory) proposes them for the empty names, before the Flow Policy is written.
 
 3. **Generation**:
    ```bash
@@ -249,7 +251,9 @@ The app reads and writes the same mission folder (no database, `docs/adr/0003-*`
 the report is regenerated whenever a mission file changes, by hand or from the app. Without a users file
 it only listens on loopback. Menu in audit order: Overview · Inventory & Zones · Auditor Kit (Scan
 Profiles, Port Groups, Port Labels, Kits: the auditor's tooling, carried from Mission to Mission) · Scans
-(build the scan, then run it from each Source) · Flow Policy · Report.
+(build the scan, then run it from each Source) · Flow Policy · Report. Once the Scans are in, **Names from Scans**
+(Inventory) fills the empty names with the names the Scans resolved (short name or FQDN, `⇄ DNS` badge), shows
+conflicts between Sources and offers the IPs missing from the inventory; the Flow Policy page reminds it.
 Editors save as you go; Ctrl+Z / Ctrl+Y (or the bar at the bottom left) undo and redo every change of the page
 until it is reloaded. In the Flow Policy matrix, Shift+click selects a rectangle, Ctrl+click scattered cells or a whole
 row or column, and Ctrl+C / Ctrl+V copy a cell's decision to them (`ports;action;comment` text, so it travels between Missions).

@@ -25,7 +25,7 @@ function render() {
       + `<td><div class="files">${s.files.map(f => `<div><span class="${f.excluded ? "ex" : ""}">${esc(f.name)}</span><button class="btn sm" data-src="${esc(s.ip)}" data-name="${esc(f.name)}" data-ex="${f.excluded ? "" : "1"}">${f.excluded ? "re-include" : "exclude"}</button></div>`).join("")}</div>`
       + `<label class="btn sm" style="margin-top:4px">Add files…<input type="file" multiple accept=".xml,.gnmap,.nmap" hidden></label> <span class="small muted">or drop them on the row</span></td></tr>`).join("");
   $("#grid").querySelectorAll("button[data-name]").forEach(b => b.onclick = async () => {
-    try { D = await api("/api/scans/move", {src: b.dataset.src, name: b.dataset.name, exclude: !!b.dataset.ex}); render(); toast(b.dataset.ex ? "Excluded: kept in excluded/, no longer read" : "Re-included"); }
+    try { D = await api("/api/scans/move", {src: b.dataset.src, name: b.dataset.name, exclude: !!b.dataset.ex}); render(); namesLine(); toast(b.dataset.ex ? "Excluded: kept in excluded/, no longer read" : "Re-included"); }
     catch (e) { msg(e.message, "err"); }
   });
   $("#grid").querySelectorAll("button[data-rm]").forEach(b => b.onclick = async () => {
@@ -41,12 +41,19 @@ function render() {
     input.onchange = () => upload(tr.dataset.src, input.files);
   });
 }
+// what the Scans bring for the inventory (inventory-names-from-scans 04): shown only when something waits
+async function namesLine() {
+  const w = await namesWaiting().catch(() => null), p = w && w.pending;
+  const parts = p ? [p.fills.length && `<b>${p.fills.length}</b> resolved name(s)`, p.extra.length && `<b>${p.extra.length}</b> IP(s) not in the inventory`,
+    p.conflicts.length && `${p.conflicts.length} conflict(s) to settle`].filter(Boolean) : [];
+  $("#sline").innerHTML = p && p.any ? `<div class="scanline">⇄ <span>${parts.join(" · ")}</span><a class="btn sm pri" href="/inventory#names">Update the inventory →</a></div>` : "";
+}
 async function upload(src, files) {
   for (const f of files) {
     try { D = await api(`/api/scans/upload?src=${encodeURIComponent(src)}&name=${encodeURIComponent(f.name)}`, f, true); toast(`${f.name} stored for ${src}`); msg(""); }
     catch (err) { msg(`${f.name}: ${err.message}`, "err"); }
   }
-  render();
+  render(); namesLine();
 }
 $("#adds").onclick = async () => {
   const q = $("#cand").value.trim().toLowerCase();
@@ -65,5 +72,5 @@ $("#zip").onclick = e => {
 };
 window.addEventListener("draftchange", () => D && render());
 window.addEventListener("profiles-saved", async () => { try { D = await api("/api/scans"); render(); } catch (e) { msg(e.message, "err"); } });
-(async () => { try { D = await api("/api/scans"); render(); } catch (e) { msg(e.message, "err"); } })();
+(async () => { try { D = await api("/api/scans"); render(); } catch (e) { msg(e.message, "err"); } namesLine(); })();
 })();
