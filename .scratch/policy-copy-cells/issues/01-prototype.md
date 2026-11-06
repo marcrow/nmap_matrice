@@ -1,6 +1,6 @@
 # Prototype: Flow Policy selection, copy / paste, undo
 
-Status: ready-for-agent
+Status: done
 Blocked by: –
 Spec: ../spec.md
 
@@ -37,3 +37,5 @@ Where a layout choice is open (place of the Undo button, how the selection and t
 - **Click opens the popover**, as today; Ctrl+click and Shift+click only select. Bug found by the user: Ctrl+click sometimes opened or kept the popover and lost the picked cells. Two causes, both fixed in the prototype: the open popover covers the cells under it (now it turns transparent and lets clicks through while Ctrl / Shift is held), and closing it gave the focus back to its cell, which reset the selection (now only when the focus was inside the popover). Checked with real mouse events (CDP `Input.dispatchMouseEvent`): plain click, then three Ctrl+clicks, popover closed, 4 cells picked.
 - **Block text: A**, `flow_policy.csv` lines with the `# SegOWL Flow Policy cells · rows: … · columns: …` header.
 - **Amber toasts for the whole app** (`app.css` `#toast`), not only the Flow Policy.
+
+2026-11-06 user: "ça marche nickel". Ticket closed; ticket 02 builds it in `/policy`.

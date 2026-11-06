@@ -3,7 +3,10 @@
 <h2>Flow Policy</h2>
 <p class="sub">Rows = from, columns = to. Click a cell (or <span class="kbd">Enter</span>, arrows to move) to decide what may
 cross. <b>●</b> = ports observed open in the Scans, so you decide on facts. Empty = undeclared: shown apart in the report,
-never a Finding. The most specific rule wins (Machine &gt; Zone &gt; *), deny wins ties. Changes save automatically.</p>
+never a Finding. The most specific rule wins (Machine &gt; Zone &gt; *), deny wins ties. Changes save automatically.<br>
+<span class="kbd">Shift</span>+click selects a rectangle, <span class="kbd">Ctrl</span>+click picks scattered cells, a Zone header its row or column;
+<span class="kbd">Ctrl</span>+<span class="kbd">C</span> / <span class="kbd">Ctrl</span>+<span class="kbd">V</span> copy a decision to them,
+<span class="kbd">Del</span> empties them, <span class="kbd">Ctrl</span>+<span class="kbd">Z</span> undoes.</p>
 <div class="toolbar">
   <button class="btn" id="boot">Bootstrap from observed flows</button>
   <span class="small muted" id="bootn"></span>
@@ -11,7 +14,7 @@ never a Finding. The most specific rule wins (Machine &gt; Zone &gt; *), deny wi
 </div>
 <div id="banner"></div>
 <div class="layout" style="grid-template-columns:minmax(0,auto) minmax(320px,1fr);align-items:start">
-  <div class="card" style="overflow:auto;max-height:75vh;padding:8px"><table class="pm" id="pm"></table>
+  <div class="card" id="pmbox" style="overflow:auto;max-height:75vh;padding:8px"><table class="pm" id="pm"></table><div id="copybox"></div>
     <div class="small muted" style="margin-top:6px">✓ allow · ✕ deny · ? undecided (skipped by the report until you choose) ·
     red outline = a rule the report would refuse</div></div>
   <div class="card"><b>Exceptions &amp; wildcards</b>
@@ -28,4 +31,5 @@ never a Finding. The most specific rule wins (Machine &gt; Zone &gt; *), deny wi
 </div>
 <datalist id="pl"></datalist>
 </main>
-<script src="/static/app_policy.js"></script>
+<div id="undobar"><span id="ulab" class="muted"></span><button class="btn sm" id="ub">↶ Undo</button><button class="btn sm" id="rb">↷ Redo</button></div>
+<script src="/static/app_ports.js"></script><script src="/static/app_policy.js"></script>
