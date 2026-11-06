@@ -99,7 +99,7 @@ async function renameEverywhere(kind, old, nw) {
     if (kind === "zone") { D.zones.forEach(z => { if (z.name === old) z.name = nw; }); if (filterZone === old) filterZone = nw; }
     if (D.refs[old]) { D.refs[nw] = (D.refs[nw] || 0) + D.refs[old]; delete D.refs[old]; }
     analyse(); refreshSide(); dirty = false; H.clear(); status("Saved ✓", "ok"); toast(r.message); // the server rewrote several files: undo stops here
-  } catch (e) { toast("Rename refused: " + e.message); refreshSide(); }
+  } catch (e) { toast("Rename refused: " + e.message); H.clear(); refreshSide(); } // the row went back to its old name
 }
 
 // ---------------------------------------------------------------- grid

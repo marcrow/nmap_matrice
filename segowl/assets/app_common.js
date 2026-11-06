@@ -12,6 +12,8 @@ async function api(path, body, raw) {
 }
 function toast(msg) { const t = $("#toast"); t.textContent = msg; t.style.opacity = 1; clearTimeout(t._h); t._h = setTimeout(() => t.style.opacity = 0, 3800); }
 function status(text, cls = "") { const s = $("#st"); s.textContent = text; s.className = "status " + cls; }
+// typing in a field or in a table cell being edited: Ctrl+Z, copy, paste and Delete are the browser's there
+const isTyping = el => !!(el && el.closest && (el.closest(".tabulator-editing") || el.matches("input,textarea,select") || el.isContentEditable));
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 // The report's Zone hues (render/common.py ZONE_COLORS: pale fill, hue, dark text), in Zone name order as
 // the report assigns them; never red, amber or green, which belong to the Flow Policy.
@@ -43,15 +45,15 @@ function undoable(get, set) {
   const undo = () => step(hist, fut, true), redo = () => step(fut, hist, false);
   ub.onclick = undo; rb.onclick = redo;
   document.addEventListener("keydown", e => {
-    const t = e.target, k = e.key.toLowerCase();
-    if (!(e.ctrlKey || e.metaKey) || (t.closest && t.closest(".tabulator-editing")) || (t.matches && t.matches("input,textarea,select")) || t.isContentEditable) return;
+    const k = (e.key || "").toLowerCase();
+    if (!(e.ctrlKey || e.metaKey) || isTyping(e.target)) return;
     if (k === "z" && !e.shiftKey) { e.preventDefault(); undo(); }
     else if (k === "y" || (k === "z" && e.shiftKey)) { e.preventDefault(); redo(); }
   });
   return {
-    changed(label = "Edit") {
-      const now = JSON.stringify(get()); if (now === last) return;
-      hist.push({state: last, label}); if (hist.length > 200) hist.shift(); fut = []; last = now; ui();
+    changed(label = "Edit") { // false when nothing changed
+      const now = JSON.stringify(get()); if (now === last) return false;
+      hist.push({state: last, label}); if (hist.length > 200) hist.shift(); fut = []; last = now; ui(); return true;
     },
     clear() { hist = []; fut = []; last = JSON.stringify(get()); ui(); },
   };

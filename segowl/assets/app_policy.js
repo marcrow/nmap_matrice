@@ -14,7 +14,7 @@ const pair = (i, j) => `${D.zones[i]} → ${D.zones[j]}`;
 
 // ---------------------------------------------------------------- history (undoable, app_common.js): the rules before each change
 let H = null;
-function changed(label = "Edit") { H.changed(label); persist(); }
+function changed(label = "Edit") { if (H.changed(label)) persist(); else draw(); }
 function persist() { edits++; dirty = true; D.errors = D.rules.map(() => ""); status("Unsaved changes…"); autosave(); draw(); }
 function restore(rules) { const before = D.rules; D.rules = rules; persist(); flash(diffCells(before, D.rules)); }
 
@@ -79,7 +79,7 @@ function pop(i, j) {
     + `<div style="margin:8px 0;display:flex;gap:6px;flex-wrap:wrap"><button class="btn sm" data-q="deny">Deny all</button>`
     + `${obs ? `<button class="btn sm" data-q="obs">Allow what's observed</button>` : ""}<button class="btn sm" data-q="clear">Undeclared</button>`
     + `<span style="margin-left:auto"></span><button class="btn sm" id="pcopy" title="Ctrl+C">Copy</button>`
-    + `<button class="btn sm" id="ppaste" title="Ctrl+V" ${clip ? "" : "disabled"}>Paste here${n > 1 ? ` (${n} cells)` : ""}</button></div>`
+    + `<button class="btn sm" id="ppaste" title="Ctrl+V">Paste here${n > 1 ? ` (${n} cells)` : ""}</button></div>`
     + `<div class="rule"><span class="small">Only</span><input type="text" id="only" list="pl" placeholder="443 or @web" style="flex:1"><span class="small">then deny the rest</span><button class="btn sm" id="onlyb">Apply</button></div>`
     + `<div style="border-top:1px solid var(--line);margin-top:8px;padding-top:6px">`
     + (inCell(s, d).map(r => `<div class="rule">${ruleEditor(D.rules.indexOf(r))}</div>${err(r) ? `<div class="err small">${esc(err(r))}</div>` : ""}`).join("") || `<div class="small muted">No rule: undeclared.</div>`)
@@ -100,7 +100,11 @@ function pop(i, j) {
   $("#onlyb", el).onclick = only; $("#only", el).onkeydown = e => { if (e.key === "Enter") only(); };
   $("#addr", el).onclick = () => { D.rules.push(rule(s, d, "*", "allow")); changed("Rule added on " + pair(i, j)); };
   $("#pcopy", el).onclick = () => { if (!inSel(i, j)) select([i, j]); copySel(); };
-  $("#ppaste", el).onclick = () => { if (!inSel(i, j)) select([i, j]); pasteClip(clip); };
+  $("#ppaste", el).onclick = async () => {
+    if (!inSel(i, j)) select([i, j]);
+    const text = await navigator.clipboard?.readText?.().catch(() => "");
+    if (text) pasteText(text); else if (clip) pasteClip(clip); else toast("Nothing copied yet: Copy a cell, or Ctrl+V text copied elsewhere");
+  };
   $("#cl", el).onclick = closePop;
   if (focus && focus.f) { const f = el.querySelector(`[data-f="${focus.f}"][data-i="${focus.i}"]`); if (f) f.focus(); }
 }
@@ -127,8 +131,9 @@ function select(a, b = a, add = false) { // a new range; add (Ctrl) keeps the ot
   if (!D.zones.length) return;
   a = clampC(a); b = clampC(b);
   const same = g => g.a[0] === a[0] && g.a[1] === a[1] && g.b[0] === b[0] && g.b[1] === b[1];
-  if (add && ranges.length > 1 && ranges.some(same)) ranges = ranges.filter(g => !same(g));
+  if (add && ranges.some(same)) ranges = ranges.filter(g => !same(g)); // Ctrl+click again: drop it
   else ranges = add ? [...ranges, {a, b}] : [{a, b}];
+  if (!ranges.length) ranges = [{a, b}]; // the last picked cell stays selected
   focusAct(ranges.at(-1).b);
 }
 function extend(b) { if (!ranges.length) return select(b); ranges.at(-1).b = clampC(b); focusAct(ranges.at(-1).b); }
@@ -176,37 +181,56 @@ function chk(ports, action, comment, n) {
     throw new Error(`line ${n}: “${t}” is not a port, * or a known @group`);
   return {ports, action, comment: String(comment ?? "").trim()};
 }
+// a csv line as the CLI reads it (csv.reader, ";"): a quoted field may hold ";" and doubled quotes
+function fields(l) {
+  const out = []; let f = "", q = false;
+  for (let k = 0; k < l.length; k++) {
+    const ch = l[k];
+    if (q) { if (ch === '"' && l[k + 1] === '"') { f += '"'; k++; } else if (ch === '"') q = false; else f += ch; }
+    else if (ch === '"' && !f.trim()) { q = true; f = ""; } else if (ch === ";") { out.push(f.trim()); f = ""; } else f += ch;
+  }
+  return [...out, f.trim()];
+}
+const ACTIONS = ["allow", "deny", "", "undecided"];
+// the clipboard text as one cell, a block placed from the selection (our header), or lines of a flow_policy.csv (`at`: placed on
+// the Zone pair they name; lines on a Machine or on * are exceptions and are left out)
 function parseText(text) {
   const lines = text.replace(/\r/g, "").split("\n");
   if (!lines.some(l => l.trim())) throw new Error("the clipboard is empty");
   const head = lines.find(l => /^#\s*SegOWL Flow Policy cells/i.test(l.trim()));
   const body = lines.map((l, k) => [l.trim(), k + 1]).filter(([l]) => l && !l.startsWith("#"));
   if (!body.length) { if (head) throw new Error("no rule under the header"); return {h: 1, w: 1, cells: [[[]]]}; } // "# undeclared"
-  const f0 = body[0][0].split(";");
-  const one = !head && f0.length >= 2 && (() => { try { chk(f0[0], f0[1], "", 1); return true; } catch (e) { return false; } })();
-  if (one) return {h: 1, w: 1, cells: [[body.map(([l, n]) => { const f = l.split(";"); return chk(f[0], f[1], f.slice(2).join(";"), n); })]]};
-  // a block: src;dst;ports;action;comment, placed by the header's rows and columns, or by order of appearance (lines from a flow_policy.csv)
-  let rows = [], cols = [];
-  const m = head && head.match(/rows:\s*([^·]*)·\s*columns:\s*(.*)$/i);
-  if (m) { rows = m[1].split(",").map(x => x.trim()).filter(Boolean); cols = m[2].split(",").map(x => x.trim()).filter(Boolean); }
+  const f0 = fields(body[0][0]);
+  if (!head && (f0.length <= 3 || ACTIONS.includes(f0[1].toLowerCase()))) // ports;action;comment: one cell
+    return {h: 1, w: 1, cells: [[body.map(([l, n]) => { const f = fields(l); return chk(f[0], f[1], f.slice(2).join(";"), n); })]]};
   const recs = body.map(([l, n]) => {
-    const f = l.split(";").map(x => x.trim());
+    const f = fields(l);
     if (f.length < 4) throw new Error(`line ${n}: expected ports;action;comment or src;dst;ports;action;comment`);
-    if (/^src$/i.test(f[0])) return null; // the csv header line
-    if (!m) { if (!rows.includes(f[0])) rows.push(f[0]); if (!cols.includes(f[1])) cols.push(f[1]); }
-    const r = rows.indexOf(f[0]), c = cols.indexOf(f[1]);
-    if (r < 0 || c < 0) throw new Error(`line ${n}: ${f[0]} → ${f[1]} is not in the rows / columns of the header`);
-    return [r, c, chk(f[2], f[3], f.slice(4).join(";"), n)];
+    return /^src$/i.test(f[0]) ? null : [f[0], f[1], chk(f[2], f[3], f.slice(4).join(";"), n), n]; // skips the csv header line
   }).filter(Boolean);
-  const cells = rows.map(() => cols.map(() => []));
-  recs.forEach(([r, c, x]) => cells[r][c].push(x));
+  if (!head) {
+    const at = recs.filter(([s, d]) => D.zones.includes(s) && D.zones.includes(d)).map(([s, d, x]) => [D.zones.indexOf(s), D.zones.indexOf(d), x]);
+    if (!at.length) throw new Error("no line names two Zones of this Mission (src;dst;ports;action;comment)");
+    return {at, skipped: recs.length - at.length};
+  }
+  const m = head.match(/rows:\s*([^·]*)·\s*columns:\s*(.*)$/i), split = x => x.split(",").map(y => y.trim()).filter(Boolean);
+  const rows = m ? split(m[1]) : [], cols = m ? split(m[2]) : [], cells = rows.map(() => cols.map(() => []));
+  for (const [s, d, x, n] of recs) {
+    const r = rows.indexOf(s), c = cols.indexOf(d);
+    if (r < 0 || c < 0) throw new Error(`line ${n}: ${s} → ${d} is not in the rows / columns of the header`);
+    cells[r][c].push(x);
+  }
   return {h: rows.length, w: cols.length, cells};
 }
 function writeCells(targets, label) { // targets: [[i, j, rules]]; each target cell's rules are replaced
+  const same = (i, j, rs) => inCell(D.zones[i], D.zones[j]).map(line3).join("\n") === rs.map(line3).join("\n");
+  targets = targets.filter(([i, j, rs]) => !same(i, j, rs));
+  if (!targets.length) return 0;
   const keys = new Set(targets.map(([i, j]) => D.zones[i] + ";" + D.zones[j]));
   D.rules = D.rules.filter(r => !keys.has(r.src + ";" + r.dst));
   for (const [i, j, rs] of targets) rs.forEach(r => D.rules.push(rule(D.zones[i], D.zones[j], r.ports, r.action, r.comment)));
   changed(label); flash(keys);
+  return targets.length;
 }
 const nCells = n => `${n} cell${n > 1 ? "s" : ""}`;
 function pasteClip(c) {
@@ -215,15 +239,19 @@ function pasteClip(c) {
   if (c.h === 1 && c.w === 1) selCells().forEach(([i, j]) => t.set(i + "," + j, [i, j, c.cells[0][0]])); // one cell fills every selected cell
   else ranges.forEach(g => { const R = box(g); // a block lands once at the top left of each range (each Ctrl+clicked cell)
     c.cells.forEach((row, r) => row.forEach((x, k) => { const i = R.r0 + r, j = R.c0 + k; if (i < n && j < n) t.set(i + "," + j, [i, j, x]); else out++; })); });
-  const T = [...t.values()];
-  writeCells(T, "Pasted into " + nCells(T.length));
-  toast(`Pasted into ${nCells(T.length)}${out ? ` (${out} outside the matrix dropped)` : ""} · Ctrl+Z to undo`);
+  write([...t.values()], out ? ` (${out} outside the matrix dropped)` : "");
+}
+function write(T, more = "") {
+  const n = writeCells(T, "Pasted into " + nCells(T.length));
+  toast(n ? `Pasted into ${nCells(n)}${more} · Ctrl+Z to undo` : "Nothing to change: the cells already hold that decision");
 }
 function pasteText(text) {
   let c;
   try { c = text === clipText ? clip : parseText(text); }
   catch (e) { toast("Not pasted: " + e.message + ". Nothing changed."); return; }
-  pasteClip(c);
+  if (!c.at) return pasteClip(c);
+  const t = new Map(); c.at.forEach(([i, j, x]) => { const k = i + "," + j; t.set(k, [i, j, [...(t.get(k)?.[2] || []), x]]); });
+  write([...t.values()], c.skipped ? ` (${c.skipped} line(s) on a Machine or * left out: add them as exceptions)` : "");
 }
 function emptySel() {
   const t = selCells().filter(([i, j]) => inCell(D.zones[i], D.zones[j]).length).map(([i, j]) => [i, j, []]);
@@ -242,7 +270,6 @@ function diffCells(a, b) { // the Zone pairs whose rules differ between two rule
 }
 
 // ---------------------------------------------------------------- events
-const typing = el => el && el.matches && (el.matches("input,textarea,select") || el.isContentEditable);
 // shared rule editors (popover and exceptions panel)
 document.addEventListener("change", e => { const t = e.target, f = t.dataset.f;
   if (f && t.dataset.i !== undefined) { D.rules[+t.dataset.i][f] = f === "ports" ? t.value.trim().replace(/\s+/g, "") || "*" : t.value.trim(); changed("Rule edited"); } });
@@ -264,10 +291,10 @@ document.addEventListener("click", e => {
 // Shift / Ctrl+click must not move the focus first (that would reset the selection)
 document.addEventListener("mousedown", e => { if ((e.shiftKey || e.ctrlKey || e.metaKey) && e.target.closest("#pm td[data-i]")) e.preventDefault(); });
 document.addEventListener("keydown", e => {
-  const k = e.key.toLowerCase(), mod = e.ctrlKey || e.metaKey;
+  const k = (e.key || "").toLowerCase(), mod = e.ctrlKey || e.metaKey;
   if (e.key === "Escape") { if (popCell) return closePop(); if (copied) { copied = null; drawSel(); } return; }
-  if (["Control", "Meta", "Shift"].includes(e.key) && !typing(e.target)) document.body.classList.add("picking");
-  if (typing(e.target)) return; // inside a field the browser's own undo / copy / delete apply
+  if (["Control", "Meta", "Shift"].includes(e.key) && !isTyping(e.target)) document.body.classList.add("picking");
+  if (isTyping(e.target)) return; // inside a field the browser's own undo / copy / delete apply
   const td = e.target.closest && e.target.closest("#pm td[data-i]");
   if (mod && k === "a" && td) { e.preventDefault(); const n = D.zones.length - 1; return select([0, 0], [n, n]); }
   if ((e.key === "Delete" || e.key === "Backspace") && ranges.length && (td || popCell)) { e.preventDefault(); return emptySel(); }
@@ -281,7 +308,7 @@ document.addEventListener("keyup", e => { if (["Control", "Meta", "Shift"].inclu
 window.addEventListener("blur", () => document.body.classList.remove("picking"));
 document.addEventListener("focusin", e => { const td = e.target.closest && e.target.closest("#pm td[data-i]");
   if (td && !(act && act[0] === +td.dataset.i && act[1] === +td.dataset.j)) select([+td.dataset.i, +td.dataset.j]); });
-const onMatrix = e => !typing(e.target) && ranges.length && (e.target.closest("#pm") || $(".pop")?.contains(e.target) || e.target === document.body);
+const onMatrix = e => !isTyping(e.target) && ranges.length && (e.target.closest("#pm") || $(".pop")?.contains(e.target));
 document.addEventListener("copy", e => { if (!onMatrix(e)) return; e.preventDefault(); copySel(); if (clipText !== null) e.clipboardData.setData("text/plain", clipText); });
 document.addEventListener("paste", e => { if (!onMatrix(e)) return; e.preventDefault(); pasteText(e.clipboardData.getData("text/plain")); });
 $("#pmbox").addEventListener("scroll", drawSel); window.addEventListener("resize", drawSel);
