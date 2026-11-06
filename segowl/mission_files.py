@@ -140,10 +140,11 @@ def rename_group(text: str, col: int, old: str, new: str) -> tuple[str, int]:
 
 
 def rename_in_inventory(text: str, field: str, old: str, new: str) -> tuple[str, int]:
+    """Rewrite `field` equal to `old`; a Machine named by its IP (empty name) is renamed too."""
     free, rows = read_inventory(text)
     n = 0
     for r in rows:
-        if r.get(field) == old:
+        if r.get(field) == old or (field == "name" and not r.get("name") and r.get("ip") == old):
             r[field], n = new, n + 1
     return inventory_text(free, rows), n
 

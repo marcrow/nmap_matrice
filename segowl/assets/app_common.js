@@ -58,3 +58,67 @@ function undoable(get, set) {
     clear() { hist = []; fut = []; last = JSON.stringify(get()); ui(); },
   };
 }
+
+// Names from Scans (inventory-names-from-scans): what the Scans propose for the inventory. One computation for the
+// Inventory panel, the Scans line and the Flow Policy modal, so they always agree. rows: inventory rows {ip, zone, name};
+// zones: Zone names; refs: Flow Policy references per name (GET /api/inventory); sn: GET /api/scan-names;
+// mode: "short" | "fqdn"; choice: ip -> name picked for a conflict.
+const shortName = f => f.split(".")[0];
+// the resolved name a row's name stands for (its FQDN or short form), or null: the "⇄ DNS" badge
+function namesDns(row, sn) {
+  const ns = (sn && sn.names[row.ip]) || {};
+  const f = row.name && Object.keys(ns).find(f => row.name === f || row.name === shortName(f));
+  return f ? {fqdn: f, by: ns[f]} : null;
+}
+function namesProposal({rows, zones, refs, sn, mode = "short", choice = {}}) {
+  const out = {fills: [], conflicts: [], skipped: [], kept: [], extra: []};
+  if (!sn || !sn.scans) return out;
+  const by = {}; // short name -> FQDNs: a short name two domains share keeps its FQDN
+  Object.values(sn.names).forEach(ns => Object.keys(ns).forEach(f => (by[shortName(f)] ||= new Set()).add(f)));
+  const shown = f => mode === "fqdn" || by[shortName(f)].size > 1 ? f : shortName(f);
+  for (const r of rows) {
+    const ns = sn.names[r.ip] || {}, cands = Object.keys(ns);
+    if (!cands.length) continue;
+    if (r.name && !namesDns(r, sn)) { out.kept.push(r); continue; } // the auditor's name: never touched
+    let f = cands[0];
+    if (cands.length > 1) { out.conflicts.push({r, ns}); if (!cands.includes(choice[r.ip])) continue; f = choice[r.ip]; }
+    const target = shown(f);
+    if (r.name === target) continue;
+    if (zones.includes(target)) { out.skipped.push({r, target, fqdn: f, kind: "zone"}); continue; }
+    out.fills.push({r, target, fqdn: f, keptFqdn: mode === "short" && target === f && f.includes(".")});
+  }
+  // a change that makes a Machine named by the Flow Policy disappear is skipped (the Flow Policy would not load)
+  const after = new Map(rows.map(r => [r.ip, r.name || r.ip]));
+  out.fills.forEach(x => after.set(x.r.ip, x.target));
+  for (const m of Object.keys(refs || {}).filter(k => refs[k] > 0)) {
+    if (!rows.some(r => (r.name || r.ip) === m) || [...after.values()].includes(m)) continue;
+    out.fills.filter(x => (x.r.name || x.r.ip) === m).forEach(x => {
+      out.fills.splice(out.fills.indexOf(x), 1); after.set(x.r.ip, m);
+      out.skipped.push({...x, kind: "policy", machine: m});
+    });
+  }
+  // merges: Interfaces sharing a name are one Machine
+  const count = {}; after.forEach(n => count[n] = (count[n] || 0) + 1);
+  out.fills.forEach(x => {
+    const k = count[x.target]; if (k < 2) return;
+    x.merge = rows.some(r => r.name === x.target && !out.fills.some(y => y.r === r)) ? `joins Machine ${x.target} · ${k} Interfaces` : `one Machine with ${k} Interfaces`;
+  });
+  const have = new Set(rows.map(r => r.ip));
+  out.extra = Object.entries(sn.seen).filter(([ip]) => !have.has(ip)).map(([ip, s]) => {
+    const ns = Object.keys(sn.names[ip] || {});
+    return {ip, verdict: s.verdict, by: s.by, target: ns.length === 1 ? shown(ns[0]) : "", names: ns};
+  });
+  return out;
+}
+// the proposal as the Scans and Flow Policy pages see it: the inventory as saved, default mode
+async function namesWaiting() {
+  const [inv, sn] = await Promise.all([api("/api/inventory"), api("/api/scan-names")]);
+  const rows = inv.rows.filter(r => r.ip), zones = [...new Set([...inv.zones.map(z => z.name), ...rows.map(r => r.zone).filter(Boolean)])];
+  return {sn, rows, pending: namesPending(namesProposal({rows, zones, refs: inv.refs, sn}))};
+}
+// what still waits for the auditor (Scans line, Flow Policy modal): empty names and missing IPs only; a "⇄ DNS" name in
+// the other form is a choice, not news, and conflicts alone do not count ("don't decide" is an answer)
+function namesPending(p) {
+  const fills = p.fills.filter(x => !x.r.name), conflicts = p.conflicts.filter(c => !c.r.name);
+  return {fills, conflicts, extra: p.extra, keys: [...fills.map(x => `n:${x.r.ip}:${x.fqdn}`), ...conflicts.map(c => `c:${c.r.ip}`), ...p.extra.map(e => `a:${e.ip}`)], any: fills.length + p.extra.length > 0};
+}

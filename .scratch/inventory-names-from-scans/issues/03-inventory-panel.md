@@ -1,6 +1,6 @@
 # Inventory: "Names from Scans" panel and DNS badge
 
-Status: ready-for-agent
+Status: done
 Blocked by: 01, 02
 Spec: ../spec.md
 
@@ -25,3 +25,5 @@ In `/inventory` (`app_inventory.js`), as validated by the prototype (01):
 - added IPs appear without Zone and trigger the "row(s) without Zone" warning
 
 ## Comments
+
+2026-11-06 done: shared computation `namesProposal` / `namesPending` / `namesWaiting` in `app_common.js` (one logic for the three pages); panel with the four tabs, short / FQDN switch, Skipped way out ("Use instead"; "Rename everywhere" through `renameEverywhere`), Apply = one `changed()` step, `⇄ DNS` badge, `/inventory#names` opens it; name column widened to 260 px so a FQDN and its badges fit. Found on the way and fixed: `/api/rename` did not rename a Machine named by its IP (empty name) in the inventory, while rewriting the Flow Policy (`mission_files.rename_in_inventory`, test `test_a_machine_named_by_its_ip_is_renamed_everywhere`). Checked in the real app on a copy of `demo/` with names emptied: 32 filled + 1 row added, saved, Ctrl+Z / Ctrl+Y, FQDN re-run (34 renamed), Rename everywhere on an IP-named Machine of the Flow Policy, the CLI loads the result.

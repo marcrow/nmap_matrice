@@ -1,6 +1,6 @@
 # Flow Policy: "update the inventory first" modal
 
-Status: ready-for-agent
+Status: done
 Blocked by: 01, 02
 Spec: ../spec.md
 
@@ -19,3 +19,5 @@ On opening `/policy`, a styled modal (centred, dimmed background, closes on outs
 - nothing shows on an inventory already up to date with the Scans
 
 ## Comments
+
+2026-11-06 done: `namesModal()` in `app_policy.js`, after the policy loads; key `segowl.names-modal.<mission header>`. Checked: (b) shown, "Update the inventory" opens the panel and counts as seen, not shown again on reload, shown again ("New names arrived from the Scans") after a Scan brings a new name, Escape closes; (a) with the Scans folder removed, outside click closes.

@@ -612,3 +612,12 @@ def test_scan_names_give_names_by_source_and_only_the_ips_that_answered(mission,
     seen = mission.scan_names()["seen"]
     assert seen["172.31.250.10"]["verdict"] == "OPEN"
     assert "172.31.250.30" not in seen and "172.31.251.40" not in seen  # down or never scanned: not proposed
+
+
+def test_a_machine_named_by_its_ip_is_renamed_everywhere(mission):
+    inv = mission.file("inventory.csv")
+    inv.write_text(inv.read_text().replace(";ghost-01;", ";;"))  # no name: the Machine is its IP
+    mission.file("flow_policy.csv").write_text("src;dst;ports;action;comment\ndmz;172.31.250.30;*;deny;\n")
+    mission.rename("machine", "172.31.250.30", "ghost", mission.inventory()["fp"])
+    assert "172.31.250.30;data;vm;ghost" in mission.text("inventory.csv")
+    assert "dmz;ghost;*;deny" in mission.text("flow_policy.csv")
