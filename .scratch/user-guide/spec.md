@@ -1,6 +1,6 @@
 # User guide: tips and tricks, best practices, philosophy
 
-Status: needs-triage
+Status: done
 
 Vocabulary: `GLOSSARY.md`. Raised by the user on 2026-11-05: as the app grows, the README is not enough; the auditor needs a real guide.
 
@@ -25,7 +25,10 @@ A guide for the auditor (not the developer), with:
 - The README is the short visual entry point (what, why, quick start with `git clone` + `python3 -m segowl`); the reference manual moved to `docs/guide/` (getting started, Mission folder, scanning, Auditor Kit, Flow Policy, report, lab).
 - Part of the guide also lives in the app's Overview (offline on site); which part is for this grilling.
 - Upkeep: every new or changed spec or ticket checks the docs and updates the pages it changes. Enforced by a project hook (`.claude/hooks/spec-doc-check.sh`, PostToolUse on `.scratch/*/spec.md` and `.scratch/*/issues/*.md`).
-- Still to write: philosophy, best practices, tips and tricks (this grilling).
+- Grilled 2026-11-06: `guide/philosophy.md` (why SegOWL: not another scanner, it reads nmap; how to work with it; everything is configurable), `guide/field-guide.md` (how to use the tool, not how to run an engagement: don't scan before the inventory and the ports are reliable, groups when reused above all in the Flow Policy, names before the Flow Policy or Rename everywhere, a logical Flow Policy adjusted Finding by Finding, Diff for retests), `guide/shortcuts.md`; the developer principles open `docs/adr/index.md`.
+- The Overview shows one best practice per step of the detailed audit path, and a link to the guide (implemented directly, same layout: user's call).
+- The demo opens with its names taken (`lab.py demo` fills empty names from DNS; mission-lab keeps them empty to try Names from Scans).
+- Flow Policy comments in the matrix: not a docs subject, dropped from this spec.
 
 ## Questions for the grilling
 

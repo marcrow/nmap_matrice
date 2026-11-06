@@ -14,14 +14,18 @@ nav = [
   { "Home" = "index.md" },
   { "Guide" = [
     "guide/getting-started.md",
+    "guide/philosophy.md",
+    "guide/field-guide.md",
     "guide/mission-folder.md",
     "guide/scanning.md",
     "guide/auditor-kit.md",
     "guide/flow-policy.md",
     "guide/report.md",
     "guide/lab.md",
+    "guide/shortcuts.md",
   ] },
   { "Design decisions" = [
+    "adr/index.md",
     "adr/0001-source-view-most-permissive-wins.md",
     "adr/0002-flow-policy-undeclared-by-default.md",
     "adr/0003-mission-folder-is-the-only-state.md",

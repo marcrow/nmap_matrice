@@ -3,6 +3,9 @@
 Your tooling, carried from Mission to Mission: **Scan Profiles**, **Port Groups** and **Port Labels**. A kit never
 contains client data: no inventory, no Flow Policy, no Scan, no IP.
 
+**Everything is editable.** The port list is yours: add labels, vendors and tags, create groups, tune profiles.
+Each audit can enrich the kit, and the next scan command is better for it.
+
 | | What it is | File |
 |---|---|---|
 | **Scan Profile** | A named nmap recipe: ports + options, no target. One ready-to-run command per Source. | `scan_profiles.csv` |
@@ -25,6 +28,10 @@ SegOWL ships `admin`, `directory`, `db`, `web` and `file` (grey rows). A Mission
 - In the ports cell, type a port, a product (`winbox`), `udp:…` or `@group` to insert a copy of that group's
   ports.
 
+!!! tip "When to create a group"
+    When it is reused: in several profiles, in a kit, and above all in the Flow Policy, where `@backup` keeps a
+    rule short and readable. To scan the ports of a search once, select the results instead.
+
 In the report, the Port Group chips under the tabs restrict every view to the open flows on that group's
 ports. Open `admin` ports are always in **bold**.
 
@@ -33,6 +40,10 @@ ports. Open `admin` ports are always in **bold**.
 2 700+ labels ship with SegOWL, IT and OT vendors. They feed the port search of the scan builder. **Complete**
 copies a shipped label into this Mission to add a vendor, tags or cleartext; the copy replaces it. Several
 services may share a port.
+
+!!! tip "A product you cannot find"
+    Search by vendor, product or tag (`veeam`, `ilo`, `siemens`, `backup`). Still missing? Add its label to your
+    kit: it will be found on every next Mission.
 
 ## Kits
 

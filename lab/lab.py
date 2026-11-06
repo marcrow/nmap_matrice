@@ -126,10 +126,14 @@ def up(mission: str) -> None:
     print(f"    python3 -m segowl serve {mission}   then   python3 lab/lab.py run segowl-<profile>.zip")
 
 
-def write_inventory(path: Path) -> None:
+def write_inventory(path: Path, names_from_dns: bool = False) -> None:
+    """names_from_dns: fill the names the client left empty with the short DNS name, as Names from Scans would
+    (the demo opens with its names taken; mission-lab keeps them empty to try that step)."""
     path.parent.mkdir(parents=True, exist_ok=True)
     lines = ["ip;zone;type;name"]
-    lines += [f"{h['ip']};{h['zone']};{h['type']};{h['name']}" for h in rows("hosts.csv")]
+    for h in rows("hosts.csv"):
+        name = h["name"] or (h["dns"].split(".")[0] if names_from_dns else "")
+        lines.append(f"{h['ip']};{h['zone']};{h['type']};{name}")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"[+] client inventory: {path}")
 
@@ -144,7 +148,7 @@ def demo() -> None:
     from segowl.scan_profiles import read_profiles
 
     out = LAB.parent / "demo"
-    write_inventory(out / "inventory.csv")
+    write_inventory(out / "inventory.csv", names_from_dns=True)
     for f in (out / "scans").glob("*/**/*"):
         if f.is_file():
             f.unlink()

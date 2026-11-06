@@ -4,7 +4,8 @@
 
 <p align="center">
   <b>Network segmentation testing, from nmap to the report.</b><br>
-  Scan from inside every Zone, see what really crosses, set it against what the client says should.
+  Scan from inside every Zone, see what really crosses, set it against what the client says should.<br>
+  <i>Not another scanner: SegOWL builds the nmap command, then reads its results.</i>
 </p>
 
 <p align="center">

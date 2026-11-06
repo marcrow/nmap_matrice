@@ -1,7 +1,8 @@
 # SegOWL
 
 **Network segmentation testing, from nmap to the report.** Scan from inside every Zone, see what really
-crosses, set it against what the client says should.
+crosses, set it against what the client says should. *Not another scanner: SegOWL builds the nmap command,
+then reads its results.*
 
 ![The SegOWL report: Zone diagram coloured by the Flow Policy](img/report.png)
 
@@ -15,6 +16,7 @@ crosses, set it against what the client says should.
 
 ![Work process](img/tutorial/work-process.svg)
 
+New here? Read the [philosophy](guide/philosophy.md) and the [field guide](guide/field-guide.md) first.
 Each step has its page:
 
 1. [Getting started](guide/getting-started.md): install, the demo, the app.
@@ -24,4 +26,4 @@ Each step has its page:
 5. [Flow Policy](guide/flow-policy.md): what may cross, Findings and undeclared flows.
 6. [Reading the report](guide/report.md): verdicts, views, Diff, Pivot Machines, outputs.
 
-No client network at hand? The [lab](guide/lab.md) rebuilds one with Docker.
+All the gestures on one page: [Shortcuts](guide/shortcuts.md). No client network at hand? The [lab](guide/lab.md) rebuilds one with Docker.
