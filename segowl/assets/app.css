@@ -38,7 +38,7 @@ input:focus,select:focus,textarea:focus{outline:2px solid var(--cyan2);border-co
 .status{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--mist);color:#33415c}
 .status.ok{background:#e6f7ec;color:#14532d;border:0;margin:0}.status.err{background:#fde8e8;color:#8a1a1a;border:0;margin:0;white-space:normal}
 .banner{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-#toast{position:fixed;top:70px;right:18px;background:var(--navy);color:#fff;padding:10px 14px;border-radius:8px;font-size:13px;z-index:200;max-width:440px;box-shadow:0 6px 20px rgba(0,0,0,.25);transition:opacity .3s;opacity:0;pointer-events:none}
+#toast{position:fixed;top:70px;right:18px;background:var(--amber);color:var(--navy);font-weight:600;padding:10px 14px;border-radius:8px;font-size:13px;z-index:200;max-width:440px;box-shadow:0 6px 20px rgba(0,0,0,.25);transition:opacity .3s;opacity:0;pointer-events:none}
 .login{max-width:340px;margin:12vh auto}.login input{width:100%;padding:8px 10px;margin:6px 0 10px;font-size:14px}
 .login button{width:100%;padding:9px;border:0;border-radius:6px;background:var(--navy);color:#fff;font-size:14px;cursor:pointer}
 /* zones sidebar */
@@ -105,6 +105,20 @@ table.grid tr.dropping td{outline:2px dashed var(--cyan);outline-offset:-2px}
 .pm td.mixed{background:linear-gradient(135deg,#dcf5e3 50%,#fbe0e0 50%)}.pm td.undecided{background:#fff6e0;border-color:#f3d27a}
 .pm td.bad{outline:2px solid var(--red)}
 .pm td .lbl{font-weight:600;font-family:ui-monospace,monospace;word-break:break-all}
+/* Flow Policy selection (policy-copy-cells): one frame per range, the copied cells in dashed amber, a flash on changed cells */
+#pmbox{position:relative}
+.pm td.act{outline:2px solid var(--navy)}
+.pm thead th:not(.corner),.pm th.r,.pm th.corner{cursor:pointer}.pm thead th:not(.corner):hover,.pm th.r:hover{background:#eef6fb}
+.selbox,#copybox{position:absolute;pointer-events:none;border-radius:9px;display:none;z-index:5}
+.selbox{border:2.5px solid var(--cyan);background:rgba(0,200,255,.06)}
+#copybox{border:2px dashed var(--amber);animation:ants 1s linear infinite}
+@keyframes ants{50%{border-color:#c77d00}}
+@keyframes fl{0%{box-shadow:0 0 0 3px var(--amber),inset 0 0 0 999px rgba(255,176,32,.35)}100%{box-shadow:0 0 0 0 transparent}}
+.pm td.flash{animation:fl 1.6s ease-out}
+body.picking .pop{pointer-events:none;opacity:.25;transition:opacity .15s} /* Ctrl / Shift held: clicks reach the cells under the popover */
+#undobar{position:fixed;left:18px;bottom:18px;background:#fff;border:1px solid var(--line);border-left:4px solid var(--cyan);border-radius:8px;
+  box-shadow:0 6px 20px rgba(11,31,51,.15);padding:8px 10px;font-size:13px;display:none;align-items:center;gap:8px;z-index:40}
+#undobar.on{display:flex}
 .pop{position:fixed;z-index:50;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 10px 30px rgba(11,31,51,.2);padding:12px;width:390px}
 .pop h5{margin:0 0 6px;font-size:13px}
 .rule{display:flex;gap:6px;align-items:center;margin:4px 0}.rule .x{cursor:pointer}

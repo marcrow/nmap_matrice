@@ -4,7 +4,7 @@ const BASE = ["ip", "zone", "type", "name"];
 
 
 // ---------------------------------------------------------------- state
-let D = null, table = null, filterZone = null, dirty = false, saving = false, again = false, timer = null, hold = false;
+let D = null, table = null, filterZone = null, dirty = false, saving = false, again = false, timer = null, hold = false, H = null;
 let dupSet = new Set(), nameCount = {};
 const rows = () => table.getData();
 const zoneNames = () => { const s = [...D.zones.map(z => z.name)]; rows().forEach(r => { if (r.zone && !s.includes(r.zone)) s.push(r.zone); }); return s; };
@@ -16,7 +16,11 @@ const ipOk = v => /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$
 const zoneUse = z => ({ifs: rows().filter(r => r.zone === z).length, rules: D.refs[z] || 0});
 
 // ---------------------------------------------------------------- save
-function changed() { analyse(); refreshSide(); dirty = true; status("Unsaved changes…"); clearTimeout(timer); if (!hold) timer = setTimeout(save, 1000); }
+function changed(label) { H?.changed(label); persist(); }
+function persist() { analyse(); refreshSide(); dirty = true; status("Unsaved changes…"); clearTimeout(timer); if (!hold) timer = setTimeout(save, 1000); }
+// undo / redo (undoable, app_common.js): rows, Zones and extra columns as they were before each change
+const state = () => ({rows: rows(), zones: D.zones, columns: D.columns});
+function restore(s) { D.zones = s.zones; D.columns = s.columns; table.setColumns(columns()); table.replaceData(s.rows).then(() => { table.redraw(true); persist(); }); }
 function localError() {
   if (dupSet.size) return `duplicate IP ${[...dupSet][0]}`;
   const bad = rows().find(r => Object.values(r).some(v => v) && !ipOk(String(r.ip || "")));
@@ -71,7 +75,7 @@ function refreshSide() {
   if ($("#fzx")) $("#fzx").onclick = () => { filterZone = null; applyFilter(); refreshSide(); };
   $("#zl").querySelectorAll("li").forEach(li => {
     li.onclick = e => {
-      if (e.target.dataset.del) { D.zones = D.zones.filter(z => z.name !== e.target.dataset.del); changed(); toast("Zone deleted"); return; }
+      if (e.target.dataset.del) { D.zones = D.zones.filter(z => z.name !== e.target.dataset.del); changed(`Zone ${e.target.dataset.del} deleted`); toast("Zone deleted"); return; }
       filterZone = li.dataset.z || null; applyFilter(); refreshSide();
     };
     li.ondblclick = () => {
@@ -94,8 +98,8 @@ async function renameEverywhere(kind, old, nw) {
     table.getRows().forEach(row => { if (row.getData()[field] === old) row.update({[field]: nw}); });
     if (kind === "zone") { D.zones.forEach(z => { if (z.name === old) z.name = nw; }); if (filterZone === old) filterZone = nw; }
     if (D.refs[old]) { D.refs[nw] = (D.refs[nw] || 0) + D.refs[old]; delete D.refs[old]; }
-    analyse(); refreshSide(); dirty = false; status("Saved ✓", "ok"); toast(r.message);
-  } catch (e) { toast("Rename refused: " + e.message); refreshSide(); }
+    analyse(); refreshSide(); dirty = false; H.clear(); status("Saved ✓", "ok"); toast(r.message); // the server rewrote several files: undo stops here
+  } catch (e) { toast("Rename refused: " + e.message); H.clear(); refreshSide(); } // the row went back to its old name
 }
 
 // ---------------------------------------------------------------- grid
@@ -142,10 +146,10 @@ function buildGrid() {
     columnDefaults: {headerSort: true, headerSortClickElement: "icon", headerHozAlign: "left", resizable: "header"},
     columns: columns(),
   });
-  table.on("tableBuilt", () => { analyse(); refreshSide(); status("Loaded", "ok"); });
+  table.on("tableBuilt", () => { H = undoable(state, restore); analyse(); refreshSide(); status("Loaded", "ok"); });
   table.on("cellEdited", cell => {
     if (cell.getField() === "name") machineRenamePrompt(cell);
-    changed(); table.redraw(true);
+    changed(`${cell.getField()} edited`); table.redraw(true);
   });
   table.on("cellClick", (e, cell) => { if (e.ctrlKey || e.metaKey || e.shiftKey || !cell.getField() || selCells().length > 1) return; cell.edit(true); });
   table.on("rangeChanged", () => setTimeout(placeHandle)); table.on("rangeAdded", () => setTimeout(placeHandle));
@@ -161,7 +165,7 @@ function machineRenamePrompt(cell) {
   const what = [others && `${others} other Interface(s)`, refs && `${refs} Flow Policy reference(s)`].filter(Boolean).join(" and ");
   banner(`Machine <b>${esc(old)}</b> → <b>${esc(nw)}</b>: rename it everywhere (${what})?`, [
     ["Rename everywhere", () => { hold = false; cell.getRow().update({name: old}); dirty = true; renameEverywhere("machine", old, nw); }, "pri"],
-    ["Only this row", () => { hold = false; changed(); }],
+    ["Only this row", () => { hold = false; changed("name edited"); }],
   ]);
 }
 
@@ -181,7 +185,7 @@ fill.onkeydown = e => {
   if (e.key === "Escape") { fill.style.display = "none"; return; }
   if (e.key !== "Enter") return;
   const v = fill.value; fillCells.forEach(c => c.getRow().update({[c.getColumn().getField()]: v}));
-  fill.style.display = "none"; toast(`${fillCells.length} cells ← "${v}"`); table.redraw(true); changed();
+  fill.style.display = "none"; toast(`${fillCells.length} cells ← "${v}"`); table.redraw(true); changed(`${fillCells.length} cells filled`);
 };
 fill.onblur = () => fill.style.display = "none";
 const typing = () => { const a = document.activeElement; return a && (a.closest(".tabulator-editing") || (["INPUT", "TEXTAREA", "SELECT"].includes(a.tagName) && !a.closest("#grid"))); };
@@ -191,7 +195,7 @@ document.addEventListener("keydown", e => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d") {
     e.preventDefault();
     (table.getRanges() || []).forEach(rg => { const rs = rg.getRows(); rg.getColumns().forEach(col => { const f = col.getField(); if (!f) return; const v = rs[0].getData()[f]; rs.slice(1).forEach(r => r.update({[f]: v})); }); });
-    table.redraw(true); changed(); toast("Filled down"); return;
+    table.redraw(true); changed("Filled down"); toast("Filled down"); return;
   }
   if (e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1) return;
   if (cells.length > 1) { e.preventDefault(); e.stopPropagation(); openFill(e.key); } else cells[0].edit(true);
@@ -212,7 +216,7 @@ document.addEventListener("paste", e => {
     const rs = table.getRows("active");
     let extra = 0;
     lines.forEach((vals, i) => { const upd = {}; vals.forEach((v, j) => { const f = cols[c0 + j]; if (f) upd[f] = v.trim(); else extra++; }); rs[r0 + i].update(upd); });
-    table.redraw(true); changed();
+    table.redraw(true); changed(`Pasted ${lines.length} row(s)`);
     toast(`Pasted ${lines.length} row(s)${added.length ? `, ${added.length} added` : ""}${extra ? ` · ${extra} cell(s) beyond the last column ignored: add columns first` : ""}`);
   };
   go();
@@ -244,7 +248,7 @@ document.addEventListener("mouseup", () => {
   if (!drag) return; clearPrev(); const d = drag; drag = null;
   if (!d.to.length) { placeHandle(); return; }
   d.cols.forEach(c => { const f = c.getField(), vals = series(d.rows.map(r => r.getData()[f]), d.to.length); d.to.forEach((r, i) => r.update({[f]: vals[i]})); });
-  toast(`Filled ${d.to.length} row(s) × ${d.cols.length} column(s)`); table.redraw(true); changed(); setTimeout(placeHandle, 50);
+  toast(`Filled ${d.to.length} row(s) × ${d.cols.length} column(s)`); table.redraw(true); changed(`Filled ${d.to.length} row(s)`); setTimeout(placeHandle, 50);
 });
 
 // ---------------------------------------------------------------- toolbar
@@ -253,13 +257,13 @@ function wireToolbar() {
   $("#delr").onclick = () => {
     const rs = [...new Set(selCells().map(c => c.getRow()))];
     if (!rs.length) { toast("Select cells in the rows to delete first"); return; }
-    banner(`Delete ${rs.length} row(s)?`, [["Delete", () => { rs.forEach(r => r.delete()); changed(); toast(`${rs.length} row(s) deleted`); }, "pri"], ["Cancel", () => {}]]);
+    banner(`Delete ${rs.length} row(s)?`, [["Delete", () => { rs.forEach(r => r.delete()); changed(`${rs.length} row(s) deleted`); toast(`${rs.length} row(s) deleted`); }, "pri"], ["Cancel", () => {}]]);
   };
-  $("#addr").onclick = () => { table.addRow(blank(), true); changed(); };
+  $("#addr").onclick = () => { table.addRow(blank(), true).then(() => changed("Row added")); };
   $("#cidrb").onclick = () => {
     const h = cidrHosts($("#cidr").value); if (!h) { toast("Give a CIDR between /16 and /32, e.g. 10.0.2.0/24"); return; }
     const have = new Set(rows().map(r => r.ip)), nw = h.filter(ip => !have.has(ip)).map(ip => ({...blank(), ip}));
-    table.addData(nw, true).then(() => { changed(); toast(`${nw.length} row(s) added at the top (${h.length - nw.length} already present). Select their type cells and type "vm".`); });
+    table.addData(nw, true).then(() => { changed(`${nw.length} row(s) added from ${$("#cidr").value}`); toast(`${nw.length} row(s) added at the top (${h.length - nw.length} already present). Select their type cells and type "vm".`); });
   };
   $("#addc").onclick = () => { $("#addcp").hidden = false; $("#addcn").value = ""; $("#addcn").focus(); };
   $("#addcn").onkeydown = e => {
@@ -267,10 +271,10 @@ function wireToolbar() {
     if (e.key !== "Enter") return;
     const n = $("#addcn").value.trim().replace(/[\s;]+/g, "_").toLowerCase();
     if (!n || D.columns.includes(n) || BASE.includes(n)) { toast("Name taken or empty"); return; }
-    D.columns.push(n); table.setColumns(columns()); $("#addcp").hidden = true; changed(); toast(`Column "${n}" added`);
+    D.columns.push(n); table.setColumns(columns()); $("#addcp").hidden = true; changed(`Column ${n} added`); toast(`Column "${n}" added`);
   };
   $("#addcn").onblur = () => setTimeout(() => $("#addcp").hidden = true, 150);
-  $("#nzb").onclick = () => { const n = $("#nz").value.trim(); if (!n || zoneNames().includes(n)) return; D.zones.push({name: n, desc: ""}); $("#nz").value = ""; changed(); toast(`Zone ${n} created`); };
+  $("#nzb").onclick = () => { const n = $("#nz").value.trim(); if (!n || zoneNames().includes(n)) return; D.zones.push({name: n, desc: ""}); $("#nz").value = ""; changed(`Zone ${n} created`); toast(`Zone ${n} created`); };
   $("#nz").onkeydown = e => { if (e.key === "Enter") $("#nzb").click(); };
   $("#dl").onclick = async e => { if (dirty) { e.preventDefault(); try { await flush(); location.href = "/api/file/inventory.csv"; } catch (err) { toast(err.message); } } };
   $("#izf").onchange = async () => {
@@ -278,14 +282,14 @@ function wireToolbar() {
     const p = await api("/api/parse/inventory", await f.text(), true);
     const add = [...new Set(p.rows.map(r => r.zone).filter(Boolean))].filter(z => !zoneNames().includes(z));
     add.forEach(z => D.zones.push({name: z, desc: ""}));
-    if (add.length) changed();
+    if (add.length) changed(`${add.length} Zone(s) imported`);
     toast(add.length ? `Imported ${add.length} Zone(s), no Interfaces: ${add.join(", ")}` : "No new Zone in that file");
   };
   $("#upf").onchange = async () => {
     const f = $("#upf").files[0]; $("#upf").value = ""; if (!f) return;
     const p = await api("/api/parse/inventory", await f.text(), true);
     banner(`Replace the ${rows().length} current row(s) with the ${p.rows.length} row(s) of <b>${esc(f.name)}</b>?`, [
-      ["Replace", () => { p.columns.forEach(c => { if (!D.columns.includes(c)) D.columns.push(c); }); table.setColumns(columns()); table.replaceData(p.rows).then(changed); }, "pri"],
+      ["Replace", () => { p.columns.forEach(c => { if (!D.columns.includes(c)) D.columns.push(c); }); table.setColumns(columns()); table.replaceData(p.rows).then(() => changed(`Replaced by ${f.name}`)); }, "pri"],
       ["Cancel", () => {}],
     ]);
   };

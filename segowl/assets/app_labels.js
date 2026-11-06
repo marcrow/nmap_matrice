@@ -6,7 +6,7 @@ const badge = o => ({shipped: `<span class="badge shipped">shipped</span>`, miss
   override: `<span class="badge override" title="completes the shipped label of the same port + product">Mission · replaces</span>`}[o]);
 const key = r => (r[0] + "|" + r[1]).toLowerCase();
 
-let D = null, table = null, shippedTags = new Set();
+let D = null, table = null, shippedTags = new Set(), H = null; // H: undo / redo of this Mission's labels (undoable, app_common.js)
 const vocab = () => Ports.vocabOf(D);
 function rows() {
   const mk = new Set(D.mission.map(key)), sk = new Set(D.shipped.map(key));
@@ -26,6 +26,7 @@ function setData(d) {
 }
 function count() { if (!D) return; // the table filters once while it is built, before the data arrives
   $("#lcount").textContent = `${table.getDataCount("active")} shown · ${table.getDataCount()} labels · ${D.mission.length} from this Mission`; }
+function restore(mission) { D.mission = mission; setData(D); save(""); }
 async function save(msg) {
   status("Saving…");
   try { D.fp = (await api("/api/labels", {fp: D.fp, labels: D.mission})).fp; status("Saved ✓", "ok"); if (msg) toast(msg); }
@@ -55,11 +56,11 @@ table = new Tabulator("#grid", {data: [], index: "id", layout: "fitColumns", hei
       cellClick: (e, c) => {
         const a = e.target.dataset?.act, d = c.getRow().getData(); if (!a) return;
         if (a === "complete") {
-          D.mission.push([d.port, d.product, d.tags, d.vendor, d.cleartext]); const i = D.mission.length - 1;
+          D.mission.push([d.port, d.product, d.tags, d.vendor, d.cleartext]); const i = D.mission.length - 1; H.changed(`${d.port} · ${d.product} completed`);
           setData(D).then(() => table.getRow("m" + i)?.getCell("vendor").edit());
           save(`${d.port} · ${d.product} copied into this Mission: complete it, it replaces the shipped label`);
         } else {
-          D.mission.splice(d.mi, 1); setData(D);
+          D.mission.splice(d.mi, 1); H.changed(`${d.port} · ${d.product} ${a === "reset" ? "reset" : "deleted"}`); setData(D);
           save(a === "reset" ? `${d.port} · ${d.product}: back to the shipped label` : `${d.port} · ${d.product} deleted`);
         }
       }},
@@ -68,7 +69,7 @@ table.on("cellEdited", c => {
   const d = c.getRow().getData(), i = {port: 0, product: 1, tags: 2, vendor: 3, cleartext: 4}[c.getField()];
   let v = String(c.getValue() ?? "").trim(); if (c.getField() === "tags") v = normTags(v);
   if (D.mission[d.mi][i] === v) return;
-  D.mission[d.mi][i] = v;
+  D.mission[d.mi][i] = v; H.changed(`${d.port} · ${d.product}: ${c.getField()} edited`);
   const nt = c.getField() === "tags" ? toks(v).filter(t => !shippedTags.has(t) && vocab()[t] === 1) : [];
   setData(D); save(nt.length ? `New tag ${nt.join(", ")}: kept, only used by this Mission` : "");
 });
@@ -87,6 +88,7 @@ $("#ladd").onclick = () => {
       $("#ladd").disabled = false; const i = L.mission.length - 1, r = L.mission[i];
       toast(`Port Label ${r[0]} · ${r[1]} added to this Mission`); status("Saved ✓", "ok");
       setData(L).then(() => { const id = "m" + i; table.scrollToRow(id, "center", false); const el = table.getRow(id)?.getElement(); if (el) { el.style.outline = "2px solid #00C8FF"; setTimeout(() => el.style.outline = "", 2500); } });
+      H.changed(`${r[0]} · ${r[1]} added`); // setData put L in D at once
     }});
 };
-table.on("tableBuilt", () => api("/api/labels").then(d => { Ports.setLabels(d); return setData(d); }).then(() => status("Loaded")).catch(e => status("Not loaded: " + e.message, "err")));
+table.on("tableBuilt", () => api("/api/labels").then(d => { Ports.setLabels(d); return setData(d); }).then(() => { H = undoable(() => D.mission, restore); status("Loaded"); }).catch(e => status("Not loaded: " + e.message, "err")));
