@@ -330,10 +330,11 @@ def test_rebound_gain_bypass_nothing_new_and_partial():
     # the diagram: one edge per rebound, marked by what it adds; one Interface reached: an edge to it
     a = Analysis(inv, {}, [], matrix, [], [], 0, {}, {})
     g = _pivot_graph(a, "m", hits, list(by_zone.values()))
-    out = {n["name"]: n["links"][0] for n in g["nodes"] if n["zone"] == "Rebound into"}
+    out = {n["name"]: n["links"][0] for n in g["nodes"] if n["zone"] == "Leads to"}
     assert [(out[z]["kind"], out[z]["label"]) for z in "CDE"] == [
         ("gain", "+1"),
         ("bypass", "bypass +1"),
         ("none", ""),
     ]
-    assert [lk["to"] for n in g["nodes"] if n["zone"] == "Reached from" for lk in n["links"]] == ["10.0.1.9"]
+    reached = [(lk["from"], lk["to"]) for n in g["nodes"] if n["zone"] == "Reached from" for lk in n["links"]]
+    assert reached == [("A", "10.0.1.9")]

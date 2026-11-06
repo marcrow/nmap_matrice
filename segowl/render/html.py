@@ -358,7 +358,7 @@ def _zone_tag(z: str) -> str:
     return f'<span class="tag">{html.escape(z)}</span>'
 
 
-FROM, INTO = "Reached from", "Rebound into"  # the two frames of a Pivot Machine diagram
+FROM, INTO = "Reached from", "Leads to"  # the two frames of a Pivot Machine diagram
 # Rebound: brand amber (user's choice), thicker for a bypass; grey dotted when it adds nothing. Never red: a
 # rebound is not a Flow Policy decision.
 REBOUND, NOTHING = "#FFB020", "#94a3b8"
@@ -379,35 +379,28 @@ def _worst_ports(ports: Iterable[dict]) -> list[dict]:
 
 
 def _pivot_graph(a: Analysis, machine: str, hits: list, rbs: list[Rebound]) -> dict:
-    """In: each Source Zone -> the Interfaces its Sources reach (ports). Out: each rebound Interface -> its
+    """In: each Interface reached <- the Source Zones reaching it (ports). Out: each rebound Interface -> its
     Zone."""
     inv, multi, pal = a.inv, set(machine_palette(a.inv)), zone_palette(a.inv)
     ifaces = [ip for ip in ordered_ips(inv) if inv[ip].machine == machine]
     nodes = []
-    for z in sorted({inv[s].zone for s, _, _ in hits}):
-        srcs = sorted({s for s, _, _ in hits if inv[s].zone == z})
-        links = []
-        for d in sorted({d for s, d, _ in hits if inv[s].zone == z}):
+    # In: one card per Interface reached, listing each Source Zone reaching it and its ports. One edge per
+    # card, cards in the Interfaces' order: no edge crosses another.
+    for d in sorted({d for _, d, _ in hits}, key=ifaces.index):
+        links, tip = [], []
+        for z in sorted({inv[s].zone for s, dd, _ in hits if dd == d}):
+            srcs = sorted({s for s, dd, _ in hits if dd == d and inv[s].zone == z})
             ports = _worst_ports(
-                p
-                for s in srcs
-                if d in a.matrix[s] and a.matrix[s][d].verdict == OPEN
-                for p in _link(a, s, d)["ports"]
+                p for s in srcs if a.matrix[s][d].verdict == OPEN for p in _link(a, s, d)["ports"]
             )
             links.append({"to": d, "verdict": "OPEN", "ports": ports, "cross": z != inv[d].zone})
-        names = ", ".join(html.escape(inv[x].short) for x in srcs)
-        tip = f"<h4>{html.escape(z)}</h4>Sources: {names}<br>reach {', '.join(lk['to'] for lk in links)}"
-        sub = ""
-        if (
-            len(links) > 1
-        ):  # several Interfaces: one edge to the Machine, the detail in the hover and the In table
-            sub = f"reaches {len(links)} of its Interfaces"
-            ports = _worst_ports(p for lk in links for p in lk["ports"])
-            links = [
-                {"to": "S", "verdict": "OPEN", "ports": ports, "cross": any(lk["cross"] for lk in links)}
-            ]
-        nodes.append({"ip": f"from:{z}", "name": z, "sub": sub, "zone": FROM, "links": links, "tip": tip})
-        nodes[-1]["bar"] = pal[z][1]
+            links[-1] |= {"from": z, "fc": pal[z][2]}
+            names = ", ".join(html.escape(inv[x].short) for x in srcs)
+            tip.append(f"<b>{html.escape(z)}</b>: {names}")
+        tip_html = f"<h4>Reach {html.escape(d)} ({html.escape(inv[d].zone)})</h4>" + "<br>".join(tip)
+        nodes.append(
+            {"ip": f"from:{d}", "name": d, "zone": FROM, "links": links, "rows": True, "tip": tip_html}
+        )
     for r in rbs:
         best = max(r.gain.values(), key=len)
         bypass = any(r.bypass(z) for z in r.gain)

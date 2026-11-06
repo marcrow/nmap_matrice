@@ -41,3 +41,28 @@ User feedback, 2026-11-06, after ticket 09:
 - **Zone arrangement** is no longer remembered: every load starts on auto.
 - Test: `test_rebound_gain_bypass_nothing_new_and_partial` also checks the diagram edges.
 - Checked headless on demo and mission-lab: every tab, every diagram, a right-click and a Port Group switch, no JS error.
+
+**2026-11-06, second pass (user feedback).**
+
+The user's points:
+- one edge per Source Zone to the Machine loses which Interface and which ports;
+- the Options radios show nothing checked;
+- in "one per Zone" mode the Out arrows point at the Machine and only link to the Machine;
+- "Rebound into" should read like "gives access to";
+- two rows with ports on the edges overlap the previous row;
+- the right-click menu should look like Windows 11 snap layouts (icons; auto, one / two columns, one / two rows, a square, maybe a circle);
+- a square for the Machine's Interfaces.
+
+Done:
+- **Reached from**: one card per Interface reached, listing each Source Zone with its Flow Policy icon and ports (ports in a column). The card has one edge to its Interface, in the Interfaces' order, so no edges cross.
+- **Out frame**: renamed "Leads to".
+- **"One per Zone" edges**: one per Zone *and* centre end (each Interface of a Machine), with the link's own direction. Out edges leave the Machine.
+- **Options radios**: their names are per diagram (one shared name made every diagram's radios one group, so only one was checked). `syncPanels` keeps every panel showing the current options.
+- **Zone arrangement**:
+  - new "square" (⌈√n⌉ lines, either side);
+  - between lines, room for the far line's port tags.
+- **Right-click menu**: icon tiles (snap layouts). Zone: auto, one / two columns, one / two rows, square. Machine: one column, one row.
+
+Not done, open:
+- **A square of Interfaces for the Machine**: with Zones on both sides, the edges of the inner Interfaces would cross the outer ones.
+- **Round Zone frames**: a bonus.
