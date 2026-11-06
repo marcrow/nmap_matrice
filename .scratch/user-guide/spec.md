@@ -23,6 +23,8 @@ A guide for the auditor (not the developer), with:
 
 - Lives in `docs/` (Markdown readable on GitHub), published on GitHub Pages at https://marcrow.github.io/segowl/ by Zensical (`zensical.toml`, `.github/workflows/docs.yml`), no custom domain.
 - The README is the short visual entry point (what, why, quick start with `git clone` + `python3 -m segowl`); the reference manual moved to `docs/guide/` (getting started, Mission folder, scanning, Auditor Kit, Flow Policy, report, lab).
+- Part of the guide also lives in the app's Overview (offline on site); which part is for this grilling.
+- Upkeep: every new or changed spec or ticket checks the docs and updates the pages it changes. Enforced by a project hook (`.claude/hooks/spec-doc-check.sh`, PostToolUse on `.scratch/*/spec.md` and `.scratch/*/issues/*.md`).
 - Still to write: philosophy, best practices, tips and tricks (this grilling).
 
 ## Questions for the grilling
