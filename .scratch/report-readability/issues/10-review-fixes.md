@@ -85,3 +85,23 @@ Done:
   - edges come in at right angles through the empty half and cross nothing;
   - a parent node cannot be an ellipse in Cytoscape, so the frame is a rounded rectangle (`corner-radius`) kept whole by `min-width` / `min-height` with a bias.
 - **Frame-style bug**: the frame style is set when the side is chosen, no longer while every side is being tried. The last side tried used to win.
+
+**2026-11-06, fourth pass (user feedback).**
+
+The user's points:
+- the round Zone is too far from its nodes and takes too much room; the user prefers a "cloud" inside a contour that follows it;
+- some texts are still a little blurry;
+- "one per Zone" should switch the ports into the nodes;
+- Pivot: "Leads to" ended up on the left, but it must stay on the right, with "Reached from" on the left.
+
+Done:
+- **Round Zone ("circle")**:
+  - the square's staggered lines inside a frame rounded to an oval;
+  - margin = 0.22 of the short side, so the corner nodes stay inside;
+  - the half-moon version and its `min-width` bias are gone.
+- **Blur**: the label caches are off as well (Zone and Machine titles, "+3" on edges). A test showed that Chrome redraws an SVG image at the size it is drawn, so cards drawn directly are sharp at any intrinsic size.
+- **Options**: "one per Zone" sets the ports "in the nodes"; "on the edges" sets "one per Interface". The panels show the change.
+- **Pivot sides**:
+  - a diagram's own sides (`D.sides`) now always hold, whatever the arrangement; before, "one row" / "two rows" dropped them and the layout could swap them;
+  - the Zone checkboxes follow the pinned sides (Reached from first);
+  - checked headless: every arrangement, every Pivot Machine of demo and mission-lab.

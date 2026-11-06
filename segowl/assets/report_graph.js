@@ -138,7 +138,8 @@ function elements(g) {
   if (D.center.ifaces) at.S = (D.center.ifaces.length - 1) / 2;  // a link to the Machine itself: its middle
   if (D.center.ifaces) rows.forEach(t => { const ks = t.links.map(l => at[l.to]).filter(k => k !== undefined);
     t.ord = ks.length ? ks.reduce((a, b) => a + b, 0) / ks.length : 0; });
-  const zones = [...new Set(rows.map(t => t.zone))].sort();
+  const sideRank = z => ({L: 0, T: 0, R: 1, B: 1}[(D.sides || {})[z]] || 0);  // pinned sides read left to right
+  const zones = [...new Set(rows.map(t => t.zone))].sort((a, b) => sideRank(a) - sideRank(b) || a.localeCompare(b));
   for (const z of zones) { const [f, s, c] = D.zones[z];
     els.push({data: {id: 'z:' + z, name: z, label: `${z} · ${rows.filter(t => t.zone === z).length}`, fill: f, stroke: s, text: c}, classes: 'zone'}); }
   for (const t of rows) {
@@ -202,7 +203,7 @@ const PAD = 12, TITLE = 20, G = 36;
 const arrOf = (g, z) => g.arr[z.data('name')] || O.arr;
 function linesFor(g, z, n, cols) {
   const a = arrOf(g, z);
-  if (a === 'sq') return Math.ceil(Math.sqrt(n));
+  if (a === 'sq' || a === 'ci') return Math.ceil(Math.sqrt(n));
   if (a !== 'auto') return +a[1];
   return !portsIn() ? 1 : cols ? (n <= 8 ? 1 : n <= 16 ? 2 : 3) : n <= 6 ? 1 : n <= 12 ? 2 : 3;
 }
@@ -214,8 +215,6 @@ function block(g, z, dir) {
   const cmp = (a, b) => { const p = a.data('t'), q = b.data('t');
     return p.ord !== undefined && q.ord !== undefined && p.ord !== q.ord ? p.ord - q.ord : key(a).localeCompare(key(b)); };
   const kids = z.children().sort(cmp);
-  z.toggleClass('round', arrOf(g, z) === 'ci');
-  if (arrOf(g, z) === 'ci') return circleBlock(g, z, dir, kids);
   const lines = Math.min(linesFor(g, z, kids.length, v), kids.length);
   // Each line as wide as its widest node; the gap before a line holds that line's port tags ("ports on the
   // edges"), beside its nodes or under them: no wider than they need.
@@ -230,35 +229,17 @@ function block(g, z, dir) {
     c = Math.max(c, end[l] + ga + s / 2); a.push(c); end[l] = c + s / 2; });
   const start = Math.min(...kids.map((k, i) => a[i] - al(k) / 2)), len = Math.max(...end) - start;
   const W = v ? wid : len, H = v ? len : wid;
+  // Round ("cloud"): the same nodes in a frame rounded to an oval; the margin keeps the corner nodes inside it
+  // (a box W x H fits a stadium of radius r when the margin is >= (sqrt(2) - 1) / 2 of its short side).
+  const round = arrOf(g, z) === 'ci', P = round ? PAD + 0.22 * Math.min(W, H) : PAD;
   const place = (pos, fx, fy) => {  // (fx, fy) = top-left corner of the frame; a B frame carries its title underneath
-    plain(z);
-    const x0 = fx + PAD, y0 = fy + (dir === 'B' ? 0 : TITLE) + PAD;
+    z.style({padding: P, 'corner-radius': round ? Math.min(W, H) / 2 + P : 4});  // when the side is chosen, not while tried
+    const x0 = fx + P, y0 = fy + (dir === 'B' ? 0 : TITLE) + P;
     kids.forEach((k, i) => { const off = offs[i % lines], w = k.data('w'), h = k.data('h'), t = a[i] - start;
       pos[k.id()] = dir === 'R' ? {x: x0 + off + w / 2, y: y0 + t} : dir === 'L' ? {x: x0 + W - off - w / 2, y: y0 + t}
         : dir === 'T' ? {x: x0 + t, y: y0 + H - off - h / 2} : {x: x0 + t, y: y0 + off + h / 2}; });
   };
-  return {z, dir, FW: W + 2 * PAD, FH: H + 2 * PAD + TITLE, place};
-}
-// The frame style a layout may change (a round Zone): set when a side is chosen, never while sides are tried.
-const plain = z => { z.removeStyle('min-width min-height min-width-bias-left min-width-bias-right min-height-bias-top min-height-bias-bottom');
-  z.style({padding: PAD, 'corner-radius': 4}); };
-// A round Zone: a round frame, its nodes on the half away from the Source, one per height (one per column above or
-// below it): edges come in at right angles through the empty half facing the Source and cross nothing.
-function circleBlock(g, z, dir, kids) {
-  const n = kids.length, v = dir === 'R' || dir === 'L', gap = v ? 12 : 16;
-  const tagOf = k => { const t = g.cy.$id('p:' + k.id()); return t.nonempty() ? (v ? t.data('lr').w : t.data('tb').h) : 0; };
-  const mw = Math.max(...kids.map(k => k.data('w'))), mh = Math.max(...kids.map(k => k.data('h')));
-  const Ra = n * ((v ? mh : mw) + gap) / 2, Rc = Math.max(v ? Ra : Ra * 0.45, 70 + Math.max(0, ...kids.map(tagOf)));
-  const W = v ? 2 * Rc + mw : 2 * Ra + mw, H = v ? 2 * Ra + mh : 2 * Rc + mh, P2 = PAD + 0.12 * Math.min(W, H);
-  const far = {R: [1, 0], L: [-1, 0], T: [0, -1], B: [0, 1]}[dir];
-  // the frame keeps its whole round shape although only the far half holds nodes
-  const bias = {R: ['min-width-bias-left', 100], L: ['min-width-bias-right', 100], T: ['min-height-bias-bottom', 100], B: ['min-height-bias-top', 100]}[dir];
-  const place = (pos, fx, fy) => {
-    plain(z); z.style({padding: P2, 'corner-radius': Math.min(W, H) / 2 + P2, [v ? 'min-width' : 'min-height']: v ? W : H, [bias[0]]: bias[1] + '%'});
-    const cx = fx + P2 + W / 2, cy = fy + (dir === 'B' ? 0 : TITLE) + P2 + H / 2;
-    kids.forEach((k, i) => { const u = -1 + 2 * (i + 0.5) / n, d = Rc * Math.sqrt(1 - u * u);
-      pos[k.id()] = v ? {x: cx + far[0] * d, y: cy + u * Ra} : {x: cx + u * Ra, y: cy + far[1] * d}; }); };
-  return {z, dir, FW: W + 2 * P2, FH: H + 2 * P2 + TITLE, place};
+  return {z, dir, FW: W + 2 * P, FH: H + 2 * P + TITLE, place};
 }
 const visibleZones = g => g.cy.nodes('.zone').filter(z => !z.hasClass('off'));
 const tagRoom = (g, k, d) => { let w = 0; g.cy.nodes('.tag').forEach(t => { if (!t.hasClass('off')) w = Math.max(w, t.data(k)[d]); }); return w ? w + 14 : 0; };
@@ -271,7 +252,11 @@ const midOrder = (bs, size) => { const o = []; [...bs].sort((p, q) => size(q) - 
 function around(g, dirs) {
   const zs = visibleZones(g), S = g.cy.$id('S'), box = g.cy.container().getBoundingClientRect();
   const allowed = zs.map(z => { const n = z.data('name'), a = arrOf(g, z);
-    let pin = (g.pin && g.pin[n]) || (g.D.sides && g.D.sides[n]);  // pinned by a right-click, or by the diagram
+    // A diagram's own sides (Pivot Machines: Reached from on the left, Leads to on the right; above / below a row)
+    // always hold, whatever the arrangement; a right-click pin holds when the arrangement allows it.
+    const fixed = g.D.sides && g.D.sides[n];
+    if (fixed) return [dirs.includes(fixed) ? fixed : {L: 'T', R: 'B', T: 'L', B: 'R'}[fixed]];
+    let pin = g.pin && g.pin[n];
     if (pin && !dirs.includes(pin)) pin = {L: 'T', R: 'B', T: 'L', B: 'R'}[pin];
     if (pin && dirs.includes(pin) && (a === 'auto' || a === 'sq' || a === 'ci' || (a[0] === 'c') === 'RL'.includes(pin))) return [pin];
     const ok = [...dirs].filter(d => a === 'auto' || a === 'sq' || a === 'ci' || (a[0] === 'c') === 'RL'.includes(d));
@@ -456,6 +441,9 @@ function controls(g) {
     a.href = URL.createObjectURL(g.cy.png({full: true, scale: 2, bg: '#ffffff', output: 'blob'})); a.download = g.D.file + '.png'; a.click(); };
   q('.gopts').ontoggle = e => { O.open = e.target.open; saveO(); };
   q('.ggroups').onchange = e => { const i = e.target, k = i.dataset.k; O[k] = i.type === 'checkbox' ? i.checked : i.value;
+    // one edge per Zone has no edge per node to carry ports: they go into the nodes, and back the other way
+    if (k === 'edges' && O.edges === 'zone') O.ports = 'nodes';
+    if (k === 'ports' && O.ports === 'edges') O.edges = 'iface';
     if (k === 'arr') GRAPHS.forEach(x => { x.arr = {}; x.pin = null; });
     if (k === 'mtie') { saveO(); syncPanels(); GRAPHS.forEach(x => x.cy && x.cy.edges('.tie').toggleClass('off', !O.mtie)); } else redrawAll(); };
   q('.gzones').onchange = e => { const z = e.target.value; e.target.checked ? g.hidden.delete(z) : g.hidden.add(z); hideZone(g, z, !e.target.checked); runLayout(g); };
@@ -506,12 +494,14 @@ function showTip(g, t, ev) {
 // Cytoscape keeps the position of its box: when the page moves under a diagram (a fold opens above it), clicks
 // land off the pointer. It re-reads the box each time the pointer comes in.
 function sync(g) { g.el.querySelector('.gwrap').addEventListener('mouseenter', () => g.cy.resize()); crisp(g.cy); }
-// Cytoscape caches each node as a bitmap per zoom level (a power of 2) and builds a level by shrinking the one above:
-// after a zoom in and out, the bold text of the cards (SVG images) goes soft. Our diagrams are small (< 100 nodes):
+// Cytoscape caches each node and each label as a bitmap per zoom level (a power of 2) and builds a level by shrinking
+// the one above: after a zoom in and out, card text (SVG images) and labels (Zone titles, "+3") go soft. Our diagrams are small (< 100 nodes):
 // every node is drawn straight from its SVG at the current zoom.
 // ponytail: patches the renderer's private texture caches (Cytoscape 3.34); on an upgrade check they still exist.
 function crisp(cy) {
-  try { const d = cy.renderer().data; d.lyrTxrCache.getLayers = () => null; d.eleTxrCache.getElement = () => null; } catch (e) { /* cached, soft */ }
+  try { const d = cy.renderer().data; d.lyrTxrCache.getLayers = () => null;
+    for (const k of ['eleTxrCache', 'lblTxrCache', 'slbTxrCache', 'tlbTxrCache']) d[k].getElement = () => null;  // nodes, then labels
+  } catch (e) { /* cached, soft */ }
 }
 function initGraph(el) {
   const g = {el, D: JSON.parse(el.querySelector('script').textContent), arr: {}, pin: null, side: {}, hidden: new Set(), dirty: true, draw: drawGraph};
