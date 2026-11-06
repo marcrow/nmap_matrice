@@ -32,4 +32,8 @@ Where a layout choice is open (place of the Undo button, how the selection and t
 - **Selection: B frame**, more readable than the tint; one frame per range.
 - **Undo: B bottom bar**: the toolbar buttons went unnoticed.
 - **Toasts in amber** instead of navy: navy toasts are not seen enough.
-- Still open: click opens the popover vs click selects; block text A `flow_policy.csv` lines vs B grid.
+
+2026-11-06 user verdicts, second pass:
+- **Click opens the popover**, as today; Ctrl+click and Shift+click only select. Bug found by the user: Ctrl+click sometimes opened or kept the popover and lost the picked cells. Two causes, both fixed in the prototype: the open popover covers the cells under it (now it turns transparent and lets clicks through while Ctrl / Shift is held), and closing it gave the focus back to its cell, which reset the selection (now only when the focus was inside the popover). Checked with real mouse events (CDP `Input.dispatchMouseEvent`): plain click, then three Ctrl+clicks, popover closed, 4 cells picked.
+- **Block text: A**, `flow_policy.csv` lines with the `# SegOWL Flow Policy cells · rows: … · columns: …` header.
+- **Amber toasts for the whole app** (`app.css` `#toast`), not only the Flow Policy.

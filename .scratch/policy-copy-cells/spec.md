@@ -17,14 +17,14 @@ The same decision comes back in many cells, for example "deny the admin ports, a
 
 **Flow Policy editor (`/policy`, `app_policy.js`)**
 
-- **Selection like a spreadsheet**, on the Zone × Zone matrix only: click or arrows move the active cell; Shift+click or Shift+arrows select a rectangle; a click on a row or column header selects the whole row or column. Diagonal cells (same Zone) are selectable like any other.
+- **Selection like a spreadsheet**, on the Zone × Zone matrix only: click or arrows move the active cell; Shift+click or Shift+arrows select a rectangle; Ctrl+click adds a cell (again drops it), Ctrl+click on a header adds a row or column; a click on a row or column header selects the whole row or column. A plain click still opens the popover; Ctrl+click and Shift+click never do, and pass through an open popover. Diagonal cells (same Zone) are selectable like any other.
 - **Copy / paste**: Ctrl+C and Ctrl+V, plus "Copy" and "Paste here" in the cell popover for mouse users.
 - **Paste replaces** the rules of each target cell, comments included (the comment explains the decision, so it travels with it).
-- **Shapes**: one copied cell fills the whole selection; a copied block is pasted once with its shape from the active cell (top left of the selection), not tiled, and what would fall outside the matrix is dropped.
+- **Shapes**: one copied cell fills every selected cell; a copied block is pasted once with its shape at the top left of each range (each Ctrl+clicked cell), not tiled, and what would fall outside the matrix is dropped. Copy itself takes one cell or one rectangle.
 - **Empty cells**: pasting an empty (undeclared) cell empties the targets; Delete or Backspace empties the selection.
-- **System clipboard**: Copy writes text, one rule per line `ports;action;comment` (the `flow_policy.csv` columns without src and dst), and a block as lines grouped by cell (format settled in the prototype). Paste reads that text, so a decision can go from one Mission or tab to another, or come from a text editor. Text that does not parse is refused with a message and nothing changes.
-- **Feedback**: after a paste, a toast "Pasted into N cells · Ctrl+Z to undo" and a brief highlight of the changed cells.
-- **Undo for the whole page**: Ctrl+Z and an Undo button undo the last change of any kind (paste, quick action, rule edited or removed, exception added, bootstrap), several levels deep; Ctrl+Y redoes. The history lives in memory only (lost on reload). Each undo or redo saves like any edit.
+- **System clipboard**: Copy writes text, one rule per line `ports;action;comment` (the `flow_policy.csv` columns without src and dst), and a block as `flow_policy.csv` lines `src;dst;ports;action;comment` under a `# SegOWL Flow Policy cells · rows: … · columns: …` header (prototype verdict); lines pasted straight from a `flow_policy.csv` are accepted too. Paste reads that text, so a decision can go from one Mission or tab to another, or come from a text editor. Text that does not parse is refused with a message and nothing changes.
+- **Feedback**: after a paste, a toast "Pasted into N cells · Ctrl+Z to undo" and a brief highlight of the changed cells. The selection is drawn as a frame per range, the copied cells with a dashed amber frame. Toasts turn amber in the whole app (navy ones go unnoticed).
+- **Undo for the whole page**: Ctrl+Z and the Undo button of a bottom bar ("Last change: …  Undo  Redo") undo the last change of any kind (paste, quick action, rule edited or removed, exception added, bootstrap), several levels deep; Ctrl+Y redoes. The history lives in memory only (lost on reload). Each undo or redo saves like any edit.
 - **Not affected**: exception rules (on a Machine, on `*`, on a name the inventory no longer has) are neither copied nor pasted; they keep their own form. Undo covers them.
 
 **Table editors (Tabulator)**
