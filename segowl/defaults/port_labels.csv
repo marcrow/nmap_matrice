@@ -2584,3 +2584,189 @@ udp:6969;Citrix Provisioning two-stage boot (TSB, TFTP-based download of the BDM
 8765;Avaya Aura Communication Manager AE Services link (AEP, local port);voip;Avaya;
 3077-3079;Avaya Call Management System (CMS) high availability data sync;voip,backup;Avaya;
 50000-50001;Avaya Call Management System (CMS) Informix ODBC / JDBC;voip,db;Avaya;
+502;Schneider Electric Modicon UMAS engineering protocol (EcoStruxure Control Expert / Unity Pro, OFS, Modbus function code 90) — Control Expert to M340/M580 authentication bypass (SEVD-2019-344-02, CVE-2019-6855);ot,admin,risky;Schneider Electric;yes
+21;Schneider Electric Modicon FTP server (firmware, data storage, FDR, open out of box on M580 fw ≤ 4.01) — hard-coded credentials allow custom firmware upload on Quantum / Premium / M340 modules (CISA ICSA-12-018-01);ot,file,risky;Schneider Electric;yes
+9867;Schneider Electric Modicon M580 DPWS firmware update service (fw ≥ 4.20, open by default, cannot be disabled);ot,admin;Schneider Electric;
+udp:1502;Schneider Electric Triconex TriStation protocol (TriStation 1131 to Tricon safety controller) — abused by TRITON/HatMan to reprogram the safety controller (CISA MAR-17-352-01);ot,admin,risky;Schneider Electric;
+7700;Schneider Electric PowerLogic ION protocol (ION / PowerLogic PM8000 meters, ION Setup, Power Monitoring Expert);ot,monitoring;Schneider Electric;
+7701;Schneider Electric PowerLogic ION meter Modbus RTU over TCP;ot,monitoring;Schneider Electric;yes
+7801;Schneider Electric PowerLogic ION meter EtherGate (Ethernet to serial gateway, COM1);ot,monitoring;Schneider Electric;
+7802;Schneider Electric PowerLogic ION meter EtherGate (Ethernet to serial gateway, COM4 on ION9000);ot,monitoring;Schneider Electric;
+udp:3052;Schneider Electric APC PowerChute Network Shutdown (Network Management Card to PCNS UPS events);monitoring;Schneider Electric;
+3052;Schneider Electric APC PowerChute Network Shutdown web interface (redirects to 6547 for TLS);monitoring,admin,web;Schneider Electric;
+6547;Schneider Electric APC PowerChute web UI (Network Shutdown, Business Edition agent, Serial Shutdown);monitoring,admin,web;Schneider Electric;no
+1234;Schneider Electric EcoStruxure Machine SCADA Expert runtime (Viewer / thin client, unencrypted);ot;Schneider Electric;yes
+51234;Schneider Electric EcoStruxure Machine SCADA Expert runtime (Viewer / thin client, encrypted);ot;Schneider Electric;no
+21000;Schneider Electric Security Expert SP-C controller download port;iot;Schneider Electric;
+21001;Schneider Electric Security Expert SP-C controller status port;iot;Schneider Electric;
+22000;Schneider Electric Security Expert SP-C controller event port;iot;Schneider Electric;
+8910;Siemens SIMATIC Shell (PCS 7 / WinCC) station communication, multicast proxy and encrypted communication;ot;Siemens;
+udp:8910;Siemens SIMATIC Shell (PCS 7 / WinCC) station discovery, multicast proxy and encrypted communication;ot;Siemens;
+1442;Siemens WinCC SQL Server instance (PCS 7 ES / OS server / OS client);ot,db;Siemens;
+1443;Siemens SIMATIC SQL Server INFSERVER instance (PCS 7 BATCH server / client);ot,db;Siemens;
+6001-6002;Siemens SIMATIC BATCH server communication (FastObjects Poet DB);ot,db;Siemens;
+4862;Siemens WinCC OPC UA server (PCS 7 OS);ot;Siemens;
+4863;Siemens OpenPCS 7 OPC UA server;ot;Siemens;
+55108;Siemens SIMATIC NET OPC UA server (PCS 7 Maintenance Server, OPC Server V9.0);ot;Siemens;
+7911;Siemens SIMATIC Management Agent (SMA, for SIMATIC Management Console);ot,admin;Siemens;
+udp:7912;Siemens SIMATIC Management Agent (SMA, for SIMATIC Management Console);ot,admin;Siemens;
+4443;Siemens PCS 7 / WinCC WebUX web server (HTTPS);ot,web;Siemens;no
+8080;Siemens SIMATIC PDM Web Server (depending on configuration);ot,web;Siemens;
+2222;Siemens SIMATIC Process Historian management service;ot,admin;Siemens;
+2224;Siemens SIMATIC Process Historian Database Writer service UI;ot,db;Siemens;
+2225-2226;Siemens SIMATIC Process Historian Maintenance Service (server port / client port);ot,db;Siemens;
+2227;Siemens SIMATIC Process Historian Database Writer SF2 (on the Process Historian server);ot,db;Siemens;
+2228;Siemens SIMATIC Process Historian Database Writer SF2 (on the OS / Monitoring & Control server);ot,db;Siemens;
+2230;Siemens SIMATIC Process Historian Server 2020 (server, license, info, live data);ot,db;Siemens;
+3723;Siemens SIMATIC Process Historian SQL Server instance;ot,db;Siemens;
+5048;Siemens SIMATIC Process Historian Discovery Services;ot,db;Siemens;
+60000;Siemens SIMATIC Process Historian Redundancy Services;ot,db;Siemens;
+60001;Siemens SIMATIC Process Historian WCF message queue (redundancy maintenance service);ot,db;Siemens;
+4852;Siemens SIMATIC Process Historian OPC UA server;ot,db;Siemens;
+16389;Siemens SIMATIC Logon Remote Access service;ot,directory;Siemens;
+4002;Siemens User Management Component (UMC) server-to-server communication (PCS neo, TIA Portal, Opcenter);ot,directory;Siemens;
+4004;Siemens User Management Component (UMC) RT server communication (PCS neo, TIA Portal, Opcenter);ot,directory;Siemens;
+8888;Siemens TIA Administrator web framework (TIA Portal, PCS neo Administration Console, localhost only by default);ot,admin,web;Siemens;
+2308;Siemens WinCC flexible / WinCC Runtime Advanced loader (HMI project transfer);ot,admin;Siemens;
+5443;Siemens SINEMA Remote Connect Server OpenVPN tunnel (TCP);ot,security,remote-access;Siemens;no
+udp:1194;Siemens SINEMA Remote Connect Server OpenVPN tunnel (UDP);ot,security,remote-access;Siemens;no
+6220;Siemens SINEMA Remote Connect Server certificate update (web server);ot,security;Siemens;
+4999;Siemens SINEMA Server integrated web server (before V12 SP1);network,monitoring,web;Siemens;
+4443;Siemens SIPROTEC 5 web user interface / DIGSI 5 connection (TLS);ot,admin,web;Siemens;no
+8080-8084;Siemens SIPROTEC 5 communication module homepage (diagnostics, HTTP, one port per module slot);ot,web,monitoring;Siemens;yes
+udp:50000;Siemens SIPROTEC 4 / SIPROTEC Compact EN100 Ethernet module service — crafted packets cause denial of service, all versions (CISA ICSA-20-042-12);ot,risky;Siemens;
+2031;Rockwell Automation ThinManager ThinServer configuration (server to thin clients, proprietary);ot,remote-access,admin;Rockwell Automation;
+udp:1758;Rockwell Automation ThinManager multicast TFTP (firmware);ot,remote-access;Rockwell Automation;yes
+udp:4900;Rockwell Automation ThinManager TFTP firmware download;ot,remote-access;Rockwell Automation;yes
+5900;Rockwell Automation ThinManager terminal shadowing (proprietary);ot,remote-access;Rockwell Automation;
+8443;Rockwell Automation ThinManager ThinServer HTTPS (module delivery, REST API);ot,admin,web;Rockwell Automation;no
+403;Rockwell Automation FactoryTalk Alarms and Events history archiver service;ot,monitoring;Rockwell Automation;
+400;Rockwell Automation FactoryTalk Transaction Manager;ot;Rockwell Automation;
+5241;Rockwell Automation FactoryTalk Diagnostics log receiver (RsvcHost.exe);ot,monitoring;Rockwell Automation;
+udp:4444;Rockwell Automation RSLinx Enterprise LogReceiver (FactoryTalk Diagnostics);ot,monitoring;Rockwell Automation;
+4446;Rockwell Automation RsvcHost RNA service (RSLogix 19 and earlier);ot;Rockwell Automation;
+udp:17185;Wind River VxWorks WDB debug agent (Rockwell 1756-ENBT and others) — remote memory read / write and function calls (NVD CVE-2010-2965);ot,risky;Wind River;yes
+udp:52302;Yokogawa CENTUM operation logging process (BKCLogSvr.exe on HIS/ENG and Exa* servers);ot,monitoring;Yokogawa;
+20109;Yokogawa CENTUM FCS test function (BKHOdeq.exe);ot;Yokogawa;
+20171;Yokogawa CENTUM FCS test function (BKHOdeq.exe);ot;Yokogawa;
+20111;Yokogawa CENTUM / Exaopc batch management BKBCopyD.exe — no authentication: arbitrary file read/write (CVE-2014-5208, ICSA-14-260-01A, YSAR-14-0003);ot,file,risky;Yokogawa;
+34205;Yokogawa CENTUM Expanded Test Functions simulator manager (BKESimmgr.exe);ot;Yokogawa;
+udp:9600;Omron Sysmac Studio online connection (NJ/NX built-in EtherNet/IP port);ot,admin;Omron;
+9610;Omron NJ/NX maintenance port (Omron protocol, closed by default);ot,admin;Omron;
+udp:2223;Omron NJ EtherNet/IP tag data links (second UDP port);ot;Omron;
+9700;Omron NJ SECS/GEM connection service;ot;Omron;
+9800-9801;Omron NJ/NX DB connection service;ot,db;Omron;
+9810-9811;Omron NJ/NX DB connection service;ot,db;Omron;
+udp:1989;Omron NJ robot integrated controller (ACE / Sysmac Studio);ot;Omron;
+udp:1992;Omron NJ robot integrated controller (ACE / Sysmac Studio);ot;Omron;
+1997;Omron NJ robot integrated controller (ACE / Sysmac Studio);ot;Omron;
+udp:1997;Omron NJ robot integrated controller (ACE / Sysmac Studio);ot;Omron;
+udp:65533-65534;Omron NJ robot integrated controller (ACE / Sysmac Studio);ot;Omron;
+8500;Keyence KV PLC KV STUDIO connection (PC applications port);ot,admin;Keyence;
+8501;Keyence KV PLC host link (upper link) over TCP;ot;Keyence;
+udp:8501;Keyence KV PLC host link (upper link) over UDP;ot;Keyence;
+udp:8502;Keyence KV PLC VT3 touch panel connection;ot;Keyence;
+udp:5001;Keyence KV PLC easy PLC link;ot;Keyence;
+2004;LS Electric XGT dedicated protocol over TCP (FEnet);ot;LS Electric;yes
+udp:2005;LS Electric XGT dedicated protocol over UDP (FEnet);ot;LS Electric;yes
+udp:2006;LS Electric FEnet high-speed link (HS link, subnet broadcast);ot;LS Electric;
+2002;LS Electric FEnet XG5000 remote loader connection (programming);ot,admin;LS Electric;
+9094;Panasonic FP PLC MEWTOCOL-COM over TCP (FP Web-Server preset, FP0H remote PC setup);ot;Panasonic;
+20256;Unitronics Vision / Samba PCOM/TCP — default password, exploited by IRGC actors on internet-facing PLCs (CISA AA23-335A, CVE-2023-6448);ot,admin,risky;Unitronics;
+5432;SEL RTAC ACSELERATOR RTAC project download / retrieval (PostgreSQL "ODBC access", open by default);ot,admin;Schweitzer Engineering Laboratories;
+1217;SEL RTAC ACSELERATOR RTAC online status monitoring and point forcing;ot,admin;Schweitzer Engineering Laboratories;
+5433;SEL RTAC firmware upgrade;ot,admin;Schweitzer Engineering Laboratories;
+15453;SEL RTAC communications traffic monitoring (diagnostics / testing);ot,monitoring;Schweitzer Engineering Laboratories;
+5436;SEL ICON NMS (SEL-5052) PostgreSQL client-server communication;ot,network,db;Schweitzer Engineering Laboratories;
+5437;SEL ICON NMS (SEL-5052) web UI / REST / SignalR (HTTPS);ot,network,admin,web;Schweitzer Engineering Laboratories;no
+5558;Hitachi Energy FOX61x / XCM20 proprietary management protocol (NMS to network element);ot,network,admin;Hitachi Energy;
+1101;COPA-DATA zenon System Service zensyssrv (Remote Transport, diagnosis server) — unauthenticated remote OS reboot via Remote Transport (CVE-2025-8754);ot,admin,risky;COPA-DATA;
+50777;COPA-DATA zenon administration service (zenAdminSrv);ot,admin;COPA-DATA;
+50786-50787;COPA-DATA zenon Driver Operations Manager (zenDrvOpsManager);ot;COPA-DATA;
+4679;Eaton IPP / IPM web supervision (HTTP, redirect to HTTPS and remote discovery);monitoring,admin;Eaton;yes
+4680;Eaton IPP / IPM web supervision (HTTPS);monitoring,admin;Eaton;no
+udp:4679;Eaton notification broadcast (IPP / IPM, Network-MS card);monitoring;Eaton;
+udp:4680;Eaton alarms broadcast (IPP / IPM, Network-MS card);monitoring;Eaton;
+5000;Eaton Network-MS card to IPP connected-mode alarms;monitoring;Eaton;
+7011;Eaton Power Xpert Gateway PXG900 web interface (HTTP, with 80);ot,monitoring,web;Eaton;yes
+7012;Eaton Power Xpert Gateway PXG900 web interface (HTTPS, with 443);ot,monitoring,web;Eaton;no
+41100;Phoenix Contact PLCnext Engineer remoting / PC Worx OPC and debug mode (classic PLCs);ot,admin;Phoenix Contact;
+17725;Phoenix Contact PLCnext MATLAB / Simulink External Mode;ot;Phoenix Contact;
+1962;Phoenix Contact PC Worx communication (classic ILC / AXC PLCs) — unauthenticated sessions read data and make changes (CVE-2019-9201, VDE-2019-015);ot,admin,risky;Phoenix Contact;
+20547;Phoenix Contact ProConOS / MULTIPROG runtime protocol — no authentication, arbitrary commands (CVE-2014-9195, ICSA-15-013-03);ot,admin,risky;Phoenix Contact;
+7001;Phoenix Contact mGuard device manager (mdm) server (client connections);security,admin;Phoenix Contact;
+7070;Phoenix Contact mGuard device manager (mdm) CA server (certificate requests);security;Phoenix Contact;
+7080;Phoenix Contact mGuard device manager (mdm) RESTful server;security,admin;Phoenix Contact;
+udp:7514;Phoenix Contact mGuard device manager (mdm) syslog feedback from the configuration pull server;security,monitoring;Phoenix Contact;yes
+11169;B&R Automation Runtime ANSL (Automation Studio to target, open by default);ot,admin;B&R Industrial Automation;
+11179;B&R Automation Runtime ANSL over SSL (Automation Studio to target);ot,admin;B&R Industrial Automation;no
+20000;B&R PVI remote communication (PVI Manager TCP/IP);ot;B&R Industrial Automation;
+2323;B&R Automation Runtime GDB server (Automation Studio debugger);ot,devops;B&R Industrial Automation;
+5900-5931;B&R Automation Runtime VNC server (target visualization);ot,remote-access;B&R Industrial Automation;
+udp:5900-5931;B&R Automation Runtime VNC server (target visualization);ot,remote-access;B&R Industrial Automation;
+8001;B&R VISAPI server data port (VC terminal mode);ot;B&R Industrial Automation;
+8888;B&R Automation Runtime SiteManager / remote maintenance;ot,remote-access;B&R Industrial Automation;
+udp:47787;B&R Visual Components VC4 terminal mode;ot;B&R Industrial Automation;
+udp:48043;B&R Visual Components VC4 terminal mode;ot;B&R Industrial Automation;
+50000;B&R SafeDESIGNER to SafeLOGIC communication (SPROXY);ot;B&R Industrial Automation;
+52000-52099;B&R mapp Safety SafeDESIGNER remote control (52000 + SafeDOMAIN ID - 1);ot;B&R Industrial Automation;
+50111-50112;B&R netX module extended diagnostics;ot,monitoring;B&R Industrial Automation;
+50200;B&R Automation Runtime DTM server;ot;B&R Industrial Automation;
+2069;Bosch Rexroth ctrlX Data Layer client port (TCP scheme);ot;Bosch Rexroth;
+2070;Bosch Rexroth ctrlX Data Layer provider port (TCP scheme);ot;Bosch Rexroth;
+2001;Opto 22 OptoMMP memory-mapped I/O protocol (groov EPIC / RIO, SNAP PAC);ot;Opto 22;yes
+udp:2001;Opto 22 OptoMMP memory-mapped I/O protocol (groov EPIC / RIO, SNAP PAC);ot;Opto 22;yes
+22001-22002;Opto 22 PAC Control engine host task (PAC Control / PAC Terminal);ot,admin;Opto 22;yes
+8502;Opto 22 groov EPIC Modbus/TCP server (502 redirected);ot;Opto 22;yes
+22000;Opto 22 SoftPAC Agent — open without restriction: firmware update, start / stop, registry writes (CVE-2020-10612);ot,admin,risky;Opto 22;
+40000;Pilz SafetyNET p (IANA safetynetp);ot;Pilz;
+udp:40000;Pilz SafetyNET p (IANA safetynetp);ot;Pilz;
+7508;Festo Automation Device Configuration Protocol (IANA adcp);ot,admin;Festo;
+3250;HMS Anybus IP configuration protocol (IANA hicp);ot,admin;HMS Networks;
+udp:3250;HMS Anybus IP configuration protocol (IANA hicp);ot,admin;HMS Networks;
+udp:1194;HMS Ewon Talk2M VPN tunnel to Talk2M servers (outbound, TCP 443 fallback);ot,remote-access,security;HMS Networks;no
+11444;Secomea SiteManager / LinkManager dedicated port to GateManager (ACM/PXP, outbound);ot,remote-access,security;Secomea;
+4592;Advantech WebAccess/SCADA webvrpcs RPC service;ot;Advantech;
+9999;Lantronix device server Telnet setup (configuration) port;iot,admin;Lantronix;yes
+10001-10002;Lantronix device server serial tunnel (channel 1 / channel 2 data);iot,ot;Lantronix;
+14000-14009;Lantronix Com Port Redirector;iot,ot;Lantronix;
+udp:30718;Lantronix device server configuration protocol (port 77FEh, DeviceInstaller) — unauthenticated config read / overwrite (CVE-2026-109439);iot,admin,risky;Lantronix;yes
+32402;PTC Kepware Server configuration port (Configuration client to runtime);ot,admin;PTC;
+57412;PTC Kepware Server Configuration API (HTTP);ot,admin,web;PTC;yes
+57512;PTC Kepware Server Configuration API (HTTPS);ot,admin,web;PTC;no
+58112;PTC Kepware UA Gateway server endpoint (OPC UA);ot;PTC;
+41794;Crestron CIP (Crestron Internet Protocol) control;ot;Crestron;yes
+udp:41794;Crestron Control Port (UDP, IANA crestron-cip);ot;Crestron;yes
+41795;Crestron CTP (Crestron Terminal Protocol) console;ot,admin;Crestron;yes
+41796;Crestron Secure CIP (SCIP, TLS);ot;Crestron;no
+41797;Crestron Secure CTP (SCTP) console over TLS;ot,admin;Crestron;no
+49200;Crestron HTML5 user interface Web API (HTTPS);ot,web;Crestron;no
+4998;Siemens Desigo CC server event port (Installed Client) — modified client can run arbitrary SQL on the server database (CVE-2024-23815, SSA-523418);ot,risky;Siemens;
+8888;Siemens Desigo CC Service port (GMS SMC Project Data Service, Client/FEP project data);ot,admin;Siemens;
+47808;Trane Tracer SC+ to Tracer Ensemble Cloud, BACnet/SC over TCP (outbound, TLS);ot;Trane Technologies;no
+udp:1194;Trane Connect remote access (Tracer SC+ outbound tunnel to Trane cloud);ot,remote-access;Trane Technologies;no
+51806;SAUTER moduNet292 novaNet-Ethernet interface, nova292 server (CASE Suite, novaPro);ot;SAUTER;
+51807;SAUTER moduNet292 novaNet-Ethernet interface, nova291 emulation;ot;SAUTER;
+udp:2056;Lutron HomeWorks QS / RadioRA 2 processor-to-processor and commissioning (multicast);ot;Lutron;
+51023;Lutron HomeWorks QS / RadioRA 2 commissioning machine to processors (unicast);ot,admin;Lutron;
+udp:777;Lutron HomeWorks QS / RadioRA 2 processor firmware upgrade (with TFTP 69);ot,admin;Lutron;
+23;Lutron processor Telnet integration and diagnostics — default Telnet credentials before software 13.0 (Lutron App Note #731);ot,admin,risky;Lutron;yes
+udp:2647;Lutron Connect Bridge to HomeWorks QS / RadioRA 2 processors;ot;Lutron;
+4548;Lutron Connect Bridge / processor local communication (RadioRA 3, HomeWorks QSX, Caseta);ot;Lutron;
+8081;Lutron processor / Connect Bridge local and third-party integration;ot;Lutron;
+8083;Lutron processor / Connect Bridge local and third-party integration;ot;Lutron;
+7782;Lutron Connect Bridge third-party integration;ot;Lutron;
+8090;Lutron Connect Bridge third-party integration;ot;Lutron;
+6000;Nozomi Networks Remote Collector to Guardian monitored traffic (proprietary over TLS);security,ot;Nozomi Networks;no
+udp:48888;Nozomi Networks Guardian device discovery (broadcast);security,ot;Nozomi Networks;
+udp:1911;Nozomi Networks Guardian device discovery over Niagara Fox (broadcast);security,ot;Nozomi Networks;
+8000;Tenable Core web interface (Tenable OT Security ICP and sensor);security,ot,admin;Tenable;
+28303;Tenable OT Security sensor to ICP, unauthenticated passive-only sensor connection;security,ot;Tenable;
+28304;Tenable OT Security sensor to ICP pairing (SSH tunnel);security,ot;Tenable;no
+28305;Tenable OT Security ICP to Enterprise Manager pairing and centralized updates;security,ot;Tenable;
+28306;Tenable OT Security OT Agent connection to ICP;security,ot;Tenable;
+10146;Tenable OT Security ICP to IoT Connector agent (secure port);security,ot,iot;Tenable;no
+10104;Tenable OT Security ICP to IoT Connector agent (unsecure port);security,ot,iot;Tenable;yes
+9000;Microsoft Defender for IoT OT sensor tunneling (legacy on-premises management console access);security,ot;Microsoft;
+5671;Cisco Cyber Vision sensor to Center (AMQP over TLS);security,ot;Cisco;no
+10514;Cisco Cyber Vision sensor to Center secure syslog (releases before 5.4.0);security,ot,monitoring;Cisco;no

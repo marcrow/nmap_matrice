@@ -1326,3 +1326,263 @@ docs.teradata.com is a JS app and answers 404 to automated fetch, so all Teradat
 - Avaya Aura Device Services 8442 / 8445 / 8448 and Aura Web Gateway ports: read in public matrices but outside the requested products (SM, SMGR, CM); add if wanted.
 - Alcatel-Lucent Enterprise OmniPCX Enterprise: only CSTA 2555 is on a public ALE page (already in the file). SMDR/accounting 2533 is third-party only (pbxdom, tri-line); NOE/IP Touch signaling 32512/32513 and 32640 are behind the ALE Business Portal login; api.dspp.al-enterprise.com refused connections.
 
+
+## Fifth pass: OT vendors in depth (2026-11-06)
+
+Same rules and markers as the fourth pass. Dropped at merge: zenon 1100 / 1102 (only a 2007 community-portal post, not COPA-DATA staff), Panasonic 9095 (only a third-party mirror of the FP Web-Server manual; 9094 kept from the Panasonic page), a second Desigo CC 4998 row (kept the one citing CVE-2024-23815 / SSA-523418).
+
+### Schneider Electric
+
+#### Schneider Electric
+- Modicon M580 services and ports: FTP 21/tcp ("Firmware, data storage, FDR", open out of box on fw ≤ 4.01; "FDR" only and closed on ≥ 4.20), DPWS 9867/tcp ("Firmware update, NOTE(1)": "You cannot disable the port; it remains open for safety and availability purposes", fw ≥ 4.20), UMAS on logical port 502 ("HMI / SCADA … Modbus TCP/IP or UMAS … 502"; glossary: "UMAS is a proprietary system protocol that manages communications between Control Expert and a controller") [checked: PDF downloaded and text-extracted, tables "M580 Controllers with Firmware Version ≤ 4.01 / ≥ 4.20 and < 4.60 / ≥ 4.60"] → https://download.schneider-electric.com/files?p_Doc_Ref=EIO0000001999&p_enDocType=User+guide&p_File_Name=EIO0000001999-15_Modicon_Platform_Cybersecurity_EN.pdf (Modicon Controller Platform Cybersecurity User Guide, EIO0000001999.15)
+- UMAS = Modbus TCP function code 90 on port 502 [checked via search extract: "the UMAS is a Schneider Electric's protocol based on Modbus TCP/IP packet with function code 90", "it uses the port 502"] → https://www.se.com/sg/en/faqs/FA405708 (404 to automated fetch)
+- UMAS risk: CVE-2019-6855 "could cause a bypass of the authentication process between EcoStruxure Control Expert and the M340 and M580 controllers"; mitigation "block all unauthorized access to port 502/TCP" [checked: PDF text-extracted] → https://download.schneider-electric.com/doc/SEVD-2019-344-02/SEVD-2019-344-02_Modicon_Controllers_EcoStruxure%E2%84%A2_Control_Expert_and_Unity_Pro_Security_Notification_V2.1.pdf
+- Modicon FTP risk (Quantum 140NOE/140CPU65, Premium TSXETY/TSXP57, M340 BMXNOE/BMXP34): "The credentials publicized grant access to the Telnet port, Windriver Debug port, and the FTP service"; "FTP service—May allow an attacker to modify the module website, download and run custom firmware" [checked] → https://www.cisa.gov/news-events/ics-advisories/icsa-12-018-01b
+- Triconex TriStation udp:1502 [checked: CISA PDF text-extracted: "the TriStation network protocol ("TS", via UDP 1502); this is the protocol that the TriStation TS1131 software uses to communicate with" Tricon; discovery "by sending a specific UDP broadcast packet over Port 1502"] → https://www.cisa.gov/sites/default/files/documents/MAR-17-352-01%20HatMan%E2%80%94Safety%20System%20Targeted%20Malware_S508C.pdf
+- PowerLogic ION meters: ION 7700, Modbus RTU 7701, EtherGate COM1 7801, EtherGate COM4 7802 (ION9000; PM8000 has COM1 only), plus standard DNP 20000, IEC 61850 102, Modbus TCP 502 [checked: "ION (7700)", "Modbus RTU (7701)", "EtherGate (Com1) (7801)", "EtherGate (Com4) (7802)"] → https://www.se.com/th/en/faqs/FA212335/
+- APC PowerChute Network Shutdown: UDP 3052 ("The NMC communicates with PCNS over UDP port 3052", MD5-authenticated, not encrypted, so cleartext left empty), web 3052/6547 ("When logging in over port 3052, a user is redirected to port 6547 to utilize TLS"), registration to the NMC on 80/443 (generic, not added) [checked] → https://www.se.com/au/en/faqs/FA373363/
+- APC PowerChute Business Edition v10.x / Serial Shutdown v1.x: "6547 – Agent Web UI" (TCP); UDP 161 SNMP agent (generic, not added) [checked; HTTPS read in search extract "TCP port 6547 (HTTPS)"] → https://www.se.com/au/en/faqs/FA159597/
+- EcoStruxure Machine SCADA Expert (ex-InduSoft Web Studio) runtime: "disable the encrypted port 51234 and enable port 1234 for unencrypted communications" [checked] → https://www.se.com/mx/es/faqs/FAQ000257410
+- Security Expert SP-C controller: "Event Port: 22000", "Download Port: 21000", "Status Port: 21001" [checked; the page does not say which side listens, so the labels only name the port role] → https://www.se.com/ae/en/faqs/FA382763/
+- Already in the file and not re-added: EBO 4444, Machine Expert 1105 / udp:27126-27127, Geo SCADA 5481 / 5500-5509, AVEVA/Citect; Modbus 502/802, EtherNet/IP 44818/2222, TFTP 69, SNMP 161 (generic rows).
+
+#### Dropped
+- Triconex TSAA udp:1500, Tricon peer-to-peer, TCM other ports: only seen in Scribd copies of the Tricon Communication Guide and third-party write-ups; the NRC-hosted vendor guide (ML093290422) returns 403; the Schneider FDC280 TSAA PSS (paresource 41s3fdctsaa.pdf, read) gives no port number.
+- Quantum / Premium / M340 Windriver (VxWorks WDB) debug port: CISA ICSA-12-018-01 / ICS-ALERT-11-346-01 name the service but give no port number.
+- StruxureWare Data Center Expert ports (incl. "APC proprietary 6000"): only community.se.com forum replies (403 to fetch, not vendor documentation); official DCE security page not reached.
+- EcoStruxure Building Operation licensing (2170, 27000-27009): only a community.se.com knowledge-base search extract, page 403 and the role of 2170 unclear.
+- EcoStruxure Power Monitoring Expert ports (FA214151): the port tables are images, not readable text. Power Operation default ports page (product-help.se.com) returns 403.
+- Machine SCADA Expert / InduSoft Remote Agent 4322: no vendor source found.
+- Foxboro Evo / I/A Series (B0700AZ, B0700GH port lists), Pro-face / Vijeo Designer / Operator Terminal Expert download ports, Easergy / MiCOM relays, Saitel RTUs, Andover Continuum, SmartX, APC NMC-specific ports, Altivar: not researched to a vendor page. The session's shared WebSearch budget (200 calls) ran out partway through this group. Worth another pass when it refills.
+
+
+### Siemens and Rockwell Automation
+
+#### Siemens
+Siemens Industry Online Support pages (support.industry.siemens.com, incl. entry 8970169 and forum attachments) return Akamai "Access Denied" or a JS shell to automated fetch; the PDFs on cache.industry.siemens.com download fine and were read as raw text (pdftotext -layout).
+
+- SIMATIC Shell 8910 TCP+UDP, WinCC SQL instance 1442, INFSERVER SQL instance 1443, SIMATIC BATCH 6001-6002 ("BATCH communication (Fast Object Poet DB)"), WinCC OPC UA 4862 ("OPC UA Service WinCC"), OpenPCS 7 OPC UA 4863, SIMATIC NET OPC UA 55108 ("only necessary if OPC Server V9.0 is configured"), SMA 7911 TCP / 7912 UDP, WebUX 4443 ("https Webserver"), PDM Web Server 8080 [checked: raw PDF table "Which ports and protocols are used by SIMATIC PCS 7", Entry ID 109963934 V1.2 03/2026] → https://cache.industry.siemens.com/dl/files/934/109963934/att_1359411/v1/109963934_Ports_Protocols_V1_2_en.pdf . "8910 8910 SIMATIC Shell / Multicast-Proxy / Encrypted Communication": cleartext left empty because encryption is a SIMATIC Shell setting. PDM Web Server 8080 is labelled "https Webserver (depending on configuration)" in the table, so cleartext is left empty.
+- SIMATIC Process Historian 2222 (PH Management), 2224 (DatabaseWriterServiceUI), 2225-2226 (Maintenance Service Srv ServerPort / ClientPort), 2227 (Database Writer SF2 on the PH), 2228 (Database Writer SF2 on the Monitoring & Control / OS server), 2230 ("PH Server 2020 (Server, License; Info; Live data)"), 3723 (PH SQL Server Port), 5048 (PH Discovery Services), 60000 (PH Redundancy Services), 60001 (WCF Message Queue Service, Redundancy Maintenance Service), OPC UA 4852 ("The default port is "4852"") [checked: raw PDF, chapter 1.1.4.4 "Firewall settings" and 3.2.3.1 "Editing the port number"] → https://cache.industry.siemens.com/dl/files/481/109805481/att_1096731/v1/InformationSystemPRHIenUS.pdf (SIMATIC Process Historian System Manual 12/2021, A5E51393796-AA). Not added: 135, 137, 1434, 1801 (generic Microsoft), 5022 (SQL mirroring, already in the file).
+- SIMATIC Logon Remote Access service 16389 [checked: "Siemens strongly recommends users protect network access to the Port 16389/TCP of the SIMATIC Logon Remote Access service"] → https://www.cisa.gov/news-events/ics-advisories/icsa-17-192-01 (CVE-2017-9938). Not tagged risky: the DoS is fixed in V1.6.
+- User Management Component (UMC) 4002 and 4004 [checked: SSA-999588 "If only one UMC server is used, block access to port 4002/tcp" / "If only one RT server is used, block access to port 4004/tcp"] → https://cert-portal.siemens.com/productcert/html/ssa-999588.html (affected: Opcenter, SIMATIC PCS neo, SINEC NMS, TIA Portal; CVE-2023-46283/46284/46285).
+- TIA Administrator 8888 [checked: SSA-711829 "Restrict access to port 8888/tcp to localhost (default)"; affects PCS neo Administration Console, SINETPLAN, TIA Portal V15-V17] → https://cert-portal.siemens.com/productcert/html/ssa-711829.html
+- WinCC flexible Runtime / WinCC (TIA Portal) Runtime Advanced loader 2308 [checked: NVD CVE-2011-3321 "WinCC Runtime Advanced Loader ... via a crafted packet to TCP port 2308"] → https://nvd.nist.gov/vuln/detail/CVE-2011-3321 (Siemens SSA-460621). Not tagged risky: fixed long ago.
+- SINEMA Remote Connect Server 443 / UDP 1194 / TCP 5443 / 6220 [checked: raw PDF "Port forwarding of the UDP port to set up the OpenVPN tunnel (modifiable, preset: 1194)", "TCP port to set up the OpenVPN tunnel (modifiable, preset: 5443)", "Port 6220 for the certificate update"] → https://cache.industry.siemens.com/dl/files/584/109745584/att_988877/v2/109745584_Ports_VPN_Server_V10_en.pdf . 6220 also named in NVD CVE-2022-27220 ("the web server configured on port 6220") → https://nvd.nist.gov/vuln/detail/CVE-2022-27220 . 443 not added (generic).
+- SINEMA Server integrated web server 4999 [checked: NVD CVE-2014-2731 "integrated web server in Siemens SINEMA Server before 12 SP1 ... HTTP traffic to port (1) 4999 or (2) 80"] → https://nvd.nist.gov/vuln/detail/CVE-2014-2731 (ICSA-14-107-01). Version-scoped in the label because newer releases were not checked.
+- SIPROTEC 5 4443 and homepage 8080-8084 [checked: raw PDF "SIPROTEC 5 Communication Protocols" manual C53000-L1840-C055-E 08.2022, chapter 10.2 "Ports of the SIPROTEC 5 Devices" and 10.13.1 homepage table "J 8080, E 8081, F 8082, N 8083, P 8084", "http://<Module-IP>:Port"] → https://cache.industry.siemens.com/dl/files/443/109742443/att_1112956/v1/SIP5_ComProt_V9.30_Manual_C055-E_en.pdf . Conflict noted: the manual says "TCP Port 443 DIGSI 5 protocol / TCP Port 4443 Web user interface", while SSA-750499 (NVD CVE-2024-38867) says "443/tcp for web, 4443/tcp for DIGSI 5" → https://nvd.nist.gov/vuln/detail/CVE-2024-38867 . So 4443 is labelled "web user interface / DIGSI 5 connection (TLS)" and 443 is not added. Lesson applied: the PDF text shows "UDP Port 12325" and "Port 50226" which are 123 and 502 followed by footnote markers 25/26 (SNTP and SUP/Modbus), so those were NOT taken as port numbers.
+- SIPROTEC 4 / Compact EN100 UDP 50000, risky [checked: "Specially crafted packets sent to Port 50000/UDP of the EN100 Ethernet communication modules could cause a denial-of-service condition"; affected "SIPROTEC 4, all versions", "SIPROTEC Compact, all versions"; mitigation "Limit access to Port 50000/UDP"] → https://www.cisa.gov/news-events/ics-advisories/icsa-20-042-12 (CVE-2019-19279; earlier CVE-2015-5374 / ICSA-15-202-01 on the same port).
+- Desigo CC event port 4998, risky [checked: "via the event port (default: 4998/tcp)", unauthenticated remote attacker running arbitrary SQL queries on the server database via a modified client; "Restrict access to the server's event port (default: 4998/tcp)"; Desigo CC all versions] → https://www.cisa.gov/news-events/ics-advisories/icsa-25-135-04 (CVE-2024-23815). 4998 is also the WinCC OA event manager row already in the file, since Desigo CC is built on WinCC OA.
+
+#### Rockwell Automation
+rockwellautomation.com and literature.rockwellautomation.com still return 403 to automated fetch, and the web search budget ran out during this pass. The rows below come from Rockwell's own ThinManager site (thinmanager.com, fetchable) and from NVD records (NVD JSON API, read raw).
+
+- ThinManager 2031, UDP 1758, UDP 4900, 5900, 8443 [checked: raw PDF "Table 3. Network port list": "TCP/2031 Proprietary – Configuration: Used to pass the configuration from the ThinManager Server to the ThinManager thin clients", "UDP/1758 Mulitcast TFTP", "UDP/4900 TFTP: Used for the TFTP download of the firmware", "TCP/5900 Proprietary – Shadow: Used to shadow Terminals", "TCP/8443 HTTPS (optional) ... deliver some modules"; API at "https://localhost:8443/api/documentation"] → https://thinmanager.com/support/manuals/files/ThinManager-v142-UserGuide_TM-UM001_-EM-P.pdf (TM-UM001L-EN-P, July 2026). Not added: UDP 67/69, UDP 4011, 1494, 2376, 3268, 3389 (generic). 2031 is also named in the ThinManager security white paper ("TMC request terminal profile from ThinManager server (Port 2031 TCP)") → https://thinmanager.com/media/papers/whitepapers/TM-WP001C-EN-P%20-%20Industrial%20Network%20and%20Infrastructure%20Security%20Using%20ThinManager.pdf . Not tagged risky: the ThinServer CVEs (CVE-2023-27855, CVE-2024-5988…) don't name the port in their NVD text.
+- FactoryTalk Alarms and Events history archiver 403 [checked: NVD CVE-2017-14022 "Port 403/TCP (the history archiver service)"] → https://nvd.nist.gov/vuln/detail/CVE-2017-14022
+- FactoryTalk Transaction Manager 400 [checked: NVD CVE-2023-2778 "sending a modified packet to port 400"] → https://nvd.nist.gov/vuln/detail/CVE-2023-2778
+- FactoryTalk Diagnostics RsvcHost 5241 [checked: NVD CVE-2020-5807 "RsvcHost.exe listening on TCP port 5241 to add entries in the FactoryTalk Diagnostics event log"] → https://nvd.nist.gov/vuln/detail/CVE-2020-5807
+- RSLinx Enterprise LogReceiver UDP 4444 [checked: NVD CVE-2013-2805/2806/2807 "RSLinx Enterprise Software (LogReceiver.exe) ... sending a datagram to the service over Port 4444/UDP"] → https://nvd.nist.gov/vuln/detail/CVE-2013-2805
+- RsvcHost RNA 4446 [checked: NVD CVE-2011-3489 "RnaUtility.dll in RsvcHost.exe ... in Rockwell RSLogix 19 and earlier ... crafted rna packet ... to TCP port 4446"] → https://nvd.nist.gov/vuln/detail/CVE-2011-3489 . Version-scoped (the file already has RsvcHost on 4255 for current releases).
+- FactoryTalk Linx 4241 confirmed by NVD CVE-2020-5801/5802; already in the file.
+- VxWorks WDB UDP 17185, risky [checked: NVD CVE-2010-2965 "WDB target agent debug service in Wind River VxWorks ... as used on the Rockwell Automation 1756-ENBT ... allows remote attackers to read or modify arbitrary memory locations, perform function calls ... via requests to UDP port 17185"] → https://nvd.nist.gov/vuln/detail/CVE-2010-2965 . Vendor column = Wind River.
+
+#### Dropped
+- Siemens SIOS 8970169 "Which ports are used…": the page and its forum attachment are blocked by Akamai and the PDF attachment URL could not be found. Covered instead by the PCS 7 ports FAQ 109963934.
+- Siemens WinCC Unified (e.g. TCP 4000 for the Station Configurator / runtime web connection, 20008 for engineering download): only third-party mirrors or blogs, no Siemens page read. Dropped.
+- Siemens WinCC classic REST service (34569), WinCC redundancy 2224/2225, WinCC flexible discovery ports: blogs only. Dropped. WinCC before 7.3 project administration on TCP 1030 (NVD CVE-2014-4686) skipped because it is obsolete.
+- Siemens PCS 7 "OLE DB access" 1801 / 2105: these are Microsoft MSMQ ports, already in the file.
+- Siemens PCS 7 table "ORCLA IPC Diagnostics" 5443 / 5444 / 48010: the product name in the table is unclear (typo?), so it was not labelled.
+- Siemens TIA Portal Project Server / Multiuser Server: the TIA docs give 8735 only inside an example URL, with no default stated. Dropped.
+- Siemens S7-PLCSIM Advanced Runtime Manager port: configurable, and no default value was found in Siemens docs. Dropped. S7-1500 web server = 80/443 and OPC UA = 4840 are generic.
+- Siemens SCALANCE: only standard ports (22/443/161) appear in the advisories read, and no non-standard management port was found. SCALANCE W "TCP Event service" (CVE-2022-31766) names no port. Dropped.
+- Siemens Industrial Edge: only 443 outbound and domain allow-lists. Dropped.
+- Siemens SIMATIC Information Server: its "Security settings" manual chapter was not read. Only the INFSERVER SQL instance 1443 (from the PCS 7 table) was added.
+- Siemens Desigo CC VNT TCP 2000: seen only on Desigo CC help copies hosted on customer servers (unreachable or 404 on mybuilding.siemens.com). Dropped. The full Desigo CC port table is in "Cybersecurity Guidelines A6V11646120", which could not be retrieved.
+- Rockwell FactoryTalk View SE (HMI server, A&E), FactoryTalk AssetCentre (.NET remoting endpoints; CISA ICSA-21-091-01 names no port), FactoryTalk Optix (8443 appears only as a container example in the ThinManager guide), FactoryTalk Remote Access, Stratix (Cisco IOS standard ports), Studio 5000 / RSLogix-specific ports: Rockwell KB 898270/29402 and literature PDFs are 403, and the search budget was exhausted. Dropped.
+- Rockwell FactoryTalk Historian SE: it is built on the AVEVA/OSIsoft PI Server, whose ports (5450, 5457…) are already in the file. Nothing added.
+
+
+### Yokogawa, Omron, Keyence, LS Electric, Panasonic, Unitronics
+
+#### Yokogawa
+- CENTUM operation logging process BKCLogSvr.exe udp:52302, FCS test function BKHOdeq.exe 20109 and 20171, BKBCopyD.exe 20111, Expanded Test Functions simulator manager BKESimmgr.exe 34205 [checked] → https://www.cisa.gov/news-events/ics-advisories/icsa-14-133-01 ("listens by default on Port 52302/UDP"; "listens by default on Ports 20109/TCP, and 20171/TCP"; "listens by default on Port 20111/TCP"; "listens on TCP/34205"). Product list for the logging process (CENTUM, Exaopc, ProSafe-RS, Exaquantum, PRM…) from Yokogawa YSAR-14-0001E → https://web-material3.yokogawa.com/1/6712/details/YSAR-14-0001-E.pdf (PDF downloaded and text-extracted).
+- BKBCopyD.exe batch management 20111, risky [checked] → https://www.cisa.gov/news-events/ics-advisories/icsa-14-260-01a ("There is a no authentication, which makes it possible to abuse several operations"; "Block the traffic on Port 20111/TCP to Exaopc installations") and Yokogawa YSAR-14-0003E → https://web-material3.yokogawa.com/1/6712/details/YSAR-14-0003-E.pdf ("the process which manages batches (TCP port No.20111), arbitrary files accessible with the user rights … can be read and written"). CVE-2014-5208.
+
+#### Omron
+- NJ/NX built-in EtherNet/IP port: Sysmac Studio udp:9600, Maintenance 9610 (closed by default), NJ tag data links udp:2223, SECS/GEM 9700, DB connection 9800, 9801, 9810, 9811, robot integration udp:1989, udp:1992, 1997 TCP+UDP, udp:65533-65534 [checked: HTML downloaded and table extracted] → https://automation-knowledge-base.omron.eu/support/solutions/articles/103000296740-tcp-udp-port-numbers-used-for-the-built-in-ethernet-ip-port ("Sysmac Studio | All models | 9600 | --- | … Used for communication with Sysmac Studio"; "Maintenance | All models | --- | 9610 | … TCP (Omron protocol) | Closed"). Closed-by-default robot ports (udp:1990, udp:1993, udp:69 TFTP, 43234, 48987), NX102 TCP/UDP message service 64000 and SECS-II 5000 (user-configurable) not added. FINS 9600 TCP/UDP already in the file.
+
+#### Keyence
+- KV PLC: KV STUDIO ("PC applications", footnote *8 = KV STUDIO) 8500, host link 8501 TCP and UDP, VT3 connection udp:8502, easy PLC link udp:5001 [checked: HTML downloaded, footnote markers checked separately from the numbers] → https://www.keyence.com/products/controls/plc-terminal-block-type/kv_nano/models/kv-nc1ep/ ("PC applications No. of sockets TCP: 8 UDP: 0 Port No.: 8500 … *8"; "Host link communication No. of sockets TCP: Total: 15 UDP: 1 Port No.: 8501"; "VT3 connection No. of sockets TCP: 0 UDP: 1 Port No.: 8502"; "Easy PLC link No. of sockets UDP: 1 Port No.: 5001"). All ports user-changeable (1-65535). Values read on the KV Nano (KV-NC1EP) spec page; 8501 as KV-5000/7000/8000 upper-link default is only corroborated by third-party pages. MC protocol 5000 skipped (Mitsubishi MC protocol, MELSEC rows already cover it).
+
+#### LS Electric
+- XGT dedicated protocol 2004 TCP / udp:2005, HS link udp:2006, XG5000 remote loader 2002 [checked: PDF downloaded and text-extracted, Table 2-7 and Table 5-2] → https://cdn.automationdirect.com/static/manuals/lselectric/xblemtausermanual.pdf (LS Electric XGB FEnet I/F XBL-EMTA user manual, hosted by AutomationDirect: "It uses port No.2004 for TCP, and port No.2005 for UDP protocol"; "HS link … UDP/IP 2006"; "Loader service by FEnet (XG5000): (Dedicated TCP/IP PORT: 2002 assignment)"; "HS link service does send frame to Subnet Broadcast by using UDP protocol"). Cleartext yes on 2004/2005: the manual's frame is a plain "LSIS-XGT" company-ID header plus data, no encryption option.
+
+#### Panasonic
+- MEWTOCOL-COM over TCP 9094 [checked] → https://infohub.industry.panasonic.eu/data/fpi4c/en/topics/t-0000034199.html (FP0H: "Communication mode: MEWTOCOL-COM slave", "Source port number: 9094", "TCP port 9094 will be used to control the PLC from a remote PC") and FP Web-Server manual (Panasonic manual, mirror) → https://www.manualsdir.com/manuals/169283/panasonic-web-server-fp.html?page=115 ("preset TCP/IP port number 9094 (Server)", MEWTOCOL). FP7 does not have a fixed MEWTOCOL port (user connections are user-specified in the FP7 Ethernet manual), so the label names FP Web-Server / FP0H.
+- FP Web-Server transparent serial 9095 [checked] → same manualsdir page ("preset TCP/IP port number 9095 (Server or Client)", 9-pin RS232C, any protocol). Only the TCP row added.
+
+#### Unitronics
+- Vision / Samba PCOM/TCP 20256, risky [checked] → https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-335a ("with communications set to the default TCP port 20256"; "used Unitronics' default passwords or no password, and connected to default ports") and https://www.cisa.gov/news-events/ics-advisories/icsa-23-348-15 ("utilize a TCP port that is different than the default port TCP 20256"; "Unitronics Vision Series PLCs and HMIs use default administrative passwords", CVE-2023-6448).
+
+#### Dropped
+- Yokogawa Vnet/IP (CENTUM VP, ProSafe-RS control bus): Vnet/IP Network Construction Guide TI 30A10A05-01E (7th ed., 2026, downloaded) only says the protocol runs on UDP/IP, no port numbers; TI 33Y01B30-01E (Security Standard of System Product) and YSAR-26-0002 have no port table. Not verified.
+- Yokogawa STARDOM FCN/FCJ: ICSA-18-151-03 / ICSA-22-174-01 describe hard-coded credentials on maintenance functions but give no port. Not verified.
+- Yokogawa FAST/TOOLS, Exaquantum, Exaopc (own ports), CAMS for HIS: YSAR-26-0001/0004, YSAR-22-0006/0007 and ICSA-22-083-01 / ICSA-22-174-02 give no port number. Not verified.
+- Omron CX-Programmer, NB / NA HMI: no own port beyond FINS 9600 / EtherNet/IP 44818 already in the file; nothing vendor-documented found.
+- Fuji Electric MONITOUCH V8 (8001 screen data transfer, 8020 simulator, 8050 remote desktop, 10000 Ethernet macro / DLL, 10001 8-way, 1024-1025 ladder transfer, 64000 multi-link 2): ports read in the V8 Reference Manual (https://americas.fujielectric.com/files/V8%20Reference%20Manual.pdf, section 19.1 "V8 port numbers") but the table never says TCP or UDP, so the port token cannot be written. Re-add once the transport is confirmed (V8 Connection Manual).
+- Fuji Electric MICREX-SX SPH loader command port: Fuji pages name the loader command mode but no port; 507 (= local port + 251) only from third-party driver docs.
+- Delta Electronics DIAEnergie / DOPSoft / PLC: CISA ICSA-21-238-03, ICSA-24-277-03 list unauthenticated web/SQL flaws but no port; DOPSoft is a file-parsing editor (no listener). Nothing verified.
+- Hitachi HIDIC, Toshiba unified controller (nv), IDEC FC6A maintenance port (2101 hint), Keyence 8501 on other KV models: no vendor page with the port reached (web-search budget for the session ran out mid-task).
+
+
+### Energy and utilities (SEL, Hitachi Energy, COPA-DATA, Eaton)
+
+#### Schweitzer Engineering Laboratories (SEL)
+- RTAC ACSELERATOR RTAC project download 5432, online monitoring / point forcing 1217, firmware upgrade 5433, traffic monitoring 15453 [checked: SEL University RTAC course page, raw HTML read: "5432 (TCP incoming): acSELerator RTAC project download/retrieval", "1217 (TCP incoming): acSELerator RTAC online status monitoring and point forcing", "5433 (TCP incoming): RTAC firmware upgrades", "15453 (TCP incoming): Communications traffic monitoring for diagnostics/testing"] → https://selinc.com/selu/courses/app/rtac/
+  - 5432 also in SEL white paper LWP0018-01, Table 2 "Default Open Ports for Ethernet and the USB-B Interfaces": "5432 ACSELERATOR RTAC project download and retrieval"; the box that closes it is labelled "Enable OBDC Access" (PDF downloaded and text-extracted) → https://selinc.com/api/download/112760/
+  - 1217 is also the CODESYS Gateway port (row already in the file): the RTAC runtime is CODESYS-based, so both labels are kept.
+- ICON NMS (SEL-5052) Postgres client-server 5436, web / REST / SignalR HTTPS 5437 [checked: SEL Application Note AN2021-05 "SEL ICON Software Open Port Requirements", Table 1, PDF text-extracted; both ports are user-configurable defaults] → https://selinc.com/api/download/135683/
+
+#### Hitachi Energy
+- FOX61x / XCM20 proprietary management protocol 5558 [checked: NVD CVE-2021-40334, read through the NVD API: "Missing Handler vulnerability in the proprietary management protocol (port TCP 5558) of Hitachi Energy FOX61x, XCM20 ... disruption to the NMS and NE communication"] → https://nvd.nist.gov/vuln/detail/CVE-2021-40334 (the referenced Hitachi Energy advisory 8DBD000062 now returns 404 on search.abb.com). Not tagged risky: the CVE is a fixed DoS (versions before R15A).
+
+#### COPA-DATA (zenon, now marketed as ABB Ability zenon)
+- zenon System Service ZenSysSrv.exe 1101 [checked: CISA ICSA-12-013-01: "connecting and disconnecting multiple times to the ZenSysSrv.exe service ... on Port 1101/TCP"; CVE-2011-4534 via the CVE.org API] → https://www.cisa.gov/news-events/ics-advisories/icsa-12-013-01
+  - risky: ABB cyber security advisory 2NGA002743 rev B (2026-07-06), CVE-2025-8754, zenon 7.50 through 14: "the zensyssrv.exe service is set to start automatically ... unauthorized attackers to bypass authentication mechanisms and remotely initiate a system reboot"; the Remote Transport Service is zensyssrv (PDF downloaded and text-extracted) → https://search.abb.com/library/Download.aspx?DocumentID=2NGA002743&LanguageCode=en&DocumentPartId=&Action=Launch . The advisory does not state the port; 1101 comes from the CISA advisory above (same zensyssrv executable).
+  - Purpose "diagnosis server and remote transport of runtime files" on 1101 [checked: COPA-DATA self-service community topic "TCP ports in use by zenOn", 19.09.2007, marked as migrated/possibly outdated] → https://selfservice.copadata.com/portal/en/community/topic/tcpportsinusebyzenon-7yhgpyicj4
+- zenon network (Runtime) 1100, zenon Web Server 1102 [checked: same COPA-DATA community topic: "Port 1100 for the zenOn network in the runtime", "Port 1102 is used by the zenOn Webserver"]. Caveat: the topic dates from 2007 and its author is not marked as COPA-DATA staff; only 1101 is corroborated elsewhere (CISA, above); 1100 and 1102 rest on this vendor-portal post alone, so re-check them against the current zenon help (onlinehelp.copadata.com is JavaScript-only, not readable here).
+- zenon administration service zenAdminSrv 50777 [checked: CISA ICSA-12-013-01: "a specially crafted packet to zenAdminSrv.exe on Port 50777/TCP"; CVE-2011-4533] → https://www.cisa.gov/news-events/ics-advisories/icsa-12-013-01 . Not tagged risky: fixed DoS in 6.51 SP0.
+- Driver Operations Manager zenDrvOpsManager 50786-50787 [checked: COPA-DATA KB "Checklist: zenon driver does not start in Engineering Studio / Service Engine": "zenDrvOpsManager ports (default TCP 50786 & TCP 50787)"] → https://selfservice.copadata.com/portal/en/kb/articles/checklist-zenon-driver-does-not-start-in-engineering-studio-service-engine
+
+#### Eaton
+eaton.com refuses automated fetch (HTTP/2 reset, timeouts on curl and WebFetch); ports read in the search extracts of Eaton PDFs (search restricted to eaton.com).
+- IPP / IPM web supervision 4679 HTTP, 4680 HTTPS [checked via search extract: IPP Installation and Configuration Guide "connections on tcp port 4679 and 4680 to enable a remote access for supervision and configuration through Web Browser", URLs "https://<host>:4680/" and "http://<host>:4679/"; IPP secure configuration guidance EG-01056: "Eaton Supervision TCP/4679 IN/OUT", "Eaton SSL Supervision TCP/4680 IN/OUT", plain HTTP on 4679 limited to redirect to HTTPS and remote discovery] → https://www.eaton.com/content/dam/eaton/products/backup-power-ups-surge-it-power-distribution/au-products/ipp/IPP%20Installation%20and%20Configuration%20Guide.pdf and https://www.eaton.com/content/dam/eaton/products/backup-power-ups-surge-it-power-distribution/power-management-software-connectivity/eaton-intelligent-power-protector/eaton-ipp-eg-01056-t-ccoe-secure-configuration-guidance.pdf . Also IANA mgesupervision 4679 / mgemanagement 4680 tcp+udp ("MGE UPS", MGE UPS Systems is now Eaton), IANA CSV downloaded 2026-11-06.
+- Notification broadcast udp:4679, alarms broadcast udp:4680 [checked via search extract: Eaton table "Eaton Notification Broadcast UDP/4679", "Eaton Alarms Broadcast UDP/4680"; Network-MS manual "IPP in UDP broadcast mode in/out UDP 4679, 4680"] → https://www.eaton.com/content/dam/eaton/products/backup-power-ups-surge-it-power-distribution/power-management-software-connectivity/eaton-network-card-ms/eaton-network-card-ms-user-guide-manual.pdf
+- Network-MS card to IPP connected mode 5000 [checked via search extract: Network-MS manual "IPP in connected mode in/out TCP 5000"] → same Network-MS manual
+- Power Xpert Gateway PXG900 web 7011 HTTP / 7012 HTTPS [checked via search extract: PXG 900 User's Guide MN152006EN, "TCP ports 80 and 7011 for routine HTTP communications, and ports 443 and 7012 for HTTPS"; the guide warns a header-only UI means IT blocks 7011 / 7012] → https://www.eaton.com/content/dam/eaton/products/low-voltage-power-distribution-controls-systems/power-energy-meters/power-xpert-gateway/power-xpert-gateway-900-user-manual-mn152006en.pdf
+
+#### Dropped
+- SEL-3620 / SEL-3622 / SEL-3610 gateway listening ports, SEL Fast Message, Grid Configurator, Blueframe: the data sheets and firmware notes downloaded from selinc.com hold no port table; instruction manuals are login-locked. SEL relays use standard ports (Telnet 23, FTP 21, DNP3 20000, MMS 102, Modbus 502) already covered by generic rows. SEL synchrophasor C37.118 defaults (4712 / 4713) not confirmed on an SEL page.
+- SEL RTAC 443 / 80 / 123: generic web / NTP, skipped per brief.
+- SEL ICON TCP file transfer: random port by default (AN2021-05), not labelable.
+- Hitachi Energy MicroSCADA X SYS600, RTU500, PCM600 / Relion, AFS switches: the cyber security deployment guidelines (1MRK511518, 1MRS756796, RTU500 SDG) are only on publisher.hitachienergy.com (JavaScript app, no direct PDF) or unofficial mirrors (Scribd); the CISA advisories read (ICSA-23-138-03, ICSA-22-272-02) give no port numbers. Relion port 1468 seen only in a third-party manual mirror: not verified.
+- Hitachi Energy FOXMAN-UN port list: only found on an unofficial mirror host, not the vendor.
+- COPA-DATA zenDBsrv 1103 and SQL Browser udp:1434 (2007 community topic): legacy editor multi-user database, and udp:1434 is already a Microsoft row.
+- GE Vernova Grid / Multilin (EnerVista, UR, iPower): gevernova.com resource lists hold only release notes / brochures; UR communications guide not reachable without search; NVD has no port-bearing Multilin CVE.
+- Eaton Intelligent Power Manager 2.x port table and Power Xpert Insight: IPM user guide PDF not fetchable (eaton.com blocks), extract did not show IPM-specific ports beyond 4679 / 4680.
+- Landis+Gyr, Itron: no vendor document with head-end / collector ports found; NVD entries carry no ports.
+- NovaTech OrionLX: documentation and application notes behind the NovaTech community login (JavaScript-loaded).
+- Survalent, OSI (Emerson) monarch: no public port documentation found.
+- Note: the session's shared WebSearch budget ran out mid-task, which cut the search for Hitachi Energy, GE Multilin, NovaTech and Survalent documents short.
+
+
+### European PLCs and remote-access gateways
+
+#### Phoenix Contact
+- PLCnext remoting 41100, MATLAB / Simulink External Mode 17725 [checked: page downloaded with curl and text-extracted; "Common remoting, e.g. via PLCnext Engineer TCP Port 41100" (Security Profile standard), "MATLAB / Simulink in External Mode TCP Port 17725" (activatable); rev. 024, 2026-08-17] → https://security.plcnext.help/se/Appendix/Port_list.htm . Other ports on that page (22, 443, 4840, 161, PROFINET, 6514) are generic and already covered.
+- PC Worx 1962 and 41100 on classic PLCs [checked: application note 110637_en_00 "Security notes for classic PLCs" (2022-06-14), PDF text-extracted: "Port 1962 (communication with PC Worx)", "Port 41100 (OPC and debug mode in PC Worx)"] → https://assets.phoenixcontact.com/file/57130a5c-ab37-464e-b398-167271669a55/media/original
+- 1962 risky [checked: NVD CVE-2019-9201 "Multiple Phoenix Contact devices allow remote attackers to establish TCP sessions to port 1962 and obtain sensitive information or make changes"; vendor advisory VDE-2019-015] → https://nvd.nist.gov/vuln/detail/CVE-2019-9201 and https://cert.vde.com/en/advisories/VDE-2019-015/
+- ProConOS / MULTIPROG 20547 [checked: Advantech FAQ attachment for ADAM-5510KW / ADAM-5550KW (ProConOS-based), PDF text-extracted: "The communication port between Multiprog and ProConOS is 20547."] → https://advdownload.advantech.com/productfile/Downloadfile1/1-D30323/The%20communication%20port%20between%20Multiprog%20and%20ProConOS.pdf (linked from https://www.advantech.com/en-us/support/details/faq?id=1-D30324). Risky: NVD CVE-2014-9195 "ProConOs and MultiProg do not require authentication, which allows remote attackers to execute arbitrary commands via protocol-compliant traffic" (CISA ICSA-15-013-03: "This allows anyone with network access to inject commands to the protocol"; no port named in the advisory) → https://nvd.nist.gov/vuln/detail/CVE-2014-9195 . ProConOS is a Phoenix Contact (ex-KW-Software) runtime, hence the vendor column.
+- mGuard device manager (mdm) 1.17.x: server 7001, CA server 7070, RESTful server 7080, syslog feedback udp:7514 [checked: UM_EN_MGUARD_DM_1.17.x_111024_en_03, PDF text-extracted: "The port number on which the server is listening for client connections (default: 7001)", "The port on which the CA server listens for incoming requests (default: 7070)", "The port on which the mdm RESTful server listens for incoming requests (default: 7080)", "mdm is able to receive Syslog messages on port UDP 7514 (default)"] → https://help.mguard.com/pdf/en/mdm1/manual/1.17.x/UM_EN_MGUARD_DM_1.17.x_111024_en_03.pdf . Note: mdm server and RESTful server bind 127.0.0.1 by default.
+
+#### B&R Industrial Automation
+- ANSL 11169 (open by default), ANSL SSL 11179, PVI remote 20000, GDB 2323, VNC 5900-5931 TCP/UDP, VISAPI 8001, SiteManager / remote maintenance 8888, VC4 terminal mode udp:47787 / udp:48043, SPROXY SafeDESIGNER 50000, mapp Safety 52000 + SafeDOMAIN ID - 1, netX diagnostics 50111-50112, DTM server 50200 [checked: B&R Help "Ethernet - Ports", JS-only page rendered with headless Chrome and text-extracted] → https://help.br-automation.com/#/en/6/communication%2Fethernet%2Fethernet_ports.html . The mapp Safety port is a formula; 52000-52099 is an assumed range for SafeDOMAIN IDs 1-100. Omitted from the same page: udp:69 TFTP, 21, 67, 80, 123, 135, 502, 4840 (generic), 1026 / 1029 ("DCOM and OPC UA server", unclear), 7353 (ARsim simulation only).
+
+#### Bosch Rexroth
+- ctrlX Data Layer client 2069, provider 2070 [checked: ctrlX AUTOMATION SDK .NET API reference "DefaultClientPort = 2069", "DefaultProviderPort = 2070"; TCP scheme recommended for remote systems, IPC only on the same device] → https://boschrexroth.github.io/ctrlx-automation-sdk/3.4.0/api/net/html/classDatalayer_1_1DatalayerSystem.html
+
+#### Opto 22
+- OptoMMP 2001, PAC Controller 22001-22002, Modbus/TCP 8502 [checked: groov EPIC User's Guide form 2267, PDF text-extracted, "default firewall rules" table: "OptoMMP 2001", "ModbusTCP 8502", "PAC Controller 22001, 22002"] → https://documents.opto22.com/2267_groov_EPIC_Users_Guide.pdf
+- OptoMMP over TCP and UDP, PAC Control host task TCP [checked: OptoMMP Protocol Guide form 1465: "packets via TCP/IP or UDP/IP", "OptoMMP port. Default is 2001.", "PAC Control host task listen port (TCP). Default: 22001."] → https://documents.opto22.com/1465_OptoMMP_Protocol_Guide.pdf
+- Cleartext yes on 2001 / 22001 / 8502 [checked: Tech Note form 2310 "necessary but unsecure industrial protocol ports ... PAC Control and CODESYS, OptoMMP, Modbus/TCP"] → https://documents.opto22.com/2310_Tech_Note_groov_EPIC_Security_Design_Best_Practices.pdf
+- SoftPAC Agent 22000 risky [checked: NVD CVE-2020-10612 "SoftPACAgent communicates with SoftPACMonitor over network Port 22000. However, this port is open without any restrictions..."] → https://nvd.nist.gov/vuln/detail/CVE-2020-10612
+
+#### Pilz
+- SafetyNET p 40000 TCP and UDP [checked: IANA safetynetp, assignee Pilz GmbH and Co. KG] → https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.csv (downloaded 2026-11-06)
+
+#### Festo
+- Automation Device Configuration Protocol 7508 TCP [checked: IANA adcp, assignee Festo AG] → IANA CSV as above
+
+#### HMS Networks (Anybus, Ewon)
+- HICP 3250 TCP and UDP [checked: IANA hicp "HMS hicp port"] → IANA CSV as above
+- Ewon Talk2M VPN udp:1194 [checked: "your firewall should open only 2 outbound ports: UDP port 1194 and TCP port 443", "There are no inbound connections from the Talk2m Servers"] → https://help.ewon.biz/ecatcher/help/en/which-port-s--should-i-open-in-my-firewall-to-allow-connection-to-talk2m-.html ; VPN servers on "UDP port 1194 or TCP port 443" and "TLS/SSL encrypted traffic" in KB-0209-00 → https://help.ewon.biz/legacydocumentation/Oldies%20-%20Knowledge%20Base/KB-0209-0-EN-(Talk2M_used_addresses_and_ports).pdf . TCP 443 not added (generic HTTPS).
+
+#### Secomea
+- SiteManager to GateManager 11444 [checked via WebFetch (curl got 403): "ACM/PXP (port 11444 TCP): This is a dedicated port for connecting to the GateManager server."; "an outgoing TCP connection on port 80, 443, or 11444"] → https://kb.secomea.com/docs/sitemanager-connection-method and https://kb.secomea.com/docs/sitemanager-connection-requirements . Cleartext left empty: TLS is stated for 80 / 443, not for 11444.
+
+#### Advantech
+- WebAccess webvrpcs RPC 4592 [checked: NVD CVE-2011-4041 "webvrpcs.exe in Advantech/BroadWin WebAccess ... RPC request to TCP port 4592"] → https://nvd.nist.gov/vuln/detail/CVE-2011-4041 . Not tagged risky: the CVE is a fixed overflow, not a by-default exposure.
+- ProConOS 20547 on ADAM-5510KW / 5550KW: see Phoenix Contact.
+
+#### Lantronix
+- Telnet setup 9999, serial tunnel 10001 (port 1) / 10002 (port 2), Redirector 14000-14009, 30718 (77FEh) [checked: XPort Device Server User Guide 900-270, PDF text-extracted: "establish a Telnet connection to port 9999", "The default port number for Port 1 is 10001 and 10002 for Port 2", Table 7-5 "9999 Telnet setup / 14000-14009 Reserved for Redirector / 30718 Reserved (77FEh)", "Port 77FE is a setting that allows DeviceInstaller, Web Manager, and custom programs to configure the unit remotely"] → https://cdn.lantronix.com/wp-content/uploads/pdf/XPort_UG.pdf
+- udp:30718 risky [checked: NVD CVE-2026-109439 "missing authentication ... unauthenticated UDP configuration protocol on port 30718 ... read and persistently overwrite device configuration" (XPress-DR, CoBos family)] → https://nvd.nist.gov/vuln/detail/CVE-2026-109439
+
+#### PTC Kepware
+- Configuration port 32402, Configuration API HTTP 57412 / HTTPS 57512, UA Gateway server endpoint 58112 [checked: PTC help "Service Port Assignments", page fetched with curl] → https://support.ptc.com/help/kepware/kepware_server/en/kepware/server/port-assignments.html . The page holds several tables (one per product / edition) with shifted values (e.g. 32401/57411, 32403/57413); the rows use the first, most common one. Omitted: 49320 (already a row), 56233 event, 57012 local historian, 57612 store and forward ("does not accept remote connections"), 57712 SE IPC, 57812 key service (internal), 39320 / 39308 IoT Gateway REST agent (value differs between tables).
+
+#### Dropped
+- B&R INA2000 11159 / 11160: only third-party sources (IPESOFT D2000 driver doc, user forum); not on the B&R "Ethernet - Ports" page.
+- B&R mapp View 81, mapp Cockpit 8084: only a user post on the B&R community forum.
+- Bosch Rexroth ctrlX CORE WebIQ 10123, IndraWorks engineering / SIS ports: only community forum posts and a third-party blog; Security Guideline R911342562 not found.
+- Bachmann M1: no vendor port list found (CISA/ICS advisory text read in search extract names no port).
+- Pilz PNOZmulti / PSS 4000 beyond SafetyNET p: manuals only give Modbus/TCP 502 (generic).
+- Turck, WAGO e!COCKPIT (CODESYS ports skipped per brief), Matrikon, Softing, Festo CPX / FFT beyond IANA adcp, Advantech ADAM / WISE (only NVD CVE-2008-5848 default password over HTTP / Modbus, generic ports): no vendor port document found before the web-search budget ran out.
+- Hirschmann / Belden HiOS: HiOS-2S 10.6 manual collection (1051 pages) read; it only uses standard ports (SSH, HTTP(S), SNMP, Modbus 502, MMS 102), no HiDiscovery port number given. Industrial HiVision ports not found.
+- Red Lion Crimson 789: still no Red Lion source; NVD entries for Crimson (ICSA-19-248-01, ICSA-22-321-01) name no port.
+- Secomea GateManager server inbound ports (8443, 55000-59999): only in an Italian distributor's application notes (gate-manager.it), not on secomea.com.
+- Lantronix 30704 (77F0h): listed only as "Reserved" in the XPort guide, function not documented.
+
+
+### Building automation and OT security products
+
+#### Crestron
+- CIP 41794, Secure CIP (SCIP) 41796, HTML5 UI Web API 49200 [checked: PDF downloaded and text-extracted, "Ports and Protocols" table: "Crestron-CIP 41794/TCP Remote Device → Device Crestron Internet Protocol", "Crestron-SCIP 41796/TCP ... Secure Crestron Internet Protocol", "HTTPS 49200/TCP ... Web API for Crestron HTML5 User Interfaces"; firewall table "Inbound from 41794, 41796 To CPU Crestron communication protocols"] → https://fr.crestron.com/getmedia/092281be-65d9-40e8-983b-926a174c007a/mg_sr_4-series-control-systems (4-Series Security Reference Guide, Doc. 9063F). Same table in the 3-Series guide → https://fr.crestron.com/getmedia/659a78e0-bd45-431d-af60-1eeeff825fa2/mg_sr_3-series-control-systems
+- CTP 41795, SCTP 41797 [checked: Toolbox help raw HTML, "CTP: Crestron Terminal Protocol ... Default port = 41795", "SCTP: Secure Crestron Terminal Protocol used for Ethernet communication over an SSL connection to Port 41797", also "CIP ... Default port = 41794", "SCIP ... Default port = 41796"] → https://help.crestron.com/toolbox/Content/System_Info/Functions/Ethernet_Ports.htm
+- UDP 41794 [checked: IANA CSV "crestron-cip,41794,udp,Crestron Control Port,[Crestron_Electronics]"; IANA also lists 41795 udp crestron-ctp, not added] → https://www.iana.org/assignments/service-names-port-numbers/service-names-port-numbers.csv. The UDP discovery broadcast on 41794 is only stated by forums; the 4-Series guide says auto discovery "is not protected by any type of authentication" but gives no port, so the row does not claim discovery and is not tagged risky.
+
+#### Siemens (Desigo CC only)
+- Desigo CC event port 4998/tcp, risky [checked: Siemens SSA-523418 "Restrict access to the server's event port (default: 4998/tcp)"; CVE-2024-23815 "execute arbitrary SQL queries on the server database via the event port (default: 4998/tcp)", Installed Client deployments] → https://cert-portal.siemens.com/productcert/html/ssa-523418.html. Note: the CSV already has 4998 as WinCC OA event manager (Desigo CC is built on WinCC OA); this is a separate product row.
+- Desigo CC Service port 8888 [checked: "change the default value of the Service port (8888) ... The Service port is used by the Client/FEP to obtain the project information from the server. This communication happens using GMS SMC ProjectData Service"] → https://mybuilding.siemens.com/D025938170736/Help/EngineeringHelp/en-US/23602399755.html
+
+#### Trane Technologies
+- Tracer SC+ to Ensemble Cloud BACnet/SC TCP 47808 [checked: PDF text-extracted, "Firewall requirements allow outbound Traffic on TCP port 47808", "uses Outbound TCP port 47808", "BACnet/SC TLS encryption"] → https://elibrary.tranetechnologies.com/public/commercial-hvac/Literature/Sales/BAS-SLB148-EN_03142024.pdf ; also "Once configured, the active BACnet/SC ports are TCP 47808. Outbound-only traffic" → https://elibrary.tranetechnologies.com/public/commercial-hvac/Literature/Sales/BAS-SLB124-EN_03012024.pdf
+- Trane Connect remote access UDP 1194 [checked: Tracer SC+ IT Setup reference card "Remote Access TCP 443 & UDP 1194 sc-traneconnect.tis.trane.com", "All communication originates from the Tracer SC+ ... encrypted using SSL/TLS"] → https://elibrary.tranetechnologies.com/public/commercial-hvac/Literature/Sales/BAS-SLM054B-EN_09222020.pdf
+
+#### SAUTER
+- moduNet292 (EY-BU292) TCP 51806 nova292-Server, TCP 51807 nova291-Emulation [checked: product data sheet 96.015 text-extracted, "TCP port (App 1) 51806 (nova292-Server)", "TCP port (App 2) 51807 (nova291-Emulation)"; interface for CASE Suite and novaPro] → https://www.sauter-controls.com/wp-content/uploads/2019/02/553753.pdf (DE 706655.pdf and FR 553754.pdf identical)
+
+#### Lutron
+- HomeWorks QS / RadioRA 2: UDP 2056 processor-to-processor and commissioning multicast, TCP 51023 commissioning unicast, TFTP 69 + UDP 777 processor upgrades, Telnet TCP 23, Connect Bridge to processors "SFTP/22, TCP/23, UDP/1900, UDP/2647, TCP/4548, UDP/5353, TCP/8081, TCP/8083", Connect Bridge to third-party integrators "TCP/1900, TCP/4548, TCP/7782, TCP/8081, TCP/8083, TCP/8090" [checked: Application Note #731 rev. B, PDF text-extracted] → https://assets.lutron.com/a/documents/residential_systems_networking_guide.pdf . Telnet risky: "Prior to version 13.0, default Telnet credentials were available for integrators to use. From 13.0 forward, Telnet credentials need to be set up". The port diagram shows "UDP 4548" but the text list and the RA3 page say TCP/4548; I kept TCP.
+- RadioRA 3 / HomeWorks QSX / Caseta local ports 22, 23, udp 1900, 4548, udp 5353, 8081, 8083; "Connect Bridge requires the Processor to use Telnet on port 23" [checked: page fetched] → https://support.lutron.com/us/en/product/radiora3/article/networking/What-are-the-Network-Requirements-for-Caseta-and-RA2-Select . LEAP is "certificate-based authentication over a Transport Layer Security (TLS) connection" (https://support.lutron.com/us/en/product/radiora3/article/networking/Lutron-s-LEAP-API-Integration-Protocol) but no Lutron page ties LEAP to 8081/8083, so the rows say "integration" only and cleartext is empty. udp 1900 (SSDP) and udp 5353 (mDNS) are standard and not re-added.
+
+#### Nozomi Networks
+- Remote Collector to Guardian TCP 6000 [checked: raw HTML table "tcp/6000 | proprietary (over TLS) | RC | Guardian | Transmission of monitored traffic from Remote Collector to Guardian"] → https://technicaldocs.nozominetworks.com/products/n2os/topics/installation/additional/r_n2os_network-reqs_comms-2.html (Guardian↔CMC and RC→Guardian sync are tcp/443, not added)
+- Guardian discovery UDP 48888 and UDP 1911 Fox [checked: raw HTML table "UDP/48888 | Multiple protocols | Guardian and monitored devices | Broadcast | Discovery", "UDP/1911 | Fox | ... | Discovery"] → https://technicaldocs.nozominetworks.com/products/n2os/topics/installation/additional/r_n2os_network-reqs_operator-access-2.html
+- Vantage sync is tcp/443 only → https://technicaldocs.nozominetworks.com/products/n2os/topics/installation/additional/r_n2os_network-reqs_comms_vantage-3.html (nothing added)
+
+#### Tenable (OT Security / Tenable One OT Exposure, ex-Indegy)
+- TCP 8000 Tenable Core web UI, TCP 443 + 28304 sensor pairing ("TCP 28304 (SSH) ... SSH connections for sensor pairing ... Authenticated / secure tunnel"), TCP 28303 ("Unauthenticated / passive only sensor connection"), TCP 28305 ICP↔EM pairing ("the ICP must be able to reach ports 28305 and 8000"), TCP 28306 OT Agent connection, TCP 10146 IoT Connector "(secure port)", TCP 10104 "(unsecure port)" [checked: raw HTML downloaded and tables extracted] → https://docs.tenable.com/OT-security/Content/FirewallConsiderations/FirewallConsiderations.htm (v4.7)
+
+#### Microsoft (Defender for IoT, ex-CyberX)
+- TCP 9000 tunneling [checked: raw HTML table "Tunneling | TCP | In | 9000 In addition to port 443 Allows access from the sensor, or end user, to the OT sensor ... Port 22 from the sensor to the OT sensor | Monitoring | Tunneling"] → https://learn.microsoft.com/en-us/azure/defender-for-iot/organizations/networking-requirements . This row belonged to the on-premises management console (retired 2025-01-01 per https://learn.microsoft.com/en-us/azure/defender-for-iot/organizations/ot-deploy/connect-sensors-to-management), hence "legacy". All other sensor ports on the page are standard (22, 443, 514, 161, 389/636…), not added.
+
+#### Cisco (Cyber Vision)
+- Sensor to Center AMQP TCP 5671 and secure syslog TCP 10514 [checked via page fetch: release notes "Previously, the system used two ports: Secure syslog (TCP 10514) and AMQP (TCP 5671)." "In release 5.4.0, the system uses only one port: AMQP (TCP 5671)."] → https://www.cisco.com/c/en/us/td/docs/security/cyber_vision/Release-Notes/Cisco-cyber-vision-release-notes-5-4-x.html . The Architecture Guide PDF returned Akamai "Access Denied".
+
+#### Dropped
+- Already covered in the CSV: Johnson Controls Metasys, Tridium Niagara, Schneider EBO, BACnet/KNX/LonTalk. Honeywell WEBs (Niagara) and Fortinet rugged skipped per brief; Siemens industrial left to the other agent.
+- Crestron UDP 41794 as discovery broadcast: only forum sources; kept the IANA row without the discovery claim.
+- Siemens Desigo CC full port list: lives in Cybersecurity Guidelines A6V11646120, not publicly fetchable. VNT TCP 2000 / 22: only on customer-hosted copies of the Desigo CC help (Siemens-hosted page 404). Closed mode service 8081: local client service, not a network port. CCom port: default not stated.
+- Siemens Desigo PXC / BACnet/SC port: no Siemens page with a number found (engineering help page 404).
+- Siemens P2 protocol TCP 5033 (Apogee): only seen in Tenable's Active Query table, not a Siemens source; out of the Desigo scope anyway.
+- Honeywell EBI: no public port list found (only BACnet PICS and marketing).
+- Carrier Automated Logic WebCTRL: no ALC page with a port table found.
+- Distech Controls ECLYPSE: port table exists in the ECLYPSE user guide but only third-party copies were reachable.
+- Delta Controls enteliWEB: port table (4321 BIRT, 49250 MySQL…) only seen on a manuals.plus copy; Delta support portal needs a login.
+- KMC Controls Commander: port bulletin not public, help.kmccommander.com returns 403; vendor says outbound only, no inbound rules.
+- Priva: not researched to a source (session web-search budget exhausted before finding a Priva page).
+- Lutron HomeWorks QSX app note 048760: assets.lutron.com returned 403; not retried.
+- Claroty CTD / xDome: only third-party integration guides (Dell, Accenture, Secureworks); Claroty docs behind portal.
+- Dragos Platform: no Dragos port documentation public.
+- Armis: no Armis port documentation public.
+
