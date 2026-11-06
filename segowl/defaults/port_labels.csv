@@ -2264,3 +2264,509 @@ udp:694;Linux-HA heartbeat (ha-cluster);network;Linux-HA;
 udp:8889;Fortinet FortiManager local FortiGuard antispam;security;Fortinet;
 18231;Check Point Policy Server logon;security;Check Point;
 18262-18263;Check Point ExtraNet (ExNet_PK, ExNet_Resolve);security;Check Point;
+4900;Moxa Command (DSCI) utility communication (NPort / MGate configuration and firmware upgrade);ot,admin;Moxa;
+14900;Moxa Command (DSCI) utility communication (NPort);ot,admin;Moxa;
+udp:4800;Moxa Command (DSCI) / Moxa Service discovery — unauthenticated, leaks configuration values (CVE-2020-12117);ot,admin,risky;Moxa;
+950-965;Moxa NPort Real COM mode data (950 + serial port no. - 1);ot,iot;Moxa;
+966-981;Moxa NPort Real COM mode command (966 + serial port no. - 1);ot,iot;Moxa;
+4001-4016;Moxa NPort TCP Server / RFC2217 / Pair Connection / Ethernet Modem / Reverse Telnet modes (4000 + serial port no.);ot,iot;Moxa;
+udp:4001-4016;Moxa NPort UDP mode (4000 + serial port no.);ot,iot;Moxa;
+7502;Moxa MGate high-priority Modbus TCP;ot;Moxa;
+4502;Moxa MGate MB3000 packet monitor;ot,monitoring;Moxa;
+8883;Moxa MXview remote communication / MXview One Central Manager and internal service port;monitoring,network;Moxa;
+8882;Moxa MXview One internal service port 2;monitoring,network;Moxa;
+4430;Moxa MXview polling engine;monitoring,network;Moxa;
+771;Digi RealPort (network COM port redirection to Digi device servers);ot,iot;Digi International;yes
+1027;Digi Encrypted RealPort (TLS);ot,iot;Digi International;no
+udp:2362;Digi ADDP (Advanced Digi Discovery Protocol);iot,admin;Digi International;
+2001;Digi Telnet passthrough to serial port 1 (base 2000 + serial port no.);iot,remote-access;Digi International;yes
+2101;Digi TCP passthrough (raw socket) to serial port 1 (base 2100 + serial port no.);iot;Digi International;yes
+udp:2101;Digi Serial/UDP server (UDP passthrough) to serial port 1;iot;Digi International;yes
+2501;Digi SSH passthrough to serial port 1;iot,remote-access;Digi International;no
+2601;Digi Secure Socket Service (TLS raw passthrough) to serial port 1;iot;Digi International;no
+50000;Digi modem emulation pool (pmodem);iot;Digi International;
+50001;Digi modem emulation passthrough;iot;Digi International;
+3197;Digi Remote Manager EDP device connection (non-SSL, older firmware);iot,admin;Digi International;yes
+3199;Digi Remote Manager EDP device connection (SSL);iot,admin;Digi International;no
+udp:5000;Mitsubishi MELSEC Ethernet module (iQ-R RJ71EN71, Q-series) auto-open UDP port (SLMP / MC protocol);ot;Mitsubishi Electric;
+udp:5001;Mitsubishi MELSEC MELSOFT transmission port UDP (GX Works, RJ71EN71, Q-series Ethernet module, iQ-R CPU);ot,admin;Mitsubishi Electric;
+5002;Mitsubishi MELSEC MELSOFT transmission port TCP (GX Works, RJ71EN71, Q-series Ethernet module);ot,admin;Mitsubishi Electric;
+udp:5003;Mitsubishi MELSEC iQ-R RJ71EN71 MELSOFT direct connection;ot,admin;Mitsubishi Electric;
+udp:5005;Mitsubishi MELSEC iQ-R CPU auto-open UDP port (SLMP);ot;Mitsubishi Electric;
+udp:5006;Mitsubishi MELSEC CPU built-in Ethernet MELSOFT transmission port UDP (GX Works);ot,admin;Mitsubishi Electric;
+5007;Mitsubishi MELSEC CPU built-in Ethernet MELSOFT transmission port TCP (GX Works);ot,admin;Mitsubishi Electric;
+udp:5008;Mitsubishi MELSEC CPU built-in Ethernet MELSOFT direct connection;ot,admin;Mitsubishi Electric;
+udp:5009;Mitsubishi MELSEC iQ-R module search on the network;ot;Mitsubishi Electric;
+51000;Honeywell Experion TCP (Safety Manager / FSC process data) — no authentication: IO manipulation, file read/write (CVE-2022-30313);ot,risky;Honeywell;
+51001;Honeywell Experion FSC information scan;ot;Honeywell;
+51010;Honeywell Safety Builder (Safety Manager engineering) — no authentication: controller start/stop, logic download/upload (CVE-2022-30313);ot,admin,risky;Honeywell;
+55565;Honeywell Experion LX Control Data Access (CDA) EpicMo — no authentication: firmware download, device reboot (CVE-2022-30317);ot,risky;Honeywell;
+udp:18507;Emerson DeltaV Hawk services — no authentication (CVE-2022-29957);ot,risky;Emerson;
+18508;Emerson DeltaV firmware upgrade — no authentication (CVE-2022-29957);ot,risky;Emerson;
+18518;Emerson DeltaV firmware upgrade — no authentication (CVE-2022-29957);ot,risky;Emerson;
+udp:18510;Emerson DeltaV Plug-and-Play — no authentication (CVE-2022-29957);ot,risky;Emerson;
+udp:18512;Emerson DeltaV cold restart — no authentication (CVE-2022-29957);ot,risky;Emerson;
+udp:18515;Emerson DeltaV Wireless Gateway Protocol — no authentication (CVE-2022-29957);ot,risky;Emerson;
+18519;Emerson DeltaV management — no authentication (CVE-2022-29957);ot,admin,risky;Emerson;
+12345;Emerson DeltaV SIS communications — no authentication (CVE-2022-29957);ot,risky;Emerson;
+18550;Emerson DeltaV controller / IO card Telnet — root shell with hardcoded credentials (CVE-2022-29963);ot,admin,remote-access,risky;Emerson;yes
+3340;ABB System 800xA Multisystem Integration (Remote Access Server);ot,admin;ABB;no
+19014-19017;ABB System 800xA Information Manager Display Services / Desktop Trends / Excel add-ins;ot,monitoring;ABB;
+1706;ABB System 800xA Information Manager Open Data Access (ODA);ot,db;ABB;
+102;ABB AC 800M MMS on TCP/IP (Control Builder / OPC Server to controller);ot;ABB;
+udp:2999;ABB SattBus on TCP/IP (AC 800M);ot;ABB;
+1443;Johnson Controls Metasys BACnet/SC (BACnet Secure Connect, default port);ot;Johnson Controls;no
+9910;Johnson Controls Metasys network engine diagnostics (Microsoft Discovery Protocol);ot,monitoring;Johnson Controls;
+udp:9910;Johnson Controls Metasys network engine diagnostics (Microsoft Discovery Protocol);ot,monitoring;Johnson Controls;
+udp:9911;Johnson Controls Metasys Private Message (SCT device discovery broadcast);ot;Johnson Controls;
+10050;Johnson Controls Metasys NAE Update Tool Turbo Boot (network engine image updates);ot,admin;Johnson Controls;
+12000;Johnson Controls Metasys UberDebug Service (debugging and logging);ot,monitoring;Johnson Controls;
+9004;Johnson Controls Metasys Software Manager licensing service;ot;Johnson Controls;
+udp:11001;Johnson Controls Metasys N1 protocol (NCM / NIE, Release 9.0 and earlier);ot;Johnson Controls;
+udp:4096;Johnson Controls Metasys N2 protocol over IP, trunk 1 (NAE55);ot;Johnson Controls;
+udp:4097;Johnson Controls Metasys N2 protocol over IP, trunk 2 (NAE55);ot;Johnson Controls;
+udp:4050;Johnson Controls Metasys Wireless Many-to-One Sensing (WRS-RTN supervisor);ot,iot;Johnson Controls;
+3003;Johnson Controls Metasys ADS PhantomJS report PDF generation (internal, keep blocked);ot;Johnson Controls;
+10000;Johnson Controls Metasys ADS PhantomJS report PDF generation (internal, keep blocked);ot;Johnson Controls;
+5291;Johnson Controls Metasys ADS/ADX Action Queue (internal, keep blocked);ot;Johnson Controls;
+5960;Johnson Controls Metasys ADS/ADX Device Manager IPC (internal, keep blocked);ot;Johnson Controls;
+9003;Johnson Controls Metasys JCI Product Update service (internal, keep blocked);ot;Johnson Controls;
+9505;Johnson Controls Metasys JCI Rate Limit website (internal, keep blocked);ot,web;Johnson Controls;
+9506;Johnson Controls Metasys JCI Rewrite website, API routing (internal, keep blocked);ot,web;Johnson Controls;
+9507;Johnson Controls Metasys JCI Website, main APIs (internal, keep blocked);ot,web;Johnson Controls;
+3001;LenelS2 LNL-2220 / LNL-3300 (Mercury) controller host port (Communication Server traffic);iot;LenelS2;
+4001;LenelS2 OnGuard server Alarm Monitoring client connections;iot;LenelS2;
+4004;LenelS2 OnGuard server Alarm Monitoring client connections;iot;LenelS2;
+8080;LenelS2 OnGuard web console and web clients/modules (default port);iot,admin,web;LenelS2;
+8189;LenelS2 OnGuard License Server (client connections);iot;LenelS2;
+udp:2000;Genetec Synergis unit discovery (Access Manager);iot;Genetec;
+2571;Genetec Synergis Cloud Link ASSA ABLOY IP lock R3 protocol (user-configurable);iot;Genetec;
+9999;Genetec Synergis Cloud Link ASSA ABLOY Aperio IP protocol (user-configurable);iot;Genetec;
+4050;HID VertX / Edge EVO OPIN protocol (legacy units, EVO firmware before 3.7);iot;HID Global;
+4433;HID Edge EVO OPIN protocol in Secure Mode (TLS, firmware 3.7 and later);iot;HID Global;no
+udp:4070;HID VertX discovery / DHCP enrollment (fixed port);iot;HID Global;
+4594;Genetec Update Service web page (deprecated, redirects to 4595);iot,admin;Genetec;
+4595;Genetec Update Service (GUS) web page and GUS server communication (HTTPS);iot,admin;Genetec;no
+4596;Genetec Update Service Sidecar to GUS;iot;Genetec;
+9000-10000;Genetec Security Center Mobile Server device streaming to Archiver (HTTP);iot;Genetec;yes
+48830;Genetec Wearable Camera Manager communication with Axis SCU (Clearance protocol);iot;Genetec;
+48831-48833;Genetec Wearable Camera Manager API (multiple roles on one server);iot;Genetec;
+754;Genetec KiwiVision Privacy Protector stream requests (RTSP, TLS when secure communication is on);iot;Genetec;
+2323;Genetec AutoVu SharpV extension selection port;iot;Genetec;
+udp:2728;Genetec AutoVu Sharp appliance discovery;iot;Genetec;
+4502-4534;Genetec AutoVu Sharp Silverlight and image feed (models before SharpV, HTTP);iot;Genetec;yes
+4545;Genetec AutoVu Sharp control port (mobile installation);iot;Genetec;
+8001;Genetec AutoVu Sharp control port (fixed installation, HTTP);iot;Genetec;yes
+9001;Genetec AutoVu Sharp LPM protocol (Security Center 5.8, HTTPS);iot;Genetec;no
+10001;Genetec AutoVu LPM protocol (Sharp and ALPR Manager, HTTPS);iot;Genetec;no
+18731;Genetec AutoVu ALPR Manager secure port (Patroller to Security Center);iot;Genetec;no
+udp:5000;Genetec AutoVu Sharp camera discovery;iot;Genetec;
+4546;Genetec AutoVu Patroller time sync for Sharp units (SNTP);iot;Genetec;
+8787;Genetec AutoVu Pay-by-Plate Sync (HTTP);iot;Genetec;yes
+8788;Genetec AutoVu Pay-by-Plate Sync (HTTPS);iot;Genetec;no
+8202;Genetec Sipelia session transfer (call recording download, TLS);iot,voip;Genetec;no
+udp:20000-20500;Genetec Sipelia RTP audio;iot,voip;Genetec;
+7550;Genetec Sipelia Gateway Web API (HTTPS);iot,voip;Genetec;no
+7001;Hanwha Vision Wisenet WAVE server (single port: clients, web admin, REST API, RTSP);iot,admin,web;Hanwha Vision;
+4520;Hanwha Vision camera device port (listed as SNMP by Hanwha, streaming on legacy NVR/DVR);iot;Hanwha Vision;
+4521;Hanwha Vision legacy NVR/DVR user authentication and firmware upgrade;iot,admin;Hanwha Vision;
+555;Hanwha Vision legacy NVR/DVR user authentication and firmware upgrade;iot,admin;Hanwha Vision;
+4522;Hanwha Vision legacy NVR/DVR video / audio streaming;iot;Hanwha Vision;
+556;Hanwha Vision legacy NVR/DVR video / audio streaming;iot;Hanwha Vision;
+4523;Hanwha Vision legacy NVR/DVR setup page (HTML);iot,admin,web;Hanwha Vision;
+557;Hanwha Vision legacy NVR/DVR setup page (HTML);iot,admin,web;Hanwha Vision;
+4524;Hanwha Vision legacy NVR/DVR CGI for iPOLIS mobile app (RTSP on older DVRs);iot;Hanwha Vision;
+558;Hanwha Vision NVR/DVR RTSP (legacy NVR/DVR: iPOLIS mobile CGI);iot;Hanwha Vision;
+7701;Hanwha Vision IP Installer utility;iot,admin;Hanwha Vision;
+38880;Avigilon Control Center (ACC 7) server API (HTTPS);iot,admin;Avigilon (Motorola Solutions);no
+38881;Avigilon Control Center (ACC 7) server API and media (HTTPS);iot;Avigilon (Motorola Solutions);no
+udp:38883;Avigilon Control Center server discovery (multicast 239.255.255.0);iot;Avigilon (Motorola Solutions);yes
+38980;Avigilon Control Center database replication (Postgres);iot,db;Avigilon (Motorola Solutions);no
+38981;Avigilon Control Center database (Postgres);iot,db;Avigilon (Motorola Solutions);no
+38982;Avigilon Control Center clustering, gossip (HTTPS);iot;Avigilon (Motorola Solutions);no
+38983;Avigilon Control Center clustering (MQTT);iot,messaging;Avigilon (Motorola Solutions);no
+udp:51000-55000;Avigilon Control Center media (RTP/RTCP);iot;Avigilon (Motorola Solutions);yes
+8443;Avigilon Control Center Web Endpoint REST API (Windows);iot,web;Avigilon (Motorola Solutions);
+49152;Avigilon Control Center Web Endpoint SSDP (Windows);iot;Avigilon (Motorola Solutions);yes
+udp:59595;Avigilon Control Center Pelco device driver discovery (multicast);iot;Avigilon (Motorola Solutions);yes
+4000;Xerox AltaLink ThinPrint printing;print;Xerox;
+5909-5999;Xerox AltaLink remote access to the local control panel (TLS, random port);print,remote-access;Xerox;no
+51333;Xerox AltaLink file sharing through Fleet Orchestrator;print,file;Xerox;
+53202;Xerox AltaLink WSD Transfer;print;Xerox;
+53303;Xerox AltaLink WSD Print;print;Xerox;
+53404;Xerox AltaLink WSD Scan;print;Xerox;
+10021;Ricoh MFP RFU remote firmware update;print,admin;Ricoh;
+53000;Ricoh MFP WSD (Device) (variable);print;Ricoh;
+53001;Ricoh MFP WSD (Printer) (variable);print;Ricoh;
+514;Ricoh MFP RSH/RCP (Network TWAIN);print;Ricoh;yes
+31943;Huawei eSight web client (HTTPS, default login port);monitoring,network,admin;Huawei;no
+31942;Huawei eSight web access / CAS SSO server port;monitoring,network,admin;Huawei;
+31945;Huawei eSight management plane / maintenance tool;monitoring,admin;Huawei;
+31921;Huawei eSight FTP server (redirect of TCP 21);file,network;Huawei;
+udp:32182;Huawei eSight TFTP server (redirect of UDP 69);file,network;Huawei;yes
+udp:10162;Huawei eSight alarm (SNMP trap) receiver (redirect of UDP 162);monitoring,network;Huawei;
+udp:32185;Huawei eSight syslog receiver (redirect of UDP 514);monitoring,network;Huawei;yes
+10020;Huawei iMaster NCE-Campus NETCONF device registration / call home;network,admin;Huawei;no
+10031;Huawei iMaster NCE-Campus HTTP/2 performance data channel (legacy device certificate);network,monitoring;Huawei;no
+10032;Huawei iMaster NCE-Campus HTTP/2 performance data channel (new device certificate);network,monitoring;Huawei;no
+18008;Huawei iMaster NCE-Campus service plane web login;network,admin;Huawei;
+18020;Huawei iMaster NCE-Campus file download channel (new device certificate);network,file;Huawei;no
+18021;Huawei iMaster NCE-Campus file download channel (legacy device certificate);network,file;Huawei;no
+udp:12222;Extreme Networks ExtremeCloud IQ (Aerohive HiveManager) AP CAPWAP to cloud / redirector;network,admin;Extreme Networks;no
+8443;Extreme Networks ExtremeCloud IQ Site Engine web UI / NBI / engine communication (HTTPS);network,admin,monitoring;Extreme Networks;no
+8080;Extreme Networks ExtremeCloud IQ Site Engine HTTP (redirect to 8443, ExtremeControl / ExtremeAnalytics communication);network,admin;Extreme Networks;yes
+8444;Extreme Networks ExtremeControl engine communication (HTTPS);security,network;Extreme Networks;no
+8445;Extreme Networks ExtremeControl Assessment communication (HTTPS);security;Extreme Networks;no
+20504-20505;Extreme Networks ExtremeCloud IQ Site Engine ExtremeWireless Controller communication;network,monitoring;Extreme Networks;
+20506;Extreme Networks ExtremeWireless Controller Remote Langley Secure (inter-controller / Site Engine);network;Extreme Networks;
+udp:2095;Extreme Networks ExtremeAnalytics ExtremeWireless NetFlow collector;monitoring,network;Extreme Networks;yes
+udp:2058;Extreme Networks ExtremeAnalytics VMware NSX IPFIX collector;monitoring,network;Extreme Networks;yes
+udp:2075;Extreme Networks ExtremeAnalytics IPFIX collector;monitoring,network;Extreme Networks;yes
+udp:13907;Extreme Networks ExtremeCloud IQ Controller WASSP AP registration / discovery;network;Extreme Networks;
+udp:13910;Extreme Networks ExtremeCloud IQ Controller WASSP AP management and data tunnel;network;Extreme Networks;
+udp:13911;Extreme Networks ExtremeCloud IQ Controller WASSP inter-controller mobility and availability tunnel;network;Extreme Networks;
+5825;Extreme Networks ExtremeCloud IQ Controller appliance GUI (HTTPS);network,admin;Extreme Networks;no
+2002-2003;Extreme Networks ExtremeCloud IQ Controller AP Real Capture (RCAPD);network,monitoring;Extreme Networks;
+60606;Extreme Networks ExtremeCloud IQ Controller mobility VN manager;network;Extreme Networks;
+6380;Extreme Networks ExtremeCloud IQ Controller HA pair configuration sync (Redis);network,db;Extreme Networks;
+2200;Juniper Mist cloud oc-term (EX / SRX outbound management to Mist cloud);network,admin;Juniper Networks;
+6514;Juniper Mist SRX log terminator (SRX logs to Mist cloud);security,monitoring;Juniper Networks;
+udp:1701;Juniper Mist Edge L2TPv3 tunnel from APs (non-IPsec campus / branch);network;Juniper Networks;yes
+6667;Zyxel Nebula device to Nebula Control Center management (NETCONF);network,admin;Zyxel;
+4335;Zyxel Nebula device to Nebula Control Center management (NETCONF);network,admin;Zyxel;
+10000-12000;Ruijie Cloud tunnel from cloud to gateway;network,admin;Ruijie Networks;
+udp:3478;Ruijie Cloud CLI command delivery to AP / switch / gateway;network,admin;Ruijie Networks;
+udp:3479;Ruijie Cloud CLI command delivery to AP / switch / gateway;network,admin;Ruijie Networks;
+3225;Brocade Extension WO-TCP (FCIP / IP Extension tunnel);file,network;Broadcom;
+3226;Brocade Extension WO-TCP (FCIP / IP Extension tunnel);file,network;Broadcom;
+9198;Cisco DCNM SAN SNMP proxy (SAN Client / Device Manager to server);file,monitoring;Cisco;
+udp:9198;Cisco DCNM SAN SNMP proxy (SAN Client / Device Manager to server);file,monitoring;Cisco;
+1099;Cisco DCNM SAN Java RMI (SAN client to server);file,admin;Cisco;
+3528;Cisco DCNM SAN JBoss IIOP (clients to server);file,admin;Cisco;yes
+3529;Cisco DCNM SAN JBoss IIOP over SSL (clients to server);file,admin;Cisco;no
+61616;Cisco DCNM SAN client messaging;file,admin;Cisco;
+udp:1163-1170;Cisco DCNM SAN Client / Device Manager SNMP trap receivers;file,monitoring;Cisco;
+udp:2162;Cisco DCNM SAN SNMP trap receiver (from MDS switches);file,monitoring;Cisco;
+57500;Cisco DCNM SAN telemetry streaming (gRPC, MDS to server);file,monitoring;Cisco;
+1300;Stormshield SNS NSRPC command-line administration (serverd, also HA cluster join);admin,security;Stormshield;
+1754;Stormshield Management Center (SMC) server — managed SNS firewall connection;admin,security;Stormshield;
+udp:44242;Stormshield SNS HA kernel-to-kernel real-time state synchronization;security,network;Stormshield;
+16058-16059;Stormshield SNS HA IPsec VPN status synchronization (gatewayd);security,network;Stormshield;
+udp:5405;Stormshield SNS HA corosync messages and control-link monitoring;security,network;Stormshield;
+udp:1194;Stormshield SNS SSL VPN (OpenVPN, UDP mode);security,remote-access;Stormshield;no
+17000;Stormshield SES Evolution agent handler (agents older than 2.7.1);security;Stormshield;
+8443;Stormshield SES Evolution backend (administration consoles and agent handlers, HTTPS);security,admin;Stormshield;no
+10443;Stormshield SES Evolution backend public API (SIEM / SOAR, disabled by default);security;Stormshield;
+4105;WatchGuard Firebox management (WatchGuard policy, WSM / Policy Manager);admin,security;WatchGuard;
+4117;WatchGuard Firebox management (WatchGuard policy, WSM / Policy Manager);admin,security;WatchGuard;
+4118;WatchGuard Firebox CLI (SSH) and management (WatchGuard policy);admin,security;WatchGuard;no
+8080;WatchGuard Fireware Web UI (HTTPS);admin,security;WatchGuard;no
+4100;WatchGuard Firebox authentication portal (WG-Auth policy);security,directory;WatchGuard;
+4112-4113;WatchGuard WSM Management Server;admin,security;WatchGuard;
+4130;WatchGuard WebCenter;admin,security;WatchGuard;
+4115;WatchGuard Dimension / Log Server log collection from Fireboxes (TLS);monitoring,security;WatchGuard;no
+4107;WatchGuard Log Server log collection (deprecated since Fireware 12.9);monitoring,security;WatchGuard;no
+4433;SonicWall SonicOS SSL VPN / Virtual Assist;security,remote-access;SonicWall;no
+udp:2258;SonicWall SonicOS Single Sign-On (SSO Agent);security,directory;SonicWall;
+udp:2259;SonicWall SonicOS Terminal Server Agent (TSA) authentication;security,directory;SonicWall;
+8443;SonicWall GMS web server (HTTPS);security,admin;SonicWall;no
+5595;SonicWall GMS secured CLI server;security,admin;SonicWall;
+21021;SonicWall GMS Zero Touch;security,admin;SonicWall;
+8443;SonicWall SMA 1000 Appliance / Central Management Console (AMC / CMC);security,admin,remote-access;SonicWall;
+1888;SonicWall SMA 1000 health check service (external load balancers);security,monitoring;SonicWall;
+691;Barracuda CloudGen Firewall TINA VPN;security,remote-access;Barracuda;no
+udp:691;Barracuda CloudGen Firewall TINA VPN;security,remote-access;Barracuda;no
+680;Barracuda CloudGen Firewall FW-audit (Firewall Audit Viewer);security,monitoring;Barracuda;
+688;Barracuda CloudGen Firewall firewall service (Firewall Admin);security,admin;Barracuda;
+udp:689;Barracuda CloudGen Firewall controld HA-Sync;security,network;Barracuda;
+692;Barracuda CloudGen Firewall Control Center management tunnel;security,admin;Barracuda;
+udp:692;Barracuda CloudGen Firewall Control Center management tunnel;security,admin;Barracuda;
+694;Barracuda CloudGen Firewall AutoVPN TINA tunnel;security;Barracuda;
+801;Barracuda CloudGen Firewall controld control status;security,admin;Barracuda;
+udp:801;Barracuda CloudGen Firewall controld HA heartbeat;security,network;Barracuda;
+803;Barracuda CloudGen Firewall logd (Log Viewer);security,monitoring;Barracuda;
+805;Barracuda CloudGen Firewall distd (distribution daemon);security,admin;Barracuda;
+806;Barracuda CloudGen Firewall Control Center SPoE (Single Point of Entry, Firewall Admin);security,admin;Barracuda;
+807;Barracuda CloudGen Firewall SPoE (Single Point of Entry, Firewall Admin);security,admin;Barracuda;
+808;Barracuda CloudGen Firewall event service (Event Viewer);security,monitoring;Barracuda;
+udp:808;Barracuda CloudGen Firewall event service (Event Viewer);security,monitoring;Barracuda;
+809;Barracuda CloudGen Firewall boxconfig (configuration service);security,admin;Barracuda;
+810;Barracuda CloudGen Firewall Control Center masterconfig (master configuration service);security,admin;Barracuda;
+811;Barracuda CloudGen Firewall Control Center master event;security,monitoring;Barracuda;
+814;Barracuda CloudGen Firewall vpnserver (VPN / master VPN service);security,admin;Barracuda;
+818;Barracuda CloudGen Firewall Control Center PKI;security,admin;Barracuda;
+844;Barracuda CloudGen Firewall policyserver (policy / master policy service);security,admin;Barracuda;
+845;Barracuda CloudGen Firewall distd;security,admin;Barracuda;
+889;Barracuda CloudGen Firewall Control Center Secure Connector;security,network;Barracuda;
+1807;Barracuda CloudGen Firewall qstatd (statistics display);security,monitoring;Barracuda;
+8001;Barracuda CloudGen Firewall Insights;security,monitoring;Barracuda;
+8443;Barracuda CloudGen Firewall REST API (HTTPS);security,admin;Barracuda;no
+44000-44001;Barracuda CloudGen Firewall policyserver;security,admin;Barracuda;
+8000;Barracuda Email Security Gateway web interface (HTTP);mail,security,admin;Barracuda;yes
+8000;Barracuda Web Application Firewall web interface (HTTP);web,security,admin;Barracuda;yes
+8443;Barracuda Web Application Firewall web interface (HTTPS);web,security,admin;Barracuda;no
+8083;Imperva SecureSphere management server (MX) web console, API and gateway-to-MX communication (HTTPS);security,admin;Imperva;no
+7785;Rubrik CDM replication service (source and target clusters, both directions);backup;Rubrik;
+7096;Rubrik CDM secure communication among clusters and between nodes;backup;Rubrik;
+12800-12801;Rubrik Backup Service (RBS) agent on protected hosts (cluster to host);backup;Rubrik;
+8077;Rubrik CDM cloud consolidation / SSH for debugging;backup,admin;Rubrik;
+8080;Dell PowerScale OneFS web administration interface and Platform API (isi_webui, HTTPS);file,admin;Dell;no
+5667;Dell PowerScale SyncIQ replication data transfer (isi_migr_sworker);file,backup;Dell;
+5668;Dell PowerScale SyncIQ replication data transfer, encrypted (isi_migr_sworker);file,backup;Dell;no
+2098;Dell PowerScale SyncIQ pworker (isi_migr_pworker, cluster-internal);file,backup;Dell;
+3148-3149;Dell PowerScale SyncIQ bandwidth control (isi_migr_bandwidth, cluster-internal);file,backup;Dell;
+7722;Dell PowerScale Datamover / SmartSync replication (isi_dm_d);file,backup;Dell;
+9020;Dell PowerScale OneFS S3 (HTTP);file;Dell;yes
+9021;Dell PowerScale OneFS S3 (HTTPS);file;Dell;no
+585;Dell PowerScale OneFS HDFS DataNode;file;Dell;
+8020;Dell PowerScale OneFS HDFS NameNode;file;Dell;
+8082;Dell PowerScale OneFS WebHDFS;file,web;Dell;
+9443;Dell PowerScale Secure Remote Services connector (isi_esrs_d);monitoring;Dell;
+300;Dell PowerScale OneFS NFS mountd (fixed port);file;Dell;
+udp:300;Dell PowerScale OneFS NFS mountd (fixed port);file;Dell;
+302;Dell PowerScale OneFS NFS statd (fixed port);file;Dell;
+udp:302;Dell PowerScale OneFS NFS statd (fixed port);file;Dell;
+304;Dell PowerScale OneFS NFS lockd (fixed port);file;Dell;
+udp:304;Dell PowerScale OneFS NFS lockd (fixed port);file;Dell;
+305;Dell PowerScale OneFS NFS rquotad (fixed port);file;Dell;
+udp:305;Dell PowerScale OneFS NFS rquotad (fixed port);file;Dell;
+306;Dell PowerScale OneFS NFS management (nfsmgmtd);file,admin;Dell;
+udp:306;Dell PowerScale OneFS NFS management (nfsmgmtd);file,admin;Dell;
+5433;Vertica client port (vsql, ODBC, JDBC);db;Rocket Software (Vertica);
+udp:5433;Vertica Spread monitoring and MC cluster import;db,monitoring;Rocket Software (Vertica);
+5434;Vertica intra- and inter-cluster communication (client port +1);db;Rocket Software (Vertica);
+4803;Vertica Spread client connections;db;Rocket Software (Vertica);
+udp:4803;Vertica Spread daemon-to-daemon;db;Rocket Software (Vertica);
+udp:4804;Vertica Spread daemon-to-daemon;db;Rocket Software (Vertica);
+udp:6543;Vertica Spread monitor-to-daemon;db;Rocket Software (Vertica);
+5444;Vertica Management Console agent (MC-to-node and node-to-node);db,admin;Rocket Software (Vertica);
+5450;Vertica Management Console web UI (browser and node-to-MC);db,admin,web;Rocket Software (Vertica);
+5554;Vertica Node Management Agent;db,admin;Rocket Software (Vertica);
+8443;Vertica HTTPS service (HTTPServerPortOffset);db,admin;Rocket Software (Vertica);no
+1025;Teradata Database gateway, TDMST legacy port (clients, TTU, Data Mover);db;Teradata;
+9443;Teradata QueryGrid Manager (Viewpoint / browser, cluster join);db,admin;Teradata;no
+9444;Teradata QueryGrid Manager (QueryGrid nodes to manager);db;Teradata;no
+9445;Teradata QueryGrid Manager fabric (manager to manager);db;Teradata;no
+5000-5002;Teradata QueryGrid node-to-node data (recommended range);db;Teradata;
+5344;Teradata Unity Sequencer (unityadmin connection);db,admin;Teradata;
+61617;Teradata Viewpoint internal alerts (ActiveMQ);db,monitoring,messaging;Teradata;
+6783;Splashtop Streamer LAN direct connection (client to Streamer on the same network);remote-access;Splashtop;
+5721;Kaseya VSA agent check-in (agents to Kaseya Server);admin,remote-access;Kaseya;
+udp:5721;Kaseya VSA Live Connect (KLC) sessions;remote-access;Kaseya;
+8443;N-able N-central web UI (default port);admin,web;N-able;no
+10004;N-able N-central probe (agents to probe on the local network);admin,monitoring;N-able;
+15000;N-able N-central probe patch cache (agents download patches from the probe);admin;N-able;
+5280;N-able N-central agent and probe XMPP traffic;admin,messaging;N-able;
+udp:1234-1235;N-able N-central MSP Connect / Take Control P2P (UDP mode);remote-access;N-able;
+3377;N-able Take Control fail-over port (when 443 is blocked);remote-access;N-able;
+8014;N-able Backup Manager LAN access (N-central integration);backup;N-able;
+4800-4899;SAP gateway secure port sapgwNNs (48NN, SNC-protected RFC / CPIC only);db;SAP;no
+50000;SAP AS Java HTTP (5NN00, instance 00);web;SAP;yes
+50001;SAP AS Java HTTP over SSL (5NN01, instance 00);web;SAP;no
+50002;SAP AS Java IIOP initial context (5NN02, instance 00);web;SAP;
+50003;SAP AS Java IIOP over SSL (5NN03, instance 00);web;SAP;no
+50004;SAP AS Java P4 (5NN04, instance 00);web,admin;SAP;yes
+50005;SAP AS Java P4 over HTTP (5NN05, instance 00);web,admin;SAP;yes
+50006;SAP AS Java P4 over SSL (5NN06, instance 00);web,admin;SAP;no
+50007;SAP AS Java IIOP (5NN07, instance 00);web;SAP;
+50008;SAP AS Java Telnet administration (5NN08, instance 00);admin;SAP;yes
+50010;SAP AS Java JMS (5NN10, instance 00);messaging;SAP;
+8284;Citrix Workspace Environment Management administration port (console to infrastructure service);virtualization,admin;Citrix;
+8286;Citrix Workspace Environment Management agent service port (agent to infrastructure service);virtualization;Citrix;
+8287;Citrix Workspace Environment Management monitoring port (infrastructure service);virtualization,monitoring;Citrix;
+8288;Citrix Workspace Environment Management cached data synchronization port;virtualization;Citrix;
+49752;Citrix Workspace Environment Management agent port (on the agent host);virtualization;Citrix;
+54321;Citrix Provisioning SOAP server (console port);virtualization,admin;Citrix;
+54323;Citrix Provisioning SOAP server SSL port;virtualization,admin;Citrix;no
+udp:6969;Citrix Provisioning two-stage boot (TSB, TFTP-based download of the BDM bootstrap);virtualization;Citrix;yes
+2009;Avaya Aura System Manager Data Replication Service (JMX);voip,admin;Avaya;
+9042;Avaya Aura Session Manager Cassandra database (contacts, TLS);voip,db;Avaya;no
+8765;Avaya Aura Communication Manager AE Services link (AEP, local port);voip;Avaya;
+3077-3079;Avaya Call Management System (CMS) high availability data sync;voip,backup;Avaya;
+50000-50001;Avaya Call Management System (CMS) Informix ODBC / JDBC;voip,db;Avaya;
+502;Schneider Electric Modicon UMAS engineering protocol (EcoStruxure Control Expert / Unity Pro, OFS, Modbus function code 90) — Control Expert to M340/M580 authentication bypass (SEVD-2019-344-02, CVE-2019-6855);ot,admin,risky;Schneider Electric;yes
+21;Schneider Electric Modicon FTP server (firmware, data storage, FDR, open out of box on M580 fw ≤ 4.01) — hard-coded credentials allow custom firmware upload on Quantum / Premium / M340 modules (CISA ICSA-12-018-01);ot,file,risky;Schneider Electric;yes
+9867;Schneider Electric Modicon M580 DPWS firmware update service (fw ≥ 4.20, open by default, cannot be disabled);ot,admin;Schneider Electric;
+udp:1502;Schneider Electric Triconex TriStation protocol (TriStation 1131 to Tricon safety controller) — abused by TRITON/HatMan to reprogram the safety controller (CISA MAR-17-352-01);ot,admin,risky;Schneider Electric;
+7700;Schneider Electric PowerLogic ION protocol (ION / PowerLogic PM8000 meters, ION Setup, Power Monitoring Expert);ot,monitoring;Schneider Electric;
+7701;Schneider Electric PowerLogic ION meter Modbus RTU over TCP;ot,monitoring;Schneider Electric;yes
+7801;Schneider Electric PowerLogic ION meter EtherGate (Ethernet to serial gateway, COM1);ot,monitoring;Schneider Electric;
+7802;Schneider Electric PowerLogic ION meter EtherGate (Ethernet to serial gateway, COM4 on ION9000);ot,monitoring;Schneider Electric;
+udp:3052;Schneider Electric APC PowerChute Network Shutdown (Network Management Card to PCNS UPS events);monitoring;Schneider Electric;
+3052;Schneider Electric APC PowerChute Network Shutdown web interface (redirects to 6547 for TLS);monitoring,admin,web;Schneider Electric;
+6547;Schneider Electric APC PowerChute web UI (Network Shutdown, Business Edition agent, Serial Shutdown);monitoring,admin,web;Schneider Electric;no
+1234;Schneider Electric EcoStruxure Machine SCADA Expert runtime (Viewer / thin client, unencrypted);ot;Schneider Electric;yes
+51234;Schneider Electric EcoStruxure Machine SCADA Expert runtime (Viewer / thin client, encrypted);ot;Schneider Electric;no
+21000;Schneider Electric Security Expert SP-C controller download port;iot;Schneider Electric;
+21001;Schneider Electric Security Expert SP-C controller status port;iot;Schneider Electric;
+22000;Schneider Electric Security Expert SP-C controller event port;iot;Schneider Electric;
+8910;Siemens SIMATIC Shell (PCS 7 / WinCC) station communication, multicast proxy and encrypted communication;ot;Siemens;
+udp:8910;Siemens SIMATIC Shell (PCS 7 / WinCC) station discovery, multicast proxy and encrypted communication;ot;Siemens;
+1442;Siemens WinCC SQL Server instance (PCS 7 ES / OS server / OS client);ot,db;Siemens;
+1443;Siemens SIMATIC SQL Server INFSERVER instance (PCS 7 BATCH server / client);ot,db;Siemens;
+6001-6002;Siemens SIMATIC BATCH server communication (FastObjects Poet DB);ot,db;Siemens;
+4862;Siemens WinCC OPC UA server (PCS 7 OS);ot;Siemens;
+4863;Siemens OpenPCS 7 OPC UA server;ot;Siemens;
+55108;Siemens SIMATIC NET OPC UA server (PCS 7 Maintenance Server, OPC Server V9.0);ot;Siemens;
+7911;Siemens SIMATIC Management Agent (SMA, for SIMATIC Management Console);ot,admin;Siemens;
+udp:7912;Siemens SIMATIC Management Agent (SMA, for SIMATIC Management Console);ot,admin;Siemens;
+4443;Siemens PCS 7 / WinCC WebUX web server (HTTPS);ot,web;Siemens;no
+8080;Siemens SIMATIC PDM Web Server (depending on configuration);ot,web;Siemens;
+2222;Siemens SIMATIC Process Historian management service;ot,admin;Siemens;
+2224;Siemens SIMATIC Process Historian Database Writer service UI;ot,db;Siemens;
+2225-2226;Siemens SIMATIC Process Historian Maintenance Service (server port / client port);ot,db;Siemens;
+2227;Siemens SIMATIC Process Historian Database Writer SF2 (on the Process Historian server);ot,db;Siemens;
+2228;Siemens SIMATIC Process Historian Database Writer SF2 (on the OS / Monitoring & Control server);ot,db;Siemens;
+2230;Siemens SIMATIC Process Historian Server 2020 (server, license, info, live data);ot,db;Siemens;
+3723;Siemens SIMATIC Process Historian SQL Server instance;ot,db;Siemens;
+5048;Siemens SIMATIC Process Historian Discovery Services;ot,db;Siemens;
+60000;Siemens SIMATIC Process Historian Redundancy Services;ot,db;Siemens;
+60001;Siemens SIMATIC Process Historian WCF message queue (redundancy maintenance service);ot,db;Siemens;
+4852;Siemens SIMATIC Process Historian OPC UA server;ot,db;Siemens;
+16389;Siemens SIMATIC Logon Remote Access service;ot,directory;Siemens;
+4002;Siemens User Management Component (UMC) server-to-server communication (PCS neo, TIA Portal, Opcenter);ot,directory;Siemens;
+4004;Siemens User Management Component (UMC) RT server communication (PCS neo, TIA Portal, Opcenter);ot,directory;Siemens;
+8888;Siemens TIA Administrator web framework (TIA Portal, PCS neo Administration Console, localhost only by default);ot,admin,web;Siemens;
+2308;Siemens WinCC flexible / WinCC Runtime Advanced loader (HMI project transfer);ot,admin;Siemens;
+5443;Siemens SINEMA Remote Connect Server OpenVPN tunnel (TCP);ot,security,remote-access;Siemens;no
+udp:1194;Siemens SINEMA Remote Connect Server OpenVPN tunnel (UDP);ot,security,remote-access;Siemens;no
+6220;Siemens SINEMA Remote Connect Server certificate update (web server);ot,security;Siemens;
+4999;Siemens SINEMA Server integrated web server (before V12 SP1);network,monitoring,web;Siemens;
+4443;Siemens SIPROTEC 5 web user interface / DIGSI 5 connection (TLS);ot,admin,web;Siemens;no
+8080-8084;Siemens SIPROTEC 5 communication module homepage (diagnostics, HTTP, one port per module slot);ot,web,monitoring;Siemens;yes
+udp:50000;Siemens SIPROTEC 4 / SIPROTEC Compact EN100 Ethernet module service — crafted packets cause denial of service, all versions (CISA ICSA-20-042-12);ot,risky;Siemens;
+2031;Rockwell Automation ThinManager ThinServer configuration (server to thin clients, proprietary);ot,remote-access,admin;Rockwell Automation;
+udp:1758;Rockwell Automation ThinManager multicast TFTP (firmware);ot,remote-access;Rockwell Automation;yes
+udp:4900;Rockwell Automation ThinManager TFTP firmware download;ot,remote-access;Rockwell Automation;yes
+5900;Rockwell Automation ThinManager terminal shadowing (proprietary);ot,remote-access;Rockwell Automation;
+8443;Rockwell Automation ThinManager ThinServer HTTPS (module delivery, REST API);ot,admin,web;Rockwell Automation;no
+403;Rockwell Automation FactoryTalk Alarms and Events history archiver service;ot,monitoring;Rockwell Automation;
+400;Rockwell Automation FactoryTalk Transaction Manager;ot;Rockwell Automation;
+5241;Rockwell Automation FactoryTalk Diagnostics log receiver (RsvcHost.exe);ot,monitoring;Rockwell Automation;
+udp:4444;Rockwell Automation RSLinx Enterprise LogReceiver (FactoryTalk Diagnostics);ot,monitoring;Rockwell Automation;
+4446;Rockwell Automation RsvcHost RNA service (RSLogix 19 and earlier);ot;Rockwell Automation;
+udp:17185;Wind River VxWorks WDB debug agent (Rockwell 1756-ENBT and others) — remote memory read / write and function calls (NVD CVE-2010-2965);ot,risky;Wind River;yes
+udp:52302;Yokogawa CENTUM operation logging process (BKCLogSvr.exe on HIS/ENG and Exa* servers);ot,monitoring;Yokogawa;
+20109;Yokogawa CENTUM FCS test function (BKHOdeq.exe);ot;Yokogawa;
+20171;Yokogawa CENTUM FCS test function (BKHOdeq.exe);ot;Yokogawa;
+20111;Yokogawa CENTUM / Exaopc batch management BKBCopyD.exe — no authentication: arbitrary file read/write (CVE-2014-5208, ICSA-14-260-01A, YSAR-14-0003);ot,file,risky;Yokogawa;
+34205;Yokogawa CENTUM Expanded Test Functions simulator manager (BKESimmgr.exe);ot;Yokogawa;
+udp:9600;Omron Sysmac Studio online connection (NJ/NX built-in EtherNet/IP port);ot,admin;Omron;
+9610;Omron NJ/NX maintenance port (Omron protocol, closed by default);ot,admin;Omron;
+udp:2223;Omron NJ EtherNet/IP tag data links (second UDP port);ot;Omron;
+9700;Omron NJ SECS/GEM connection service;ot;Omron;
+9800-9801;Omron NJ/NX DB connection service;ot,db;Omron;
+9810-9811;Omron NJ/NX DB connection service;ot,db;Omron;
+udp:1989;Omron NJ robot integrated controller (ACE / Sysmac Studio);ot;Omron;
+udp:1992;Omron NJ robot integrated controller (ACE / Sysmac Studio);ot;Omron;
+1997;Omron NJ robot integrated controller (ACE / Sysmac Studio);ot;Omron;
+udp:1997;Omron NJ robot integrated controller (ACE / Sysmac Studio);ot;Omron;
+udp:65533-65534;Omron NJ robot integrated controller (ACE / Sysmac Studio);ot;Omron;
+8500;Keyence KV PLC KV STUDIO connection (PC applications port);ot,admin;Keyence;
+8501;Keyence KV PLC host link (upper link) over TCP;ot;Keyence;
+udp:8501;Keyence KV PLC host link (upper link) over UDP;ot;Keyence;
+udp:8502;Keyence KV PLC VT3 touch panel connection;ot;Keyence;
+udp:5001;Keyence KV PLC easy PLC link;ot;Keyence;
+2004;LS Electric XGT dedicated protocol over TCP (FEnet);ot;LS Electric;yes
+udp:2005;LS Electric XGT dedicated protocol over UDP (FEnet);ot;LS Electric;yes
+udp:2006;LS Electric FEnet high-speed link (HS link, subnet broadcast);ot;LS Electric;
+2002;LS Electric FEnet XG5000 remote loader connection (programming);ot,admin;LS Electric;
+9094;Panasonic FP PLC MEWTOCOL-COM over TCP (FP Web-Server preset, FP0H remote PC setup);ot;Panasonic;
+20256;Unitronics Vision / Samba PCOM/TCP — default password, exploited by IRGC actors on internet-facing PLCs (CISA AA23-335A, CVE-2023-6448);ot,admin,risky;Unitronics;
+5432;SEL RTAC ACSELERATOR RTAC project download / retrieval (PostgreSQL "ODBC access", open by default);ot,admin;Schweitzer Engineering Laboratories;
+1217;SEL RTAC ACSELERATOR RTAC online status monitoring and point forcing;ot,admin;Schweitzer Engineering Laboratories;
+5433;SEL RTAC firmware upgrade;ot,admin;Schweitzer Engineering Laboratories;
+15453;SEL RTAC communications traffic monitoring (diagnostics / testing);ot,monitoring;Schweitzer Engineering Laboratories;
+5436;SEL ICON NMS (SEL-5052) PostgreSQL client-server communication;ot,network,db;Schweitzer Engineering Laboratories;
+5437;SEL ICON NMS (SEL-5052) web UI / REST / SignalR (HTTPS);ot,network,admin,web;Schweitzer Engineering Laboratories;no
+5558;Hitachi Energy FOX61x / XCM20 proprietary management protocol (NMS to network element);ot,network,admin;Hitachi Energy;
+1101;COPA-DATA zenon System Service zensyssrv (Remote Transport, diagnosis server) — unauthenticated remote OS reboot via Remote Transport (CVE-2025-8754);ot,admin,risky;COPA-DATA;
+50777;COPA-DATA zenon administration service (zenAdminSrv);ot,admin;COPA-DATA;
+50786-50787;COPA-DATA zenon Driver Operations Manager (zenDrvOpsManager);ot;COPA-DATA;
+4679;Eaton IPP / IPM web supervision (HTTP, redirect to HTTPS and remote discovery);monitoring,admin;Eaton;yes
+4680;Eaton IPP / IPM web supervision (HTTPS);monitoring,admin;Eaton;no
+udp:4679;Eaton notification broadcast (IPP / IPM, Network-MS card);monitoring;Eaton;
+udp:4680;Eaton alarms broadcast (IPP / IPM, Network-MS card);monitoring;Eaton;
+5000;Eaton Network-MS card to IPP connected-mode alarms;monitoring;Eaton;
+7011;Eaton Power Xpert Gateway PXG900 web interface (HTTP, with 80);ot,monitoring,web;Eaton;yes
+7012;Eaton Power Xpert Gateway PXG900 web interface (HTTPS, with 443);ot,monitoring,web;Eaton;no
+41100;Phoenix Contact PLCnext Engineer remoting / PC Worx OPC and debug mode (classic PLCs);ot,admin;Phoenix Contact;
+17725;Phoenix Contact PLCnext MATLAB / Simulink External Mode;ot;Phoenix Contact;
+1962;Phoenix Contact PC Worx communication (classic ILC / AXC PLCs) — unauthenticated sessions read data and make changes (CVE-2019-9201, VDE-2019-015);ot,admin,risky;Phoenix Contact;
+20547;Phoenix Contact ProConOS / MULTIPROG runtime protocol — no authentication, arbitrary commands (CVE-2014-9195, ICSA-15-013-03);ot,admin,risky;Phoenix Contact;
+7001;Phoenix Contact mGuard device manager (mdm) server (client connections);security,admin;Phoenix Contact;
+7070;Phoenix Contact mGuard device manager (mdm) CA server (certificate requests);security;Phoenix Contact;
+7080;Phoenix Contact mGuard device manager (mdm) RESTful server;security,admin;Phoenix Contact;
+udp:7514;Phoenix Contact mGuard device manager (mdm) syslog feedback from the configuration pull server;security,monitoring;Phoenix Contact;yes
+11169;B&R Automation Runtime ANSL (Automation Studio to target, open by default);ot,admin;B&R Industrial Automation;
+11179;B&R Automation Runtime ANSL over SSL (Automation Studio to target);ot,admin;B&R Industrial Automation;no
+20000;B&R PVI remote communication (PVI Manager TCP/IP);ot;B&R Industrial Automation;
+2323;B&R Automation Runtime GDB server (Automation Studio debugger);ot,devops;B&R Industrial Automation;
+5900-5931;B&R Automation Runtime VNC server (target visualization);ot,remote-access;B&R Industrial Automation;
+udp:5900-5931;B&R Automation Runtime VNC server (target visualization);ot,remote-access;B&R Industrial Automation;
+8001;B&R VISAPI server data port (VC terminal mode);ot;B&R Industrial Automation;
+8888;B&R Automation Runtime SiteManager / remote maintenance;ot,remote-access;B&R Industrial Automation;
+udp:47787;B&R Visual Components VC4 terminal mode;ot;B&R Industrial Automation;
+udp:48043;B&R Visual Components VC4 terminal mode;ot;B&R Industrial Automation;
+50000;B&R SafeDESIGNER to SafeLOGIC communication (SPROXY);ot;B&R Industrial Automation;
+52000-52099;B&R mapp Safety SafeDESIGNER remote control (52000 + SafeDOMAIN ID - 1);ot;B&R Industrial Automation;
+50111-50112;B&R netX module extended diagnostics;ot,monitoring;B&R Industrial Automation;
+50200;B&R Automation Runtime DTM server;ot;B&R Industrial Automation;
+2069;Bosch Rexroth ctrlX Data Layer client port (TCP scheme);ot;Bosch Rexroth;
+2070;Bosch Rexroth ctrlX Data Layer provider port (TCP scheme);ot;Bosch Rexroth;
+2001;Opto 22 OptoMMP memory-mapped I/O protocol (groov EPIC / RIO, SNAP PAC);ot;Opto 22;yes
+udp:2001;Opto 22 OptoMMP memory-mapped I/O protocol (groov EPIC / RIO, SNAP PAC);ot;Opto 22;yes
+22001-22002;Opto 22 PAC Control engine host task (PAC Control / PAC Terminal);ot,admin;Opto 22;yes
+8502;Opto 22 groov EPIC Modbus/TCP server (502 redirected);ot;Opto 22;yes
+22000;Opto 22 SoftPAC Agent — open without restriction: firmware update, start / stop, registry writes (CVE-2020-10612);ot,admin,risky;Opto 22;
+40000;Pilz SafetyNET p (IANA safetynetp);ot;Pilz;
+udp:40000;Pilz SafetyNET p (IANA safetynetp);ot;Pilz;
+7508;Festo Automation Device Configuration Protocol (IANA adcp);ot,admin;Festo;
+3250;HMS Anybus IP configuration protocol (IANA hicp);ot,admin;HMS Networks;
+udp:3250;HMS Anybus IP configuration protocol (IANA hicp);ot,admin;HMS Networks;
+udp:1194;HMS Ewon Talk2M VPN tunnel to Talk2M servers (outbound, TCP 443 fallback);ot,remote-access,security;HMS Networks;no
+11444;Secomea SiteManager / LinkManager dedicated port to GateManager (ACM/PXP, outbound);ot,remote-access,security;Secomea;
+4592;Advantech WebAccess/SCADA webvrpcs RPC service;ot;Advantech;
+9999;Lantronix device server Telnet setup (configuration) port;iot,admin;Lantronix;yes
+10001-10002;Lantronix device server serial tunnel (channel 1 / channel 2 data);iot,ot;Lantronix;
+14000-14009;Lantronix Com Port Redirector;iot,ot;Lantronix;
+udp:30718;Lantronix device server configuration protocol (port 77FEh, DeviceInstaller) — unauthenticated config read / overwrite (CVE-2026-109439);iot,admin,risky;Lantronix;yes
+32402;PTC Kepware Server configuration port (Configuration client to runtime);ot,admin;PTC;
+57412;PTC Kepware Server Configuration API (HTTP);ot,admin,web;PTC;yes
+57512;PTC Kepware Server Configuration API (HTTPS);ot,admin,web;PTC;no
+58112;PTC Kepware UA Gateway server endpoint (OPC UA);ot;PTC;
+41794;Crestron CIP (Crestron Internet Protocol) control;ot;Crestron;yes
+udp:41794;Crestron Control Port (UDP, IANA crestron-cip);ot;Crestron;yes
+41795;Crestron CTP (Crestron Terminal Protocol) console;ot,admin;Crestron;yes
+41796;Crestron Secure CIP (SCIP, TLS);ot;Crestron;no
+41797;Crestron Secure CTP (SCTP) console over TLS;ot,admin;Crestron;no
+49200;Crestron HTML5 user interface Web API (HTTPS);ot,web;Crestron;no
+4998;Siemens Desigo CC server event port (Installed Client) — modified client can run arbitrary SQL on the server database (CVE-2024-23815, SSA-523418);ot,risky;Siemens;
+8888;Siemens Desigo CC Service port (GMS SMC Project Data Service, Client/FEP project data);ot,admin;Siemens;
+47808;Trane Tracer SC+ to Tracer Ensemble Cloud, BACnet/SC over TCP (outbound, TLS);ot;Trane Technologies;no
+udp:1194;Trane Connect remote access (Tracer SC+ outbound tunnel to Trane cloud);ot,remote-access;Trane Technologies;no
+51806;SAUTER moduNet292 novaNet-Ethernet interface, nova292 server (CASE Suite, novaPro);ot;SAUTER;
+51807;SAUTER moduNet292 novaNet-Ethernet interface, nova291 emulation;ot;SAUTER;
+udp:2056;Lutron HomeWorks QS / RadioRA 2 processor-to-processor and commissioning (multicast);ot;Lutron;
+51023;Lutron HomeWorks QS / RadioRA 2 commissioning machine to processors (unicast);ot,admin;Lutron;
+udp:777;Lutron HomeWorks QS / RadioRA 2 processor firmware upgrade (with TFTP 69);ot,admin;Lutron;
+23;Lutron processor Telnet integration and diagnostics — default Telnet credentials before software 13.0 (Lutron App Note #731);ot,admin,risky;Lutron;yes
+udp:2647;Lutron Connect Bridge to HomeWorks QS / RadioRA 2 processors;ot;Lutron;
+4548;Lutron Connect Bridge / processor local communication (RadioRA 3, HomeWorks QSX, Caseta);ot;Lutron;
+8081;Lutron processor / Connect Bridge local and third-party integration;ot;Lutron;
+8083;Lutron processor / Connect Bridge local and third-party integration;ot;Lutron;
+7782;Lutron Connect Bridge third-party integration;ot;Lutron;
+8090;Lutron Connect Bridge third-party integration;ot;Lutron;
+6000;Nozomi Networks Remote Collector to Guardian monitored traffic (proprietary over TLS);security,ot;Nozomi Networks;no
+udp:48888;Nozomi Networks Guardian device discovery (broadcast);security,ot;Nozomi Networks;
+udp:1911;Nozomi Networks Guardian device discovery over Niagara Fox (broadcast);security,ot;Nozomi Networks;
+8000;Tenable Core web interface (Tenable OT Security ICP and sensor);security,ot,admin;Tenable;
+28303;Tenable OT Security sensor to ICP, unauthenticated passive-only sensor connection;security,ot;Tenable;
+28304;Tenable OT Security sensor to ICP pairing (SSH tunnel);security,ot;Tenable;no
+28305;Tenable OT Security ICP to Enterprise Manager pairing and centralized updates;security,ot;Tenable;
+28306;Tenable OT Security OT Agent connection to ICP;security,ot;Tenable;
+10146;Tenable OT Security ICP to IoT Connector agent (secure port);security,ot,iot;Tenable;no
+10104;Tenable OT Security ICP to IoT Connector agent (unsecure port);security,ot,iot;Tenable;yes
+9000;Microsoft Defender for IoT OT sensor tunneling (legacy on-premises management console access);security,ot;Microsoft;
+5671;Cisco Cyber Vision sensor to Center (AMQP over TLS);security,ot;Cisco;no
+10514;Cisco Cyber Vision sensor to Center secure syslog (releases before 5.4.0);security,ot,monitoring;Cisco;no
