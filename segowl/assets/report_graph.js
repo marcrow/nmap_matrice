@@ -6,12 +6,12 @@ const COL = {deny: '#dc2626', undeclared: '#f59e0b', allow: '#16a34a'}, GREY = '
 const RANK = {deny: 3, undeclared: 2, allow: 1};
 const ICON = {deny: ['✕', '#dc2626', '#fff'], undeclared: ['?', '#f59e0b', '#3b2600'], allow: ['✓', '#16a34a', '#fff']};
 const WORD = {deny: 'Finding: denied by the Flow Policy', undeclared: 'undeclared', allow: 'allowed'};
-const ARR = {auto: 'auto', c1: 'one column', c2: 'two columns', r1: 'one row', r2: 'two rows', sq: 'square'};
+const ARR = {auto: 'auto', c1: 'one column', c2: 'two columns', r1: 'one row', r2: 'two rows', sq: 'square', ci: 'circle'};
 // Snap-layout style icons of the right-click menu (34 x 24).
 const SR = (x, y, w, h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1.5"/>`;
 const ARR_ICON = {auto: SR(3, 3, 28, 18) + '<text x="17" y="15.5" font-size="8" font-weight="700" text-anchor="middle" stroke="none">auto</text>',
   c1: SR(13, 3, 8, 18), c2: SR(8, 3, 8, 18) + SR(18, 3, 8, 18), r1: SR(3, 8, 28, 8), r2: SR(3, 4, 28, 7) + SR(3, 13, 28, 7),
-  sq: SR(9, 3, 7, 7) + SR(18, 3, 7, 7) + SR(9, 13, 7, 7) + SR(18, 13, 7, 7), col: SR(13, 3, 8, 18), row: SR(3, 8, 28, 8)};
+  sq: SR(9, 3, 7, 7) + SR(18, 3, 7, 7) + SR(9, 13, 7, 7) + SR(18, 13, 7, 7), ci: '<circle cx="17" cy="12" r="9"/>', col: SR(13, 3, 8, 18), row: SR(3, 8, 28, 8)};
 const MARR = {col: 'one column', row: 'one row'};  // a Machine in the centre
 const LAYOUTS = {sides: 'Zones facing the Source', lr: 'Zones on both sides', ring: 'Zones around the Source'};
 const gesc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
@@ -148,7 +148,7 @@ function elements(g) {
     for (const l of oneEach(t.links)) els.push({data: {id: `e:${t.ip}>${l.to}`, source: linkEnd(l.to), target: t.ip, col: edgeCol(l), z: RANK[status(l)] || 0, label: l.label || ''},
       classes: (l.verdict === 'OPEN' && !l.dash ? 'flow' : 'flow dash') + ((l.inward ?? D.inward) ? ' in' : '') + (l.kind ? ' k-' + l.kind : '') + (l.label ? ' lab' : '')});
     if (tags && t.ports.length && !t.rows) {  // a rows card keeps its ports (they differ per Source Zone)
-      const lr = tag(t, 150), tb = tag(t, Math.max(c.w - 10, 110));  // beside the node / over or under it
+      const lr = tag(t, 100), tb = tag(t, Math.max(c.w - 10, 110));  // beside the node / over or under it
       els.push({data: {id: 'p:' + t.ip, of: t.ip, zone: t.zone, col, lr, tb, ...lr}, classes: 'tag'}); }
   }
   // One edge per Zone (per Zone and Interface around a Machine): its worst Flow Policy status; the nodes carry the detail.
@@ -213,24 +213,52 @@ function block(g, z, dir) {
   const key = n => { const t = n.data('t'); return (t.multi ? '0' + t.machine : '1') + '|' + t.ip.split('.').map(x => x.padStart(3, '0')).join('.'); };
   const cmp = (a, b) => { const p = a.data('t'), q = b.data('t');
     return p.ord !== undefined && q.ord !== undefined && p.ord !== q.ord ? p.ord - q.ord : key(a).localeCompare(key(b)); };
-  const kids = z.children().sort(cmp), lines = Math.min(linesFor(g, z, kids.length, v), kids.length);
-  // Between lines, room for the port tags of the far line ("ports on the edges"): beside a node, or under it.
-  const tg = Math.max(0, ...kids.map(k => { const t = cy.$id('p:' + k.id()); return t.nonempty() ? (v ? t.data('lr').w : t.data('tb').h) + 14 : 0; }));
-  const ga = v ? 16 : 12, gc = (v ? 26 : 18) + tg, lw = Math.max(...kids.map(ac));
+  const kids = z.children().sort(cmp);
+  z.toggleClass('round', arrOf(g, z) === 'ci');
+  if (arrOf(g, z) === 'ci') return circleBlock(g, z, dir, kids);
+  const lines = Math.min(linesFor(g, z, kids.length, v), kids.length);
+  // Each line as wide as its widest node; the gap before a line holds that line's port tags ("ports on the
+  // edges"), beside its nodes or under them: no wider than they need.
+  const ga = v ? 16 : 12, gc = v ? 26 : 18, ofLine = l => kids.filter((k, i) => i % lines === l);
+  const tagOf = k => { const t = cy.$id('p:' + k.id()); return t.nonempty() ? (v ? t.data('lr').w : t.data('tb').h) + 14 : 0; };
+  const offs = []; let wid = 0;
+  for (let l = 0; l < lines; l++) { const ks = ofLine(l); if (l) wid += gc + Math.max(0, ...ks.map(tagOf)); offs.push(wid); wid += Math.max(...ks.map(ac)); }
   // Staggered lines: every node in one virtual line, shared out (node i -> line i % lines), so an edge to the far
   // line passes between two nodes of the near one.
   let acc = 0; const a = [], end = Array(lines).fill(-1e9);
   kids.forEach((k, i) => { const s = al(k), l = i % lines; let c = (acc + s / 2) / lines; acc += s + ga;
     c = Math.max(c, end[l] + ga + s / 2); a.push(c); end[l] = c + s / 2; });
-  const start = Math.min(...kids.map((k, i) => a[i] - al(k) / 2)), len = Math.max(...end) - start, wid = lines * lw + (lines - 1) * gc;
+  const start = Math.min(...kids.map((k, i) => a[i] - al(k) / 2)), len = Math.max(...end) - start;
   const W = v ? wid : len, H = v ? len : wid;
   const place = (pos, fx, fy) => {  // (fx, fy) = top-left corner of the frame; a B frame carries its title underneath
+    plain(z);
     const x0 = fx + PAD, y0 = fy + (dir === 'B' ? 0 : TITLE) + PAD;
-    kids.forEach((k, i) => { const off = (i % lines) * (lw + gc), w = k.data('w'), h = k.data('h'), t = a[i] - start;
+    kids.forEach((k, i) => { const off = offs[i % lines], w = k.data('w'), h = k.data('h'), t = a[i] - start;
       pos[k.id()] = dir === 'R' ? {x: x0 + off + w / 2, y: y0 + t} : dir === 'L' ? {x: x0 + W - off - w / 2, y: y0 + t}
         : dir === 'T' ? {x: x0 + t, y: y0 + H - off - h / 2} : {x: x0 + t, y: y0 + off + h / 2}; });
   };
   return {z, dir, FW: W + 2 * PAD, FH: H + 2 * PAD + TITLE, place};
+}
+// The frame style a layout may change (a round Zone): set when a side is chosen, never while sides are tried.
+const plain = z => { z.removeStyle('min-width min-height min-width-bias-left min-width-bias-right min-height-bias-top min-height-bias-bottom');
+  z.style({padding: PAD, 'corner-radius': 4}); };
+// A round Zone: a round frame, its nodes on the half away from the Source, one per height (one per column above or
+// below it): edges come in at right angles through the empty half facing the Source and cross nothing.
+function circleBlock(g, z, dir, kids) {
+  const n = kids.length, v = dir === 'R' || dir === 'L', gap = v ? 12 : 16;
+  const tagOf = k => { const t = g.cy.$id('p:' + k.id()); return t.nonempty() ? (v ? t.data('lr').w : t.data('tb').h) : 0; };
+  const mw = Math.max(...kids.map(k => k.data('w'))), mh = Math.max(...kids.map(k => k.data('h')));
+  const Ra = n * ((v ? mh : mw) + gap) / 2, Rc = Math.max(v ? Ra : Ra * 0.45, 70 + Math.max(0, ...kids.map(tagOf)));
+  const W = v ? 2 * Rc + mw : 2 * Ra + mw, H = v ? 2 * Ra + mh : 2 * Rc + mh, P2 = PAD + 0.12 * Math.min(W, H);
+  const far = {R: [1, 0], L: [-1, 0], T: [0, -1], B: [0, 1]}[dir];
+  // the frame keeps its whole round shape although only the far half holds nodes
+  const bias = {R: ['min-width-bias-left', 100], L: ['min-width-bias-right', 100], T: ['min-height-bias-bottom', 100], B: ['min-height-bias-top', 100]}[dir];
+  const place = (pos, fx, fy) => {
+    plain(z); z.style({padding: P2, 'corner-radius': Math.min(W, H) / 2 + P2, [v ? 'min-width' : 'min-height']: v ? W : H, [bias[0]]: bias[1] + '%'});
+    const cx = fx + P2 + W / 2, cy = fy + (dir === 'B' ? 0 : TITLE) + P2 + H / 2;
+    kids.forEach((k, i) => { const u = -1 + 2 * (i + 0.5) / n, d = Rc * Math.sqrt(1 - u * u);
+      pos[k.id()] = v ? {x: cx + far[0] * d, y: cy + u * Ra} : {x: cx + u * Ra, y: cy + far[1] * d}; }); };
+  return {z, dir, FW: W + 2 * P2, FH: H + 2 * P2 + TITLE, place};
 }
 const visibleZones = g => g.cy.nodes('.zone').filter(z => !z.hasClass('off'));
 const tagRoom = (g, k, d) => { let w = 0; g.cy.nodes('.tag').forEach(t => { if (!t.hasClass('off')) w = Math.max(w, t.data(k)[d]); }); return w ? w + 14 : 0; };
@@ -245,8 +273,8 @@ function around(g, dirs) {
   const allowed = zs.map(z => { const n = z.data('name'), a = arrOf(g, z);
     let pin = (g.pin && g.pin[n]) || (g.D.sides && g.D.sides[n]);  // pinned by a right-click, or by the diagram
     if (pin && !dirs.includes(pin)) pin = {L: 'T', R: 'B', T: 'L', B: 'R'}[pin];
-    if (pin && dirs.includes(pin) && (a === 'auto' || a === 'sq' || (a[0] === 'c') === 'RL'.includes(pin))) return [pin];
-    const ok = [...dirs].filter(d => a === 'auto' || a === 'sq' || (a[0] === 'c') === 'RL'.includes(d));
+    if (pin && dirs.includes(pin) && (a === 'auto' || a === 'sq' || a === 'ci' || (a[0] === 'c') === 'RL'.includes(pin))) return [pin];
+    const ok = [...dirs].filter(d => a === 'auto' || a === 'sq' || a === 'ci' || (a[0] === 'c') === 'RL'.includes(d));
     return ok.length ? ok : [...dirs]; });
   const B = zs.map((z, i) => Object.fromEntries(allowed[i].map(d => [d, block(g, z, d)])));
   const tv = tagRoom(g, 'tb', 'h'), dx = S.data('w') / 2 + 56 + tagRoom(g, 'lr', 'w'), dy = S.data('h') / 2 + 56 + tv;
@@ -477,7 +505,14 @@ function showTip(g, t, ev) {
 
 // Cytoscape keeps the position of its box: when the page moves under a diagram (a fold opens above it), clicks
 // land off the pointer. It re-reads the box each time the pointer comes in.
-function sync(g) { g.el.querySelector('.gwrap').addEventListener('mouseenter', () => g.cy.resize()); }
+function sync(g) { g.el.querySelector('.gwrap').addEventListener('mouseenter', () => g.cy.resize()); crisp(g.cy); }
+// Cytoscape caches each node as a bitmap per zoom level (a power of 2) and builds a level by shrinking the one above:
+// after a zoom in and out, the bold text of the cards (SVG images) goes soft. Our diagrams are small (< 100 nodes):
+// every node is drawn straight from its SVG at the current zoom.
+// ponytail: patches the renderer's private texture caches (Cytoscape 3.34); on an upgrade check they still exist.
+function crisp(cy) {
+  try { const d = cy.renderer().data; d.lyrTxrCache.getLayers = () => null; d.eleTxrCache.getElement = () => null; } catch (e) { /* cached, soft */ }
+}
 function initGraph(el) {
   const g = {el, D: JSON.parse(el.querySelector('script').textContent), arr: {}, pin: null, side: {}, hidden: new Set(), dirty: true, draw: drawGraph};
   GRAPHS.push(g);

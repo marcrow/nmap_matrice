@@ -66,3 +66,22 @@ Done:
 Not done, open:
 - **A square of Interfaces for the Machine**: with Zones on both sides, the edges of the inner Interfaces would cross the outer ones.
 - **Round Zone frames**: a bonus.
+
+**2026-11-06, third pass (user feedback).**
+
+The user's points:
+- at some zoom levels, bold text goes blurry;
+- the gaps between columns are too wide: they should depend on that column's ports, and ports should wrap after a set length;
+- try round Zones.
+
+Done:
+- **Sharp text**: Cytoscape keeps a bitmap of each node per zoom level (a power of 2) and builds a level by shrinking the one above. After a zoom in and out, the card text (SVG images) goes soft. The renderer's texture caches are now off (`crisp`, a patch on Cytoscape 3.34 private API, guarded): every node is drawn from its SVG at the current zoom.
+- **Spacing and wrapping**:
+  - each line is as wide as its widest node;
+  - the gap before a line holds only that line's port tags;
+  - tags beside a node wrap at 100 px.
+- **Round Zone** ("circle" in the right-click menu and in Options):
+  - a rounded frame, the nodes on the half away from the Source, one per height (one per column above or below);
+  - edges come in at right angles through the empty half and cross nothing;
+  - a parent node cannot be an ellipse in Cytoscape, so the frame is a rounded rectangle (`corner-radius`) kept whole by `min-width` / `min-height` with a bias.
+- **Frame-style bug**: the frame style is set when the side is chosen, no longer while every side is being tried. The last side tried used to win.
