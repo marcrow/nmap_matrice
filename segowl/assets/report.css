@@ -146,6 +146,9 @@ a.tile[onclick*="scroll"]:hover{border-color:var(--cyan)}
 .gsnap button{display:flex;flex-direction:column;align-items:center;gap:2px;border:1px solid transparent;background:none;padding:5px 6px;border-radius:6px;color:#33415c;cursor:pointer}
 .gsnap svg{fill:#e8eef6;stroke:#6B7C93;stroke-width:1.2}.gsnap svg text{fill:#33415c}
 .gsnap button:hover{background:#f0fbff;border-color:#bfe9f7}.gsnap button.on{background:#e6f8ff;border-color:#00C8FF}.gsnap button.on svg{fill:#bfefff;stroke:#0B1F33}
+.gsnap svg .src{fill:#0B1F33;stroke:none}
+.gact .gsnap,.ggroups .gsnap{display:flex;flex-wrap:wrap;gap:2px}.ggroups .gsnap{max-width:330px}
+.gact .gsnap button,.ggroups .gsnap button{padding:3px 5px;font-size:10.5px;font-weight:400;max-width:78px;text-align:center;line-height:1.15}
 .mbar{display:inline-block;width:14px;height:12px;border:1px solid #3a4e9d;border-left:4px solid #3a4e9d;border-radius:2px;background:#f3f4fa}
 /* Per target */
 .pick input[type=search]{width:320px;font-weight:400}

@@ -6,14 +6,23 @@ const COL = {deny: '#dc2626', undeclared: '#f59e0b', allow: '#16a34a'}, GREY = '
 const RANK = {deny: 3, undeclared: 2, allow: 1};
 const ICON = {deny: ['✕', '#dc2626', '#fff'], undeclared: ['?', '#f59e0b', '#3b2600'], allow: ['✓', '#16a34a', '#fff']};
 const WORD = {deny: 'Finding: denied by the Flow Policy', undeclared: 'undeclared', allow: 'allowed'};
-const ARR = {auto: 'auto', c1: 'one column', c2: 'two columns', r1: 'one row', r2: 'two rows', sq: 'square', ci: 'circle'};
+const ARR = {auto: 'auto', c1: 'one column', c2: 'two columns', r1: 'one row', r2: 'two rows', sq: 'square', ci: 'circle', arc: 'half moon'};
+const FREE = ['auto', 'sq', 'ci', 'arc'];  // arrangements that fit beside the Source as well as above or below it
 // Snap-layout style icons of the right-click menu (34 x 24).
 const SR = (x, y, w, h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1.5"/>`;
 const ARR_ICON = {auto: SR(3, 3, 28, 18) + '<text x="17" y="15.5" font-size="8" font-weight="700" text-anchor="middle" stroke="none">auto</text>',
   c1: SR(13, 3, 8, 18), c2: SR(8, 3, 8, 18) + SR(18, 3, 8, 18), r1: SR(3, 8, 28, 8), r2: SR(3, 4, 28, 7) + SR(3, 13, 28, 7),
-  sq: SR(9, 3, 7, 7) + SR(18, 3, 7, 7) + SR(9, 13, 7, 7) + SR(18, 13, 7, 7), ci: '<circle cx="17" cy="12" r="9"/>', col: SR(13, 3, 8, 18), row: SR(3, 8, 28, 8)};
+  sq: SR(9, 3, 7, 7) + SR(18, 3, 7, 7) + SR(9, 13, 7, 7) + SR(18, 13, 7, 7), ci: '<circle cx="17" cy="12" r="9"/>',
+  arc: '<path d="M11 3a12 9 0 0 1 0 18" fill="none" stroke-width="5" stroke-linecap="round"/>', col: SR(13, 3, 8, 18), row: SR(3, 8, 28, 8)};
 const MARR = {col: 'one column', row: 'one row'};  // a Machine in the centre
 const LAYOUTS = {sides: 'Zones facing the Source', lr: 'Zones on both sides', ring: 'Zones around the Source'};
+const SRC = '<rect x="13.5" y="9.5" width="7" height="5" rx="1" class="src"/>';
+const LAY_ICON = {sides: SR(11, 1.5, 12, 5) + SR(11, 17.5, 12, 5) + SR(2, 7, 7, 10) + SR(25, 7, 7, 10) + SRC,
+  lr: SR(2, 3, 8, 18) + SR(24, 3, 8, 18) + SRC,
+  ring: [0, 60, 120, 180, 240, 300].map(d => SR(15 + 12 * Math.cos(d * Math.PI / 180), 10 + 8.5 * Math.sin(d * Math.PI / 180), 4, 4)).join('') + SRC};
+// Icon tiles (snap-layout style): one per choice, the current one marked; data-k names the option.
+const tiles = (k, choices, icons, cur) => `<div class="gsnap" data-k="${k}">` + Object.entries(choices).map(([v, l]) =>
+  `<button type="button" data-v="${v}" title="${l}"${cur === v ? ' class="on"' : ''}><svg viewBox="0 0 34 24" width="34" height="24">${icons[v]}</svg><span>${l}</span></button>`).join('') + '</div>';
 const gesc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 const gctx = document.createElement('canvas').getContext('2d');
 const tw = (t, size, w = 400) => (gctx.font = `${w} ${size}px ${FONT}`, gctx.measureText(t).width);
@@ -215,6 +224,7 @@ function block(g, z, dir) {
   const cmp = (a, b) => { const p = a.data('t'), q = b.data('t');
     return p.ord !== undefined && q.ord !== undefined && p.ord !== q.ord ? p.ord - q.ord : key(a).localeCompare(key(b)); };
   const kids = z.children().sort(cmp);
+  if (arrOf(g, z) === 'arc') return arcBlock(g, z, dir, kids);
   const lines = Math.min(linesFor(g, z, kids.length, v), kids.length);
   // Each line as wide as its widest node; the gap before a line holds that line's port tags ("ports on the
   // edges"), beside its nodes or under them: no wider than they need.
@@ -241,6 +251,23 @@ function block(g, z, dir) {
   };
   return {z, dir, FW: W + 2 * P, FH: H + 2 * P + TITLE, place};
 }
+// Half moon: the nodes on an arc bulging away from the Source, one per height (one per column above or below it),
+// in an oval frame around the arc only: edges come in at right angles and cross no node.
+function arcBlock(g, z, dir, kids) {
+  const n = kids.length, v = dir === 'R' || dir === 'L', gap = v ? 12 : 16;
+  const tagOf = k => { const t = g.cy.$id('p:' + k.id()); return t.nonempty() ? (v ? t.data('lr').w : t.data('tb').h) + 14 : 0; };
+  const mw = Math.max(...kids.map(k => k.data('w'))), mh = Math.max(...kids.map(k => k.data('h')));
+  const Ra = n * ((v ? mh : mw) + gap) / 2, depth = n < 3 ? 0 : Math.max(40, Ra * 0.5) + Math.max(0, ...kids.map(tagOf));
+  const W = v ? depth + mw : 2 * Ra, H = v ? 2 * Ra : depth + mh, P = PAD + 0.22 * Math.min(W, H), far = dir === 'R' || dir === 'B' ? 1 : -1;
+  const place = (pos, fx, fy) => {
+    z.style({padding: P, 'corner-radius': Math.min(W, H) / 2 + P});
+    const x0 = fx + P, y0 = fy + (dir === 'B' ? 0 : TITLE) + P;
+    kids.forEach((k, i) => { const u = -1 + 2 * (i + 0.5) / n, d = depth * Math.sqrt(1 - u * u), w = k.data('w'), h = k.data('h');
+      pos[k.id()] = v ? {x: far > 0 ? x0 + w / 2 + d : x0 + W - w / 2 - d, y: y0 + Ra + u * (Ra - (mh + gap) / 2)}
+        : {x: x0 + Ra + u * (Ra - (mw + gap) / 2), y: far > 0 ? y0 + h / 2 + d : y0 + H - h / 2 - d}; });
+  };
+  return {z, dir, FW: W + 2 * P, FH: H + 2 * P + TITLE, place};
+}
 const visibleZones = g => g.cy.nodes('.zone').filter(z => !z.hasClass('off'));
 const tagRoom = (g, k, d) => { let w = 0; g.cy.nodes('.tag').forEach(t => { if (!t.hasClass('off')) w = Math.max(w, t.data(k)[d]); }); return w ? w + 14 : 0; };
 const midOrder = (bs, size) => { const o = []; [...bs].sort((p, q) => size(q) - size(p) || p.z.id().localeCompare(q.z.id()))
@@ -258,8 +285,8 @@ function around(g, dirs) {
     if (fixed) return [dirs.includes(fixed) ? fixed : {L: 'T', R: 'B', T: 'L', B: 'R'}[fixed]];
     let pin = g.pin && g.pin[n];
     if (pin && !dirs.includes(pin)) pin = {L: 'T', R: 'B', T: 'L', B: 'R'}[pin];
-    if (pin && dirs.includes(pin) && (a === 'auto' || a === 'sq' || a === 'ci' || (a[0] === 'c') === 'RL'.includes(pin))) return [pin];
-    const ok = [...dirs].filter(d => a === 'auto' || a === 'sq' || a === 'ci' || (a[0] === 'c') === 'RL'.includes(d));
+    if (pin && dirs.includes(pin) && (FREE.includes(a) || (a[0] === 'c') === 'RL'.includes(pin))) return [pin];
+    const ok = [...dirs].filter(d => FREE.includes(a) || (a[0] === 'c') === 'RL'.includes(d));
     return ok.length ? ok : [...dirs]; });
   const B = zs.map((z, i) => Object.fromEntries(allowed[i].map(d => [d, block(g, z, d)])));
   const tv = tagRoom(g, 'tb', 'h'), dx = S.data('w') / 2 + 56 + tagRoom(g, 'lr', 'w'), dy = S.data('h') / 2 + 56 + tv;
@@ -419,23 +446,24 @@ function controls(g) {
   const box = (k, label) => `<label><input type="checkbox" data-k="${k}"${O[k] ? ' checked' : ''}>${label}</label>`;
   // Only the layouts that change this diagram: a Machine centre has no "facing" layout, Pivot Machines pin theirs.
   const lays = g.D.sides ? {} : g.D.center.ifaces ? {lr: LAYOUTS.lr, ring: LAYOUTS.ring} : LAYOUTS;
-  const pick = Object.keys(lays).length ? `<label class="pick">Layout <select class="glay">${
-    Object.entries(lays).map(([k, l]) => `<option value="${k}"${layoutOf(g) === k ? ' selected' : ''}>${l}</option>`).join('')}</select></label>` : '';
+  const pick = Object.keys(lays).length ? `<span class="pick">Layout ${tiles('lay', lays, LAY_ICON, layoutOf(g))}</span>` : '';
   g.el.insertAdjacentHTML('afterbegin',
     `<div class="gbar"><div class="gzones"></div><span class="gact">${pick}`
     + '<button class="btn greset">Reset layout</button><button class="btn gpng">Export PNG</button></span></div>'
     + `<details class="gopts"${O.open ? ' open' : ''}><summary>Options</summary><div class="ggroups">`
     + `<fieldset><legend>Edges</legend>${radio('edges', 'iface', 'one per Interface')}${radio('edges', 'zone', 'one per Zone')}</fieldset>`
     + `<fieldset><legend>Ports</legend>${radio('ports', 'nodes', 'in the nodes')}${radio('ports', 'edges', 'on the edges')}</fieldset>`
-    + `<fieldset><legend>Zone arrangement</legend><select data-k="arr">${Object.entries(ARR).map(([k, l]) => `<option value="${k}"${O.arr === k ? ' selected' : ''}>${l}</option>`).join('')}</select>`
+    + `<fieldset><legend>Zone arrangement</legend>${tiles('arr', ARR, ARR_ICON, O.arr)}`
     + '<div class="hint">Auto: beside the Source 1 column up to 8 Interfaces, 2 up to 16, 3 beyond; above or below it 1 row up to 6, '
     + '2 up to 12, 3 beyond; ports on the edges, 1. Right-click a Zone to arrange it alone'
     + (g.D.center.ifaces ? ', the Machine to put its Interfaces in a row or a column.' : '.') + '</div></fieldset>'
     + `<fieldset><legend>Machine</legend>${box('mcol', 'colour bar')}${box('mtie', 'dotted link')}`
     + '<div class="hint">Hover an Interface: the other Interfaces of its Machine are ringed.</div></fieldset></div></details>');
   const q = s => g.el.querySelector(s), redrawAll = () => { saveO(); syncPanels(); GRAPHS.forEach(x => { x.dirty = true; }); drawVisibleGraphs(document); };
-  if (q('.glay')) q('.glay').onchange = e => { O.lay = e.target.value; g.pin = null; redrawAll();
-    GRAPHS.forEach(x => { const l = x.el.querySelector('.glay'); if (l && x.cy) l.value = layoutOf(x); }); };
+  g.el.querySelectorAll('.gsnap[data-k]').forEach(t => { t.onclick = e => { const b = e.target.closest('button'); if (!b) return;
+    O[t.dataset.k] = b.dataset.v;
+    if (t.dataset.k === 'lay') g.pin = null; else GRAPHS.forEach(x => { x.arr = {}; x.pin = null; });
+    redrawAll(); }; });
   q('.greset').onclick = () => { g.arr = {}; g.pin = null; g.marr = 'col'; runLayout(g); };
   q('.gpng').onclick = () => { const a = document.createElement('a');
     a.href = URL.createObjectURL(g.cy.png({full: true, scale: 2, bg: '#ffffff', output: 'blob'})); a.download = g.D.file + '.png'; a.click(); };
@@ -451,8 +479,9 @@ function controls(g) {
 
 // The options are the same for every diagram: each panel shows the current ones.
 function syncPanels() {
-  document.querySelectorAll('.ggroups [data-k]').forEach(i => { const v = O[i.dataset.k];
-    if (i.type === 'radio') i.checked = i.value === v; else if (i.type === 'checkbox') i.checked = !!v; else i.value = v; });
+  document.querySelectorAll('.ggroups input[data-k]').forEach(i => { const v = O[i.dataset.k]; i.checked = i.type === 'radio' ? i.value === v : !!v; });
+  GRAPHS.forEach(g => g.el.querySelectorAll('.gsnap[data-k]').forEach(t => { const v = t.dataset.k === 'lay' ? layoutOf(g) : O[t.dataset.k];
+    t.querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.v === v)); }));
 }
 // Right-click menu at the pointer: a title, one button per choice (the current one marked).
 function menu(g, ev, title, choices, cur, pick) {

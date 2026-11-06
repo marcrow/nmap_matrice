@@ -105,3 +105,21 @@ Done:
   - a diagram's own sides (`D.sides`) now always hold, whatever the arrangement; before, "one row" / "two rows" dropped them and the layout could swap them;
   - the Zone checkboxes follow the pinned sides (Reached from first);
   - checked headless: every arrangement, every Pivot Machine of demo and mission-lab.
+
+**2026-11-06, fifth pass (user feedback).**
+
+The user asked:
+- to keep the half moon as a shape of its own;
+- for icons on the Layout choice and in Zone arrangement, as in the right-click menu.
+
+Done:
+- **Half moon** (`arc`, `arcBlock`):
+  - the nodes on an arc bulging away from the Source, one per height (one per column above or below);
+  - an oval frame around the arc only, not a whole circle;
+  - edges at right angles, crossing no node;
+  - as long as one row / one column.
+- **`FREE`**: the arrangements that fit on any side (auto, square, circle, half moon).
+- **Layout and Zone arrangement**: icon tiles (`tiles`), like the right-click menu:
+  - Layout: the Source in navy, with the Zone frames facing it, on both sides, or around it;
+  - `syncPanels` marks the current tile in every diagram.
+- Checked headless: every tile clicked, Pivot sides with every arrangement, the sweep on demo and mission-lab.
