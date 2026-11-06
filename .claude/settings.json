@@ -1,5 +1,19 @@
 {
   "enabledPlugins": {
     "ponytail@ponytail": true
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/spec-doc-check.sh",
+            "statusMessage": "Checking whether the docs need an update"
+          }
+        ]
+      }
+    ]
   }
 }

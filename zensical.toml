@@ -1,0 +1,62 @@
+[project]
+site_name = "SegOWL"
+site_description = "Network segmentation testing, from nmap to the report"
+site_url = "https://marcrow.github.io/segowl/"
+repo_url = "https://github.com/marcrow/segowl"
+repo_name = "marcrow/segowl"
+copyright = "MIT license"
+docs_dir = "docs"
+site_dir = "site"
+exclude_docs = """
+/agents/
+"""
+nav = [
+  { "Home" = "index.md" },
+  { "Guide" = [
+    "guide/getting-started.md",
+    "guide/philosophy.md",
+    "guide/field-guide.md",
+    "guide/mission-folder.md",
+    "guide/scanning.md",
+    "guide/auditor-kit.md",
+    "guide/flow-policy.md",
+    "guide/report.md",
+    "guide/lab.md",
+    "guide/shortcuts.md",
+  ] },
+  { "Design decisions" = [
+    "adr/index.md",
+    "adr/0001-source-view-most-permissive-wins.md",
+    "adr/0002-flow-policy-undeclared-by-default.md",
+    "adr/0003-mission-folder-is-the-only-state.md",
+    "adr/0004-local-app-on-the-standard-library.md",
+    "adr/0005-cytoscape-for-network-diagrams.md",
+  ] },
+]
+
+[project.theme]
+logo = "img/logo.svg"
+favicon = "img/logo.svg"
+features = [
+  "navigation.tabs",
+  "navigation.sections",
+  "navigation.footer",
+  "content.code.copy",
+  "search.highlight",
+]
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+primary = "blue grey"
+accent = "amber"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+primary = "blue grey"
+accent = "amber"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to light mode"
