@@ -22,6 +22,7 @@ nav = [
     "guide/flow-policy.md",
     "guide/report.md",
     "guide/lab.md",
+    "guide/team-server.md",
     "guide/shortcuts.md",
   ] },
   { "Design decisions" = [
