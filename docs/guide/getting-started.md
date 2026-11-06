@@ -60,6 +60,8 @@ python3 -m segowl -i inventory.csv -s ./scans/ -o ./report/   # explicit paths
 By default the app listens on loopback only, without login. To share it with a team:
 
 ```bash
-python3 -m segowl user add alice     # writes ~/.config/segowl/users (scrypt): login is now required
+python3 -m segowl user add alice     # login is now required
 python3 -m segowl serve mission/ --host 0.0.0.0 --cert cert.pem --key key.pem   # HTTPS
 ```
+
+Accounts, certificates, sessions: [Team server and login](team-server.md).
