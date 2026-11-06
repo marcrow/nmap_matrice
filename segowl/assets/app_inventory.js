@@ -147,9 +147,13 @@ function buildGrid() {
     columns: columns(),
   });
   table.on("tableBuilt", () => { H = undoable(state, restore); analyse(); refreshSide(); status("Loaded", "ok"); });
+  // Delete on a range edits its cells one by one: redrawing in the middle of that loop detached the next cells
+  // (TypeError in Tabulator, then a blank grid after Ctrl+Z). One change and one redraw once the gesture is over.
+  let edited = null;
   table.on("cellEdited", cell => {
     if (cell.getField() === "name") machineRenamePrompt(cell);
-    changed(`${cell.getField()} edited`); table.redraw(true);
+    edited ||= new Set(); edited.add(cell.getField());
+    setTimeout(() => { if (!edited) return; changed(`${[...edited].join(", ")} edited`); edited = null; table.redraw(true); });
   });
   table.on("cellClick", (e, cell) => { if (e.ctrlKey || e.metaKey || e.shiftKey || !cell.getField() || selCells().length > 1) return; cell.edit(true); });
   table.on("rangeChanged", () => setTimeout(placeHandle)); table.on("rangeAdded", () => setTimeout(placeHandle));
