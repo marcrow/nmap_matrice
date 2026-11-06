@@ -22,6 +22,7 @@ class HostRecord:
     """What one Scan saw of one target IP."""
 
     state: str | None = None
+    name: str = ""  # the name nmap resolved (PTR), see host_name()
     ports: list[tuple[int, str, str]] = field(default_factory=list)  # (port, proto, state) listed by nmap
     ignored: list[tuple[str, int]] = field(default_factory=list)  # (state, count) of ports nmap grouped
     rest: list[tuple[str, Ranges, str]] = field(
@@ -58,6 +59,11 @@ class Scan:
         base = os.path.basename(self.path)
         in_folder = os.path.basename(os.path.dirname(self.path)) == self.source
         return f"{self.source}/{base}" if in_folder else base
+
+
+def host_name(name: str | None) -> str:
+    """A resolved name as SegOWL compares it: lower case, no trailing dot (`DC01.Corp.` -> `dc01.corp`)."""
+    return (name or "").strip().rstrip(".").lower()
 
 
 def _best_formats(paths: list[str]) -> list[str]:
@@ -135,6 +141,8 @@ def parse_xml(path: str, source: str) -> Scan:
             continue
         rec = scan.hosts.setdefault(a.get("addr"), HostRecord())
         rec.state = (st.get("state") if st is not None else None) or rec.state
+        names = sorted(host.findall("hostnames/hostname"), key=lambda h: h.get("type") != "PTR")
+        rec.name = rec.name or next((n for h in names if (n := host_name(h.get("name")))), "")
         ports = host.find("ports")
         if ports is None:
             continue
@@ -165,7 +173,7 @@ def _read_header(path: str, scan: Scan) -> None:
         scan.pn = bool(_PN.search(scan.command))
 
 
-_GNMAP_HOST = re.compile(r"Host:\s+(\S+)\s+\([^)]*\)\s+(.*)")
+_GNMAP_HOST = re.compile(r"Host:\s+(\S+)\s+\(([^)]*)\)\s+(.*)")
 _GNMAP_IGNORED = re.compile(r"(\w+)\s+\((\d+)\)")
 
 
@@ -179,8 +187,9 @@ def parse_gnmap(path: str, source: str) -> Scan:
         m = _GNMAP_HOST.match(line)
         if not m:
             continue
-        ip, rest = m.group(1), m.group(2)
+        ip, rest = m.group(1), m.group(3)
         rec = scan.hosts.setdefault(ip, HostRecord())
+        rec.name = rec.name or host_name(m.group(2))
         if rest.startswith("Status:"):
             rec.state = rest.split("Status:", 1)[1].strip().lower()
         elif rest.startswith("Ports:"):
@@ -206,12 +215,13 @@ def parse_nmap_classic(path: str, source: str) -> Scan:
     scan = Scan(path, source)
     _read_header(path, scan)
     cur: HostRecord | None = None
-    ip_re = re.compile(r"Nmap scan report for (?:.*\()?(\d+\.\d+\.\d+\.\d+)\)?")
+    ip_re = re.compile(r"Nmap scan report for (?:(\S+) \()?(\d+\.\d+\.\d+\.\d+)\)?")
     port_re = re.compile(r"^(\d+)/(\w+)\s+([\w|]+)")
     for line in open(path, encoding="utf-8", errors="replace"):
         m = ip_re.search(line)
         if m:
-            cur = scan.hosts.setdefault(m.group(1), HostRecord(state="up"))
+            cur = scan.hosts.setdefault(m.group(2), HostRecord(state="up"))
+            cur.name = cur.name or host_name(m.group(1))
             continue
         pm = port_re.match(line.strip())
         if cur and pm:

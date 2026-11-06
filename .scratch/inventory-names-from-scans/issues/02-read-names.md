@@ -1,6 +1,6 @@
 # Read the resolved names from the Scans and serve the proposals
 
-Status: ready-for-agent
+Status: done
 Blocked by: 01
 Spec: ../spec.md
 
@@ -17,3 +17,5 @@ Spec: ../spec.md
 - an IP down or absent in every Scan is not proposed as "not in the inventory"
 
 ## Comments
+
+2026-11-06 done: `HostRecord.name` (XML PTR over user, gnmap, .nmap; `host_name()` lower case, no trailing dot); `GET /api/scan-names` = `Mission.scan_names()`: `names` ip -> {name: [Sources]}, `seen` ip -> {verdict, by} for ALIVE or better, `scans` count. The Flow Policy references come from `/api/inventory` `refs` (already there). Tests: `test_resolved_names_are_read_in_every_format`, `test_scan_names_give_names_by_source_and_only_the_ips_that_answered`.

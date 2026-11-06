@@ -33,7 +33,7 @@ from segowl import cli, kits
 from segowl import mission_files as mf
 from segowl import scan_profiles as sp
 from segowl.inventory import BASE_COLUMNS, load_inventory
-from segowl.nmap import SCAN_EXT_PRIORITY
+from segowl.nmap import SCAN_EXT_PRIORITY, discover_scans, parse_scan
 from segowl.policy import _kind as policy_kind
 from segowl.policy import _ports as policy_ports
 from segowl.policy import load_policy
@@ -41,6 +41,7 @@ from segowl.port_groups import DEFAULTS as GROUP_DEFAULTS
 from segowl.port_groups import load_port_groups
 from segowl.ports import parse_port_set
 from segowl.scan_profiles import NAME_RE
+from segowl.verdict import ALIVE, VERDICT_NAME, classify
 
 ASSETS = Path(__file__).parent / "assets"
 LOCK = threading.RLock()  # ponytail: one lock for regeneration and saves, per-file locks if it ever bites
@@ -648,6 +649,32 @@ class Mission:
         ]
         return {"sources": out, "profiles": profiles, "candidates": candidates}
 
+    def scan_names(self) -> dict:
+        """What the Scans say of each IP, for the inventory's "Names from Scans" (nothing stored, ADR-0003).
+
+        names: ip -> {resolved name: [Sources]}; seen: ip -> {verdict, by} for the IPs that answered
+        (ALIVE or better), so the editor can offer the ones missing from the inventory.
+        """
+        names: dict[str, dict[str, list[str]]] = {}
+        seen: dict[str, dict] = {}
+        n = 0
+        if self.file("scans").is_dir():
+            for src, paths in discover_scans(str(self.file("scans"))).items():
+                for path in paths:
+                    scan, n = parse_scan(path, src), n + 1
+                    for ip, rec in scan.hosts.items():
+                        if rec.name and src not in (by := names.setdefault(ip, {}).setdefault(rec.name, [])):
+                            by.append(src)
+                        v = classify(rec, scan.pn).verdict
+                        if v < ALIVE:
+                            continue
+                        s = seen.setdefault(ip, {"v": v, "by": []})
+                        s["v"] = max(s["v"], v)
+                        if src not in s["by"]:
+                            s["by"].append(src)
+        seen_out = {ip: {"verdict": VERDICT_NAME[s["v"]], "by": s["by"]} for ip, s in seen.items()}
+        return {"scans": n, "names": names, "seen": seen_out}
+
     def source_dir(self, src: str) -> Path:
         ipaddress.ip_address(src)  # ValueError on anything else: no path tricks
         return self.file("scans") / src
@@ -1021,6 +1048,7 @@ def make_handler(mission: Mission, users_file: Path, secure: bool, allowed_hosts
                 "/api/labels": lambda: self._json(mission.labels()),
                 "/api/ports": lambda: self._json(search(q.get("q", [""])[0])),
                 "/api/scans": lambda: self._json(mission.scans()),
+                "/api/scan-names": lambda: self._json(mission.scan_names()),
                 "/api/script": lambda: self._download(
                     f"segowl-{q.get('src', [''])[0]}-{q.get('profile', [''])[0]}.sh",
                     mission.script(q.get("src", [""])[0], q.get("profile", [""])[0]).encode(),

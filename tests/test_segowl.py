@@ -330,3 +330,24 @@ def test_rebound_gain_bypass_nothing_new_and_partial():
     ]
     reached = [(lk["from"], lk["to"]) for n in g["nodes"] if n["zone"] == "Reached from" for lk in n["links"]]
     assert reached == [("A", "10.0.1.9")]
+
+
+def test_resolved_names_are_read_in_every_format(tmp_path):
+    xml = tmp_path / "a.xml"
+    xml.write_text(
+        '<nmaprun args="nmap -sT 10.0.0.1 10.0.0.2 10.0.0.3"><host><status state="up"/>'
+        '<address addr="10.0.0.1" addrtype="ipv4"/><hostnames><hostname name="typed" type="user"/>'
+        '<hostname name="DC01.Corp.local." type="PTR"/></hostnames></host>'
+        '<host><status state="up"/><address addr="10.0.0.2" addrtype="ipv4"/><hostnames/></host></nmaprun>'
+    )
+    gnmap = tmp_path / "a.gnmap"
+    gnmap.write_text("Host: 10.0.0.1 (FW-01.corp.local)\tStatus: Up\nHost: 10.0.0.2 ()\tStatus: Up\n")
+    classic = tmp_path / "a.nmap"
+    classic.write_text("Nmap scan report for web-01.corp.local (10.0.0.1)\nNmap scan report for 10.0.0.2\n")
+    hosts = {p.suffix: parse_scan(str(p), SRC).hosts for p in (xml, gnmap, classic)}
+    names = {ext: {ip: r.name for ip, r in h.items()} for ext, h in hosts.items()}
+    assert names == {
+        ".xml": {"10.0.0.1": "dc01.corp.local", "10.0.0.2": ""},  # PTR over user, lower case, no trailing dot
+        ".gnmap": {"10.0.0.1": "fw-01.corp.local", "10.0.0.2": ""},
+        ".nmap": {"10.0.0.1": "web-01.corp.local", "10.0.0.2": ""},
+    }
